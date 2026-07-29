@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import {
   ArrowLeft,
   Mail,
@@ -13,8 +15,10 @@ import {
   BookOpen,
   GraduationCap,
   Users,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
-import { Logo } from "../components/Logo";
+import { HexLogo } from "../components/Logo";
 
 function NetworkBackground() {
   return (
@@ -69,7 +73,34 @@ function BadgeIcon({
 }
 
 export default function LoginPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+
+    setLoading(false);
+
+    if (result?.error) {
+      setError("Correo o contraseña incorrectos.");
+      return;
+    }
+
+    router.push("/dashboard");
+    router.refresh();
+  }
 
   return (
     <main className="flex min-h-screen flex-col bg-white">
@@ -77,11 +108,20 @@ export default function LoginPage() {
         {/* Left panel */}
         <div className="relative hidden overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-blue-100 lg:flex lg:flex-col lg:justify-center lg:px-16">
           <NetworkBackground />
+          <BadgeIcon icon={BookOpen} className="left-16 top-[38%]" />
           <BadgeIcon icon={GraduationCap} className="left-24 bottom-[18%]" />
           <BadgeIcon icon={Users} className="right-16 bottom-[24%]" />
 
           <div className="relative z-10 max-w-md">
-            <Logo />
+            <div className="flex items-center gap-3">
+              <HexLogo size={56} />
+              <div>
+                <div className="text-2xl font-bold text-[#0B1D4D]">Integra</div>
+                <div className="text-sm text-slate-500">
+                  Gestión inteligente para centros educativos
+                </div>
+              </div>
+            </div>
             <h1 className="mt-10 text-3xl font-extrabold text-[#0B1D4D]">
               Bienvenido de nuevo
             </h1>
@@ -108,8 +148,15 @@ export default function LoginPage() {
 
               <form
                 className="mt-7 space-y-5"
-                onSubmit={(e) => e.preventDefault()}
+                onSubmit={handleSubmit}
               >
+                {error && (
+                  <div className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    {error}
+                  </div>
+                )}
+
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                     Correo electrónico
@@ -118,6 +165,9 @@ export default function LoginPage() {
                     <Mail className="h-4 w-4 text-slate-400" />
                     <input
                       type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       placeholder="tu@email.com"
                       className="w-full text-sm text-slate-700 outline-none placeholder:text-slate-400"
                     />
@@ -132,6 +182,9 @@ export default function LoginPage() {
                     <Lock className="h-4 w-4 text-slate-400" />
                     <input
                       type={showPassword ? "text" : "password"}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
                       className="w-full text-sm text-slate-700 outline-none placeholder:text-slate-400"
                     />
@@ -161,9 +214,11 @@ export default function LoginPage() {
 
                 <button
                   type="submit"
-                  className="w-full rounded-lg bg-[#2F6FED] py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#255ed1]"
+                  disabled={loading}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#2F6FED] py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#255ed1] disabled:opacity-70"
                 >
-                  Iniciar sesión
+                  {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {loading ? "Entrando..." : "Iniciar sesión"}
                 </button>
               </form>
 
