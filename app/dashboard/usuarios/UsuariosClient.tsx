@@ -191,15 +191,21 @@ export function UsuariosClient({
                   <td className="py-3 pr-3">
                     <div className="flex items-center gap-2.5">
                       <div
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-bold ${avatarColor(
+                        className={`relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-bold ${avatarColor(
                           u.name
                         )}`}
                       >
-                        {u.avatarUrl ? (
+                        <span>{initials(u.name).toUpperCase()}</span>
+                        {u.avatarUrl && (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={u.avatarUrl} alt={u.name} className="h-full w-full object-cover" />
-                        ) : (
-                          initials(u.name).toUpperCase()
+                          <img
+                            src={u.avatarUrl}
+                            alt={u.name}
+                            className="absolute inset-0 h-full w-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
                         )}
                       </div>
                       <div>

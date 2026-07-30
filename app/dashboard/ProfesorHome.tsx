@@ -2,8 +2,14 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "./components/DashboardHeader";
 import { LockedCard } from "./components/LockedCard";
-import { CalendarWeekPreview } from "./components/CalendarWeekPreview";
-import { Calendar, ShieldCheck, FolderOpen, ArrowRight, Briefcase } from "lucide-react";
+import { AvisosSection } from "./components/AvisosSection";
+import {
+  ShieldCheck,
+  BookOpen,
+  Users,
+  MessageCircle,
+  CheckCircle2,
+} from "lucide-react";
 
 function startOfToday() {
   const d = new Date();
@@ -13,6 +19,12 @@ function startOfToday() {
 function endOfToday() {
   const d = new Date();
   d.setHours(23, 59, 59, 999);
+  return d;
+}
+function combineTodayTime(hhmm: string) {
+  const [h, m] = hhmm.split(":").map(Number);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
   return d;
 }
 
@@ -33,8 +45,6 @@ export async function ProfesorHome({
         <DashboardHeader
           title={`¡Bienvenido, ${userName}!`}
           subtitle="Aquí tienes tus actividades y recursos para hoy."
-          userName={userName}
-          role={role}
           notificationCount={0}
         />
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-24 text-center text-sm text-slate-400">
@@ -52,28 +62,16 @@ export async function ProfesorHome({
   const modules = school?.modules ?? [];
   const hasTutorias = modules.includes("tutorias");
   const hasGuardias = modules.includes("guardias");
-  const hasMaterial = modules.includes("material");
 
   const hoy = startOfToday();
   const finHoy = endOfToday();
+  const diaSemanaHoy = (() => {
+    const d = new Date().getDay();
+    return d === 0 ? 7 : d;
+  })();
 
-  const [tutoriasHoy, guardiasAsignadas, materialPendiente, tutoriasHoyList, guardiasHoyList] =
+  const [tutoriasHoyList, guardiasHoyList, eventosHoyList, horarioHoyList, horarioSemanal] =
     await Promise.all([
-      hasTutorias
-        ? prisma.tutoria.count({
-            where: { profesorId: userId, sessionDate: { gte: hoy, lte: finHoy } },
-          })
-        : Promise.resolve(0),
-      hasGuardias
-        ? prisma.guardia.count({
-            where: { profesorId: userId, status: { in: ["PROGRAMADA", "PENDIENTE"] } },
-          })
-        : Promise.resolve(0),
-      hasMaterial
-        ? prisma.materialRequest.count({
-            where: { profesorId: userId, status: { not: "APROBADO" } },
-          })
-        : Promise.resolve(0),
       hasTutorias
         ? prisma.tutoria.findMany({
             where: { profesorId: userId, sessionDate: { gte: hoy, lte: finHoy } },
@@ -86,139 +84,278 @@ export async function ProfesorHome({
             orderBy: { fecha: "asc" },
           })
         : Promise.resolve([]),
+      prisma.calendarEvento.findMany({
+        where: { userId, fecha: { gte: hoy, lte: finHoy } },
+        orderBy: { horaInicio: "asc" },
+      }),
+      prisma.horarioBloque.findMany({
+        where: { profesorId: userId, diaSemana: diaSemanaHoy },
+        orderBy: { horaInicio: "asc" },
+      }),
+      prisma.horarioBloque.findMany({
+        where: { profesorId: userId },
+        orderBy: [{ diaSemana: "asc" }, { horaInicio: "asc" }],
+      }),
     ]);
 
-  // Agenda de hoy: tutorías + guardias de hoy, combinadas y ordenadas por hora
+  // "Agenda del día": todo lo de hoy, combinado y ordenado por hora
   const agenda = [
     ...tutoriasHoyList.map((t) => ({
       id: `tutoria-${t.id}`,
       time: t.sessionDate,
-      title: `Tutoría · ${t.studentName}`,
-      subtitle: t.cicloModulo ?? "",
+      title: `Tutoría individual`,
+      subtitle: t.studentName,
       color: "bg-violet-500",
+      icon: MessageCircle,
+      duracion: "45 min" as string | null,
     })),
     ...guardiasHoyList.map((g) => ({
       id: `guardia-${g.id}`,
       time: g.fecha,
       title: g.turno,
       subtitle: g.ubicacion ?? "",
-      color: "bg-blue-500",
+      color: "bg-emerald-500",
+      icon: CheckCircle2,
+      duracion: "30 min" as string | null,
+    })),
+    ...eventosHoyList.map((e) => ({
+      id: `evento-${e.id}`,
+      time: combineTodayTime(e.horaInicio),
+      title: e.title,
+      subtitle: "",
+      color: "bg-pink-500",
+      icon: Users,
+      duracion: null as string | null,
+    })),
+    ...horarioHoyList.map((b) => ({
+      id: `horario-${b.id}`,
+      time: combineTodayTime(b.horaInicio),
+      title: `${b.asignatura}`,
+      subtitle: b.grupo ?? "",
+      color: "bg-amber-500",
+      icon: BookOpen,
+      duracion: null as string | null,
     })),
   ].sort((a, b) => a.time.getTime() - b.time.getTime());
+
+  const nextTutoria = tutoriasHoyList[0] ?? null;
+  const nextGuardia = guardiasHoyList[0] ?? null;
+  const nextEvento = eventosHoyList[0] ?? null;
+  const nextClase = horarioHoyList[0] ?? null;
+
+  const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
 
   return (
     <div>
       <DashboardHeader
         title={`¡Bienvenido, ${userName}!`}
         subtitle="Aquí tienes tus actividades y recursos para hoy."
-        userName={userName}
-        role={role}
         notificationCount={agenda.length}
       />
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* ¿Qué tengo hoy? */}
+      <div className="mb-2">
+        <h2 className="text-sm font-bold text-[#0B1D4D]">¿Qué tengo hoy?</h2>
+        <p className="text-xs text-slate-500">Aquí tienes tu próxima actividad en cada área clave.</p>
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Próxima tutoría */}
         {hasTutorias ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50">
-              <Calendar className="h-5 w-5 text-amber-600" />
-            </div>
-            <div className="mt-3 text-xs text-slate-500">Tutorías hoy</div>
-            <div className="text-2xl font-bold text-[#0B1D4D]">{tutoriasHoy}</div>
-            <Link
-              href="/dashboard/tutorias"
-              className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#2F6FED] hover:underline"
-            >
-              Ver agenda <ArrowRight className="h-3 w-3" />
-            </Link>
-          </div>
-        ) : (
-          <LockedCard title="Tutorías hoy" moduleName="Tutorías" />
-        )}
-
-        {hasGuardias ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-50">
-              <ShieldCheck className="h-5 w-5 text-violet-600" />
-            </div>
-            <div className="mt-3 text-xs text-slate-500">Guardias asignadas</div>
-            <div className="text-2xl font-bold text-[#0B1D4D]">{guardiasAsignadas}</div>
-            <Link
-              href="/dashboard/guardias"
-              className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#2F6FED] hover:underline"
-            >
-              Ver guardias <ArrowRight className="h-3 w-3" />
-            </Link>
-          </div>
-        ) : (
-          <LockedCard title="Guardias asignadas" moduleName="Guardias" />
-        )}
-
-        {hasMaterial ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
-              <FolderOpen className="h-5 w-5 text-[#2F6FED]" />
-            </div>
-            <div className="mt-3 text-xs text-slate-500">Material pendiente</div>
-            <div className="text-2xl font-bold text-[#0B1D4D]">{materialPendiente}</div>
-            <Link
-              href="/dashboard/material"
-              className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#2F6FED] hover:underline"
-            >
-              Ver pendientes <ArrowRight className="h-3 w-3" />
-            </Link>
-          </div>
-        ) : (
-          <LockedCard title="Material pendiente" moduleName="Material" />
-        )}
-      </div>
-
-      {/* Agenda de hoy */}
-      <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5">
-        <h3 className="mb-4 text-sm font-bold text-[#0B1D4D]">Agenda de hoy</h3>
-        {agenda.length === 0 ? (
-          <p className="text-sm text-slate-400">
-            No tienes tutorías ni guardias programadas para hoy.
-          </p>
-        ) : (
-          <div className="space-y-4">
-            {agenda.map((a) => (
-              <div key={a.id} className="flex items-start gap-3">
-                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${a.color}`} />
-                <div className="flex-1">
-                  <div className="text-sm font-semibold text-slate-700">{a.title}</div>
-                  {a.subtitle && <div className="text-xs text-slate-500">{a.subtitle}</div>}
-                </div>
-                <div className="shrink-0 text-xs font-medium text-slate-400">
-                  {a.time.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
-                </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50">
+                <MessageCircle className="h-4 w-4 text-[#2F6FED]" />
               </div>
-            ))}
+              <span className="text-xs font-semibold text-slate-500">Próxima tutoría</span>
+            </div>
+            {nextTutoria ? (
+              <>
+                <div className="mt-2 text-xl font-bold text-[#0B1D4D]">
+                  {nextTutoria.sessionDate.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
+                </div>
+                <p className="text-xs text-slate-500">
+                  {nextTutoria.cicloModulo ?? ""} · Tutoría individual
+                  <br />
+                  {nextTutoria.studentName}
+                </p>
+                <Link
+                  href="/dashboard/tutorias"
+                  className="mt-2 inline-flex items-center justify-center rounded-lg bg-[#2F6FED] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#255ed1]"
+                >
+                  Abrir tutoría
+                </Link>
+              </>
+            ) : (
+              <p className="mt-2 text-xs text-slate-400">Sin tutorías para hoy.</p>
+            )}
           </div>
+        ) : (
+          <LockedCard title="Próxima tutoría" moduleName="Tutorías" />
         )}
-      </div>
 
-      {/* Calendario de esta semana */}
-      <div className="mt-5">
-        <CalendarWeekPreview userId={userId} hasTutorias={hasTutorias} />
-      </div>
+        {/* Próxima guardia */}
+        {hasGuardias ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50">
+                <ShieldCheck className="h-4 w-4 text-emerald-600" />
+              </div>
+              <span className="text-xs font-semibold text-slate-500">Próxima guardia</span>
+            </div>
+            {nextGuardia ? (
+              <>
+                <div className="mt-2 text-xl font-bold text-[#0B1D4D]">
+                  {nextGuardia.fecha.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
+                </div>
+                <p className="text-xs text-slate-500">
+                  {nextGuardia.ubicacion ?? ""}
+                  <br />
+                  {nextGuardia.turno}
+                </p>
+                <Link
+                  href="/dashboard/guardias"
+                  className="mt-2 inline-flex items-center justify-center rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50"
+                >
+                  Ver mis guardias
+                </Link>
+              </>
+            ) : (
+              <p className="mt-2 text-xs text-slate-400">Sin guardias para hoy.</p>
+            )}
+          </div>
+        ) : (
+          <LockedCard title="Próxima guardia" moduleName="Guardias" />
+        )}
 
-      {/* Próximamente */}
-      <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50">
-            <Briefcase className="h-5 w-5 text-emerald-600" />
+        {/* Próximo evento */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-50">
+              <Users className="h-4 w-4 text-pink-600" />
+            </div>
+            <span className="text-xs font-semibold text-slate-500">Próximo evento</span>
           </div>
-          <div>
-            <h3 className="text-sm font-bold text-[#0B1D4D]">
-              Prácticas y seguimiento del alumnado
-            </h3>
-            <p className="text-xs text-slate-500">
-              Estamos construyendo el seguimiento del alumnado y los avisos
-              del centro. Próximamente aquí.
-            </p>
-          </div>
+          {nextEvento ? (
+            <>
+              <div className="mt-2 text-xl font-bold text-[#0B1D4D]">{nextEvento.horaInicio}</div>
+              <p className="text-xs text-slate-500">{nextEvento.title}</p>
+              <Link
+                href="/dashboard/calendario"
+                className="mt-2 inline-flex items-center justify-center rounded-lg border border-pink-200 px-3 py-1.5 text-xs font-semibold text-pink-600 hover:bg-pink-50"
+              >
+                Ver calendario
+              </Link>
+            </>
+          ) : (
+            <p className="mt-2 text-xs text-slate-400">Sin eventos para hoy.</p>
+          )}
         </div>
+
+        {/* Próxima clase */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50">
+              <BookOpen className="h-4 w-4 text-amber-600" />
+            </div>
+            <span className="text-xs font-semibold text-slate-500">Próxima clase</span>
+          </div>
+          {nextClase ? (
+            <>
+              <div className="mt-2 text-xl font-bold text-[#0B1D4D]">{nextClase.horaInicio}</div>
+              <p className="text-xs text-slate-500">
+                {nextClase.grupo ?? ""} · {nextClase.asignatura}
+              </p>
+              <Link
+                href="/dashboard/horario"
+                className="mt-2 inline-flex items-center justify-center rounded-lg border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-600 hover:bg-amber-50"
+              >
+                Ver clase
+              </Link>
+            </>
+          ) : (
+            <p className="mt-2 text-xs text-slate-400">Sin clases para hoy.</p>
+          )}
+        </div>
+      </div>
+
+      {/* Agenda del día + Horario fijo semanal */}
+      <div className="mt-5 grid gap-5 lg:grid-cols-2">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-[#0B1D4D]">Agenda del día</h3>
+            <Link
+              href="/dashboard/calendario"
+              className="text-xs font-semibold text-[#2F6FED] hover:underline"
+            >
+              Ver agenda completa
+            </Link>
+          </div>
+          {agenda.length === 0 ? (
+            <p className="text-sm text-slate-400">No tienes nada programado para hoy.</p>
+          ) : (
+            <div className="space-y-3">
+              {agenda.slice(0, 6).map((a) => (
+                <div key={a.id} className="flex items-center gap-3">
+                  <span className={`h-2 w-2 shrink-0 rounded-full ${a.color}`} />
+                  <a.icon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium text-slate-700">{a.title}</div>
+                    {a.subtitle && <div className="truncate text-xs text-slate-400">{a.subtitle}</div>}
+                  </div>
+                  <div className="shrink-0 text-right text-xs text-slate-400">
+                    <div>{a.time.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</div>
+                    {a.duracion && <div className="text-[10px]">{a.duracion}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-[#0B1D4D]">Horario fijo semanal</h3>
+            <Link
+              href="/dashboard/horario"
+              className="text-xs font-semibold text-[#2F6FED] hover:underline"
+            >
+              Ver horario semanal
+            </Link>
+          </div>
+          {horarioSemanal.length === 0 ? (
+            <p className="text-sm text-slate-400">
+              Todavía no has cargado tu horario. Ve a "Mi horario" para configurarlo.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {DIAS_SEMANA.map((dia, i) => {
+                const bloquesDia = horarioSemanal.filter((b) => b.diaSemana === i + 1);
+                if (bloquesDia.length === 0) return null;
+                return (
+                  <div key={dia}>
+                    <div className="text-xs font-semibold text-slate-600">{dia}</div>
+                    <div className="mt-1 space-y-1">
+                      {bloquesDia.map((b) => (
+                        <div key={b.id} className="flex items-center gap-2 text-xs text-slate-500">
+                          <span
+                            className="h-1.5 w-1.5 shrink-0 rounded-full"
+                            style={{ backgroundColor: b.color }}
+                          />
+                          {b.horaInicio}–{b.horaFin} · {b.asignatura} · {b.grupo}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Avisos del centro */}
+      <div className="mt-5">
+        <AvisosSection schoolId={schoolId} canCreate={false} />
       </div>
     </div>
   );

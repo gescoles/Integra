@@ -57,6 +57,8 @@ model School {
   tutorias  Tutoria[]
   guardias  Guardia[]
   material  MaterialRequest[]
+  alumnos   Alumno[]
+  avisos    Aviso[]
 }
 
 model User {
@@ -77,6 +79,8 @@ model User {
   material     MaterialRequest[]
   horario      HorarioBloque[]
   eventos      CalendarEvento[]
+  alumnos      Alumno[]
+  avisos       Aviso[]
 }
 
 enum TutoriaStatus {
@@ -86,17 +90,65 @@ enum TutoriaStatus {
   PENDIENTE
 }
 
+enum ConQuien {
+  FAMILIA
+  ALUMNO
+}
+
+enum MedioContacto {
+  TELEFONO
+  EMAIL
+  PRESENCIAL
+  APP
+}
+
+enum RiesgoNivel {
+  BAJO
+  MEDIO
+  ALTO
+}
+
 model Tutoria {
   id           String        @id @default(cuid())
   schoolId     String
   school       School        @relation(fields: [schoolId], references: [id])
   profesorId   String
   profesor     User          @relation(fields: [profesorId], references: [id])
+  alumnoId     String?
+  alumno       Alumno?       @relation(fields: [alumnoId], references: [id])
   studentName  String
   cicloModulo  String?
   status       TutoriaStatus @default(NUEVA)
   sessionDate  DateTime      @default(now())
+  conQuien     ConQuien?
+  medio        MedioContacto?
+  notas        String?
   createdAt    DateTime      @default(now())
+}
+
+model Alumno {
+  id         String           @id @default(cuid())
+  schoolId   String
+  school     School           @relation(fields: [schoolId], references: [id])
+  profesorId String
+  profesor   User             @relation(fields: [profesorId], references: [id])
+  nombre     String
+  curso      String
+  edad       Int?
+  riesgo     RiesgoNivel      @default(BAJO)
+  avatarUrl  String?
+  createdAt  DateTime         @default(now())
+  contactos  AlumnoContacto[]
+  tutorias   Tutoria[]
+}
+
+model AlumnoContacto {
+  id       String  @id @default(cuid())
+  alumnoId String
+  alumno   Alumno  @relation(fields: [alumnoId], references: [id])
+  relacion String
+  telefono String?
+  email    String?
 }
 
 enum GuardiaStatus {
@@ -170,4 +222,23 @@ model CalendarEvento {
   horaFin    String
   color      String   @default("#2F6FED")
   createdAt  DateTime @default(now())
+}
+
+enum AvisoCategoria {
+  GENERAL
+  ACADEMICO
+  CONVIVENCIA
+}
+
+// Avisos del centro, visibles para todo el personal del mismo centro
+model Aviso {
+  id        String         @id @default(cuid())
+  schoolId  String
+  school    School         @relation(fields: [schoolId], references: [id])
+  autorId   String
+  autor     User           @relation(fields: [autorId], references: [id])
+  titulo    String
+  cuerpo    String
+  categoria AvisoCategoria @default(GENERAL)
+  createdAt DateTime       @default(now())
 }

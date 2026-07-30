@@ -17,6 +17,7 @@ export async function addHorarioBloque(formData: FormData) {
   const color = (formData.get("color") as string) || "#2F6FED";
 
   if (!asignatura) throw new Error("La asignatura es obligatoria.");
+  if (!grupo) throw new Error("El grupo es obligatorio.");
   if (!horaInicio || !horaFin) throw new Error("Indica la hora de inicio y fin.");
   if (horaFin <= horaInicio) throw new Error("La hora de fin debe ser posterior a la de inicio.");
 
@@ -27,12 +28,45 @@ export async function addHorarioBloque(formData: FormData) {
       horaInicio,
       horaFin,
       asignatura,
-      grupo: grupo || null,
+      grupo,
       color,
     },
   });
 
   revalidatePath("/dashboard/horario");
+  revalidatePath("/dashboard/calendario");
+  revalidatePath("/dashboard");
+}
+
+export async function updateHorarioBloque(formData: FormData) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user.id) throw new Error("No autorizado.");
+
+  const id = formData.get("id") as string;
+  const bloque = await prisma.horarioBloque.findUnique({ where: { id } });
+  if (!bloque || bloque.profesorId !== session.user.id) {
+    throw new Error("No puedes modificar un bloque que no es tuyo.");
+  }
+
+  const diaSemana = Number(formData.get("diaSemana"));
+  const horaInicio = formData.get("horaInicio") as string;
+  const horaFin = formData.get("horaFin") as string;
+  const asignatura = (formData.get("asignatura") as string)?.trim();
+  const grupo = (formData.get("grupo") as string)?.trim();
+  const color = (formData.get("color") as string) || "#2F6FED";
+
+  if (!asignatura) throw new Error("La asignatura es obligatoria.");
+  if (!grupo) throw new Error("El grupo es obligatorio.");
+  if (!horaInicio || !horaFin) throw new Error("Indica la hora de inicio y fin.");
+  if (horaFin <= horaInicio) throw new Error("La hora de fin debe ser posterior a la de inicio.");
+
+  await prisma.horarioBloque.update({
+    where: { id },
+    data: { diaSemana, horaInicio, horaFin, asignatura, grupo, color },
+  });
+
+  revalidatePath("/dashboard/horario");
+  revalidatePath("/dashboard/calendario");
   revalidatePath("/dashboard");
 }
 
@@ -47,5 +81,6 @@ export async function deleteHorarioBloque(id: string) {
 
   await prisma.horarioBloque.delete({ where: { id } });
   revalidatePath("/dashboard/horario");
+  revalidatePath("/dashboard/calendario");
   revalidatePath("/dashboard");
 }

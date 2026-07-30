@@ -20,11 +20,13 @@ export async function createEvento(formData: FormData) {
   if (!horaInicio || !horaFin) throw new Error("Indica la hora de inicio y fin.");
   if (horaFin <= horaInicio) throw new Error("La hora de fin debe ser posterior a la de inicio.");
 
+  const [y, m, d] = fecha.split("-").map(Number);
+
   await prisma.calendarEvento.create({
     data: {
       userId: session.user.id,
       title,
-      fecha: new Date(fecha),
+      fecha: new Date(y, m - 1, d),
       horaInicio,
       horaFin,
       color,

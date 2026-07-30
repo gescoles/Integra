@@ -8,6 +8,7 @@ import { authOptions } from "@/lib/auth";
 import { Role, UserStatus } from "@prisma/client";
 import { generatePassword } from "@/lib/generatePassword";
 import { sendPasswordEmail } from "@/lib/email";
+import { generateAvatarUrl } from "@/lib/avatar";
 
 export async function createUser(formData: FormData) {
   const name = (formData.get("name") as string)?.trim();
@@ -37,8 +38,7 @@ export async function createUser(formData: FormData) {
   }
 
   const passwordHash = await bcrypt.hash(plainPassword, 10);
-  const avatarSeed = `${email}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  const avatarUrl = `https://robohash.org/${encodeURIComponent(avatarSeed)}?set=set4&size=200x200`;
+  const avatarUrl = generateAvatarUrl(name);
 
   await prisma.user.create({
     data: {
