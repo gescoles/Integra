@@ -64,8 +64,7 @@ function BadgeIcon({
 }) {
   return (
     <div
-      className={`absolute flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-200 bg-white/60 backdrop-blur-sm ${className}`}
-      style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}
+      className={`absolute flex h-14 w-14 items-center justify-center rounded-full border border-blue-200 bg-white/60 backdrop-blur-sm ${className}`}
     >
       <Icon className="h-6 w-6 text-[#2F6FED]" strokeWidth={1.75} />
     </div>
@@ -106,11 +105,11 @@ export default function LoginPage() {
     <main className="flex min-h-screen flex-col bg-white">
       <div className="grid flex-1 lg:grid-cols-2">
         {/* Left panel */}
-        <div className="relative hidden overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-blue-100 lg:flex lg:flex-col lg:justify-center lg:px-16">
+        <div className="relative hidden overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-blue-100 lg:flex lg:flex-col lg:justify-start lg:px-16 lg:pt-20">
           <NetworkBackground />
-          <BadgeIcon icon={BookOpen} className="left-16 top-[38%]" />
-          <BadgeIcon icon={GraduationCap} className="left-24 bottom-[18%]" />
-          <BadgeIcon icon={Users} className="right-16 bottom-[24%]" />
+          <BadgeIcon icon={BookOpen} className="left-16 top-[62%]" />
+          <BadgeIcon icon={GraduationCap} className="left-28 bottom-[10%]" />
+          <BadgeIcon icon={Users} className="right-16 bottom-[16%]" />
 
           <div className="relative z-10 max-w-md">
             <div className="flex items-center gap-3">
