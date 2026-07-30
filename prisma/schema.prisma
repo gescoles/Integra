@@ -76,6 +76,7 @@ model User {
   guardias     Guardia[]
   material     MaterialRequest[]
   horario      HorarioBloque[]
+  eventos      CalendarEvento[]
 }
 
 enum TutoriaStatus {
@@ -154,6 +155,19 @@ model HorarioBloque {
   horaFin    String
   asignatura String
   grupo      String?
+  color      String   @default("#2F6FED")
+  createdAt  DateTime @default(now())
+}
+
+// Eventos libres del calendario personal de cada usuario, con fecha concreta
+model CalendarEvento {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  title      String
+  fecha      DateTime
+  horaInicio String
+  horaFin    String
   color      String   @default("#2F6FED")
   createdAt  DateTime @default(now())
 }

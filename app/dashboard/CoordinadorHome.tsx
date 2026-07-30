@@ -3,6 +3,7 @@ import Link from "next/link";
 import { DashboardHeader } from "./components/DashboardHeader";
 import { LockedCard } from "./components/LockedCard";
 import { CoordinadorAgenda } from "./components/CoordinadorAgenda";
+import { CalendarWeekPreview } from "./components/CalendarWeekPreview";
 import { Calendar, ShieldCheck, FolderOpen, ArrowRight } from "lucide-react";
 
 function startOfToday() {
@@ -17,10 +18,12 @@ function endOfToday() {
 }
 
 export async function CoordinadorHome({
+  userId,
   userName,
   role,
   schoolId,
 }: {
+  userId: string;
   userName: string;
   role: string;
   schoolId: string | null;
@@ -208,6 +211,11 @@ export async function CoordinadorHome({
       {/* Agenda de hoy — todo el centro, con filtro por profesor */}
       <div className="mt-5">
         <CoordinadorAgenda items={agenda} profesores={profesores} />
+      </div>
+
+      {/* Calendario personal de esta semana */}
+      <div className="mt-5">
+        <CalendarWeekPreview userId={userId} hasTutorias={hasTutorias} />
       </div>
     </div>
   );

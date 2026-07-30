@@ -61,7 +61,7 @@ export function HorarioClient({ bloques }: { bloques: Bloque[] }) {
           onClick={() => setOpen(true)}
           className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
         >
-          <Plus className="h-4 w-4" /> Añadir bloque
+          <Plus className="h-4 w-4" /> Programar
         </button>
       </div>
 

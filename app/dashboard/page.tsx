@@ -17,7 +17,14 @@ export default async function DashboardHomePage() {
   }
 
   if (role === "COORDINADOR" || role === "ADMIN_CENTRO") {
-    return <CoordinadorHome userName={userName} role={role} schoolId={schoolId} />;
+    return (
+      <CoordinadorHome
+        userId={session?.user.id ?? ""}
+        userName={userName}
+        role={role}
+        schoolId={schoolId}
+      />
+    );
   }
 
   if (role === "PROFESOR" && session?.user.id) {

@@ -19,6 +19,7 @@ import {
   ShieldAlert,
   Lock,
   CalendarClock,
+  CalendarDays,
 } from "lucide-react";
 import { HexLogo } from "@/app/components/Logo";
 import { ROLE_LABELS_FULL } from "../constants";
@@ -96,6 +97,20 @@ export function Sidebar({
               </Link>
             );
           })}
+
+        {!isSuperAdmin && (
+          <Link
+            href="/dashboard/calendario"
+            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              pathname === "/dashboard/calendario"
+                ? "bg-[#2F6FED] text-white"
+                : "text-slate-300 hover:bg-white/5 hover:text-white"
+            }`}
+          >
+            <CalendarDays className="h-5 w-5" />
+            Calendario
+          </Link>
+        )}
 
         {!isSuperAdmin && (
           <Link

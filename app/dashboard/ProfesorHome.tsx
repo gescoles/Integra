@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "./components/DashboardHeader";
 import { LockedCard } from "./components/LockedCard";
+import { CalendarWeekPreview } from "./components/CalendarWeekPreview";
 import { Calendar, ShieldCheck, FolderOpen, ArrowRight, Briefcase } from "lucide-react";
 
 function startOfToday() {
@@ -197,6 +198,11 @@ export async function ProfesorHome({
         )}
       </div>
 
+      {/* Calendario de esta semana */}
+      <div className="mt-5">
+        <CalendarWeekPreview userId={userId} hasTutorias={hasTutorias} />
+      </div>
+
       {/* Próximamente */}
       <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5">
         <div className="flex items-center gap-3">
@@ -205,11 +211,11 @@ export async function ProfesorHome({
           </div>
           <div>
             <h3 className="text-sm font-bold text-[#0B1D4D]">
-              Horario semanal, prácticas y seguimiento del alumnado
+              Prácticas y seguimiento del alumnado
             </h3>
             <p className="text-xs text-slate-500">
-              Estamos construyendo tu horario completo, el seguimiento del
-              alumnado y los avisos del centro. Próximamente aquí.
+              Estamos construyendo el seguimiento del alumnado y los avisos
+              del centro. Próximamente aquí.
             </p>
           </div>
         </div>
