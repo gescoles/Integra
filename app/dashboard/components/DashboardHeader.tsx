@@ -1,6 +1,7 @@
 "use client";
 
 import { Bell, Calendar, ChevronDown } from "lucide-react";
+import { ROLE_LABELS_FULL } from "../constants";
 
 export function DashboardHeader({
   title,
@@ -16,7 +17,7 @@ export function DashboardHeader({
   notificationCount?: number;
 }) {
   const initials = userName.slice(0, 2).toUpperCase();
-  const roleLabel = role === "SUPERADMIN" ? "Super Usuario" : "Administrador de centro";
+  const roleLabel = ROLE_LABELS_FULL[role] ?? role;
   const today = new Date().toLocaleDateString("es-ES", {
     day: "numeric",
     month: "long",

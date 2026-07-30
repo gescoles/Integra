@@ -53,6 +53,9 @@ model School {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @default(now()) @updatedAt
   users     User[]
+  tutorias  Tutoria[]
+  guardias  Guardia[]
+  material  MaterialRequest[]
 }
 
 model User {
@@ -67,4 +70,73 @@ model User {
   schoolId     String?
   school       School?    @relation(fields: [schoolId], references: [id])
   createdAt    DateTime   @default(now())
+  tutorias     Tutoria[]
+  guardias     Guardia[]
+  material     MaterialRequest[]
+}
+
+enum TutoriaStatus {
+  NUEVA
+  SEGUIMIENTO
+  COMPLETADA
+  PENDIENTE
+}
+
+model Tutoria {
+  id           String        @id @default(cuid())
+  schoolId     String
+  school       School        @relation(fields: [schoolId], references: [id])
+  profesorId   String
+  profesor     User          @relation(fields: [profesorId], references: [id])
+  studentName  String
+  cicloModulo  String?
+  status       TutoriaStatus @default(NUEVA)
+  sessionDate  DateTime      @default(now())
+  createdAt    DateTime      @default(now())
+}
+
+enum GuardiaStatus {
+  PROGRAMADA
+  CUBIERTA
+  PENDIENTE
+}
+
+model Guardia {
+  id         String        @id @default(cuid())
+  schoolId   String
+  school     School        @relation(fields: [schoolId], references: [id])
+  profesorId String
+  profesor   User          @relation(fields: [profesorId], references: [id])
+  turno      String
+  ubicacion  String?
+  fecha      DateTime
+  status     GuardiaStatus @default(PROGRAMADA)
+  createdAt  DateTime      @default(now())
+}
+
+enum MaterialPriority {
+  ALTA
+  MEDIA
+  BAJA
+}
+
+enum MaterialStatus {
+  PENDIENTE
+  EN_REVISION
+  APROBADO
+}
+
+model MaterialRequest {
+  id            String           @id @default(cuid())
+  schoolId      String
+  school        School           @relation(fields: [schoolId], references: [id])
+  profesorId    String
+  profesor      User             @relation(fields: [profesorId], references: [id])
+  cicloModulo   String
+  materialName  String
+  cantidad      Int              @default(1)
+  prioridad     MaterialPriority @default(MEDIA)
+  costeEstimado Float            @default(0)
+  status        MaterialStatus   @default(PENDIENTE)
+  createdAt     DateTime         @default(now())
 }

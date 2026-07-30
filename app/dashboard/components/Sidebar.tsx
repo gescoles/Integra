@@ -13,10 +13,15 @@ import {
   Settings,
   ChevronRight,
   LogOut,
+  BookOpen,
+  Briefcase,
+  UsersRound,
+  ShieldAlert,
 } from "lucide-react";
 import { HexLogo } from "@/app/components/Logo";
+import { ROLE_LABELS_FULL } from "../constants";
 
-const navItems = [
+const superadminNav = [
   { href: "/dashboard", label: "Inicio", icon: Home },
   { href: "/dashboard/centros", label: "Centros", icon: Landmark },
   { href: "/dashboard/usuarios", label: "Usuarios", icon: Users },
@@ -26,10 +31,18 @@ const navItems = [
   { href: "/dashboard/configuracion", label: "Configuración", icon: Settings },
 ];
 
-const roleLabels: Record<string, string> = {
-  SUPERADMIN: "Super Usuario",
-  ADMIN_CENTRO: "Administrador de centro",
-};
+// Navegación del equipo del centro (Coordinación/Dirección, Admin de centro, Profesor)
+const centroNav = [
+  { href: "/dashboard/tutorias", label: "Tutorías", icon: Users },
+  { href: "/dashboard/guardias", label: "Guardias", icon: ShieldCheck },
+  { href: "/dashboard/material", label: "Material", icon: BookOpen },
+];
+
+const centroProximamente = [
+  { label: "Prácticas", icon: Briefcase },
+  { label: "Coordinación", icon: UsersRound },
+  { label: "Disciplina", icon: ShieldAlert },
+];
 
 export function Sidebar({
   userName,
@@ -40,7 +53,9 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const initials = userName.slice(0, 2).toUpperCase();
-  const roleLabel = roleLabels[role] ?? role;
+  const roleLabel = ROLE_LABELS_FULL[role] ?? role;
+  const isSuperAdmin = role === "SUPERADMIN";
+  const navItems = isSuperAdmin ? superadminNav : centroNav;
 
   return (
     <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col bg-[#0B1D4D] lg:flex">
@@ -72,6 +87,28 @@ export function Sidebar({
             </Link>
           );
         })}
+
+        {!isSuperAdmin && (
+          <div className="pt-4">
+            <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Próximamente
+            </div>
+            {centroProximamente.map((item) => (
+              <div
+                key={item.label}
+                className="flex cursor-not-allowed items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-slate-500"
+              >
+                <span className="flex items-center gap-3">
+                  <item.icon className="h-5 w-5" />
+                  {item.label}
+                </span>
+                <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] text-slate-400">
+                  Próximamente
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </nav>
 
       <div className="border-t border-white/10 px-4 py-4">
@@ -95,3 +132,4 @@ export function Sidebar({
     </aside>
   );
 }
+
