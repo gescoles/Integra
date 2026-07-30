@@ -15,10 +15,35 @@ enum Role {
   ADMIN_CENTRO
 }
 
+enum SchoolType {
+  PRIVADO
+  CONCERTADO
+  PUBLICO
+}
+
+enum Plan {
+  BASICO
+  PRO
+  PREMIUM
+}
+
+enum SchoolStatus {
+  ACTIVO
+  REVISION
+  INACTIVO
+}
+
 model School {
-  id        String   @id @default(cuid())
+  id        String       @id @default(cuid())
   name      String
-  createdAt DateTime @default(now())
+  type      SchoolType   @default(PRIVADO)
+  city      String?
+  plan      Plan         @default(BASICO)
+  status    SchoolStatus @default(ACTIVO)
+  userLimit Int          @default(50)
+  modules   String[]     @default([])
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @default(now()) @updatedAt
   users     User[]
 }
 

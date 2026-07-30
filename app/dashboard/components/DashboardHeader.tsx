@@ -17,6 +17,11 @@ export function DashboardHeader({
 }) {
   const initials = userName.slice(0, 2).toUpperCase();
   const roleLabel = role === "SUPERADMIN" ? "Super Usuario" : "Administrador de centro";
+  const today = new Date().toLocaleDateString("es-ES", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -28,7 +33,7 @@ export function DashboardHeader({
       <div className="flex items-center gap-3">
         <button className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
           <Calendar className="h-4 w-4" />
-          24 de mayo de 2025
+          {today}
           <ChevronDown className="h-4 w-4" />
         </button>
 

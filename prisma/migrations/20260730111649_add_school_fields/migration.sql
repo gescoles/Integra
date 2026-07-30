@@ -1,0 +1,17 @@
+-- CreateEnum
+CREATE TYPE "SchoolType" AS ENUM ('PRIVADO', 'CONCERTADO', 'PUBLICO');
+
+-- CreateEnum
+CREATE TYPE "Plan" AS ENUM ('BASICO', 'PRO', 'PREMIUM');
+
+-- CreateEnum
+CREATE TYPE "SchoolStatus" AS ENUM ('ACTIVO', 'REVISION', 'INACTIVO');
+
+-- AlterTable
+ALTER TABLE "School" ADD COLUMN     "city" TEXT,
+ADD COLUMN     "modules" TEXT[] DEFAULT ARRAY[]::TEXT[],
+ADD COLUMN     "plan" "Plan" NOT NULL DEFAULT 'BASICO',
+ADD COLUMN     "status" "SchoolStatus" NOT NULL DEFAULT 'ACTIVO',
+ADD COLUMN     "type" "SchoolType" NOT NULL DEFAULT 'PRIVADO',
+ADD COLUMN     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN     "userLimit" INTEGER NOT NULL DEFAULT 50;
