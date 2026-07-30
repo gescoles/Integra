@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "./components/DashboardHeader";
 import { ActivityChart } from "./components/ActivityChart";
 import { PlansDonut } from "./components/PlansDonut";
@@ -13,90 +14,7 @@ import {
   UsersRound,
   CreditCard,
   Settings,
-  FileCheck2,
-  ShieldPlus,
 } from "lucide-react";
-
-const stats = [
-  {
-    label: "Centros registrados",
-    value: "18",
-    cta: "Ver todos los centros",
-    href: "/dashboard/centros",
-    icon: Landmark,
-    color: "bg-blue-50 text-[#2F6FED]",
-  },
-  {
-    label: "Usuarios activos",
-    value: "245",
-    cta: "Ver usuarios",
-    href: "/dashboard/usuarios",
-    icon: Users,
-    color: "bg-emerald-50 text-emerald-600",
-  },
-  {
-    label: "Guardias esta semana",
-    value: "312",
-    cta: "Ver calendario",
-    href: "/dashboard/auditoria",
-    icon: ShieldCheck,
-    color: "bg-violet-50 text-violet-600",
-  },
-  {
-    label: "Tutorías activas",
-    value: "156",
-    cta: "Ver tutorías",
-    href: "/dashboard/auditoria",
-    icon: Calendar,
-    color: "bg-amber-50 text-amber-600",
-  },
-  {
-    label: "Material compartido",
-    value: "1.248",
-    cta: "Ver material",
-    href: "/dashboard/auditoria",
-    icon: FolderOpen,
-    color: "bg-sky-50 text-sky-600",
-  },
-];
-
-const recentActivity = [
-  {
-    icon: Landmark,
-    color: "bg-emerald-50 text-emerald-600",
-    title: "Nuevo centro registrado",
-    detail: "IES Joan Maragall",
-    time: "Hace 2 horas",
-  },
-  {
-    icon: UserPlus,
-    color: "bg-blue-50 text-[#2F6FED]",
-    title: "Usuario creado",
-    detail: "marta.lopez@iesmontseny.cat",
-    time: "Hace 5 horas",
-  },
-  {
-    icon: ShieldPlus,
-    color: "bg-violet-50 text-violet-600",
-    title: "Plan actualizado",
-    detail: "Plan Pro - IES La Salle",
-    time: "Hace 1 día",
-  },
-  {
-    icon: ShieldCheck,
-    color: "bg-amber-50 text-amber-600",
-    title: "Guardias publicadas",
-    detail: "IES Barcelona",
-    time: "Hace 1 día",
-  },
-  {
-    icon: FileCheck2,
-    color: "bg-sky-50 text-sky-600",
-    title: "Material compartido",
-    detail: "Programación 2º DAM",
-    time: "Hace 2 días",
-  },
-];
 
 const quickActions = [
   {
@@ -136,6 +54,32 @@ const quickActions = [
   },
 ];
 
+const PLAN_COLORS: Record<string, string> = {
+  BASICO: "#2F6FED",
+  PRO: "#22C55E",
+  PREMIUM: "#A855F7",
+};
+const PLAN_LABELS: Record<string, string> = {
+  BASICO: "Plan Básico",
+  PRO: "Plan Pro",
+  PREMIUM: "Plan Premium",
+};
+
+function timeAgo(date: Date) {
+  const diffMs = Date.now() - date.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "Ahora mismo";
+  if (mins < 60) return `Hace ${mins} min`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `Hace ${hours} h`;
+  const days = Math.floor(hours / 24);
+  return `Hace ${days} día${days === 1 ? "" : "s"}`;
+}
+
+function dayLabel(d: Date) {
+  return d.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
+}
+
 export async function SuperAdminHome({
   userName,
   role,
@@ -143,6 +87,129 @@ export async function SuperAdminHome({
   userName: string;
   role: string;
 }) {
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+
+  const [
+    centrosCount,
+    usuariosActivosCount,
+    guardiasCount,
+    tutoriasActivasCount,
+    materialCount,
+    schoolsByPlan,
+    recentSchools,
+    recentUsers,
+    activityLast7Days,
+  ] = await Promise.all([
+    prisma.school.count(),
+    prisma.user.count({ where: { status: "ACTIVO" } }),
+    prisma.guardia.count(),
+    prisma.tutoria.count({ where: { status: { not: "COMPLETADA" } } }),
+    prisma.materialRequest.count(),
+    prisma.school.groupBy({ by: ["plan"], _count: { _all: true } }),
+    prisma.school.findMany({ orderBy: { createdAt: "desc" }, take: 3, select: { name: true, createdAt: true } }),
+    prisma.user.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 3,
+      select: { email: true, createdAt: true },
+    }),
+    Promise.all([
+      prisma.school.findMany({ where: { createdAt: { gte: sevenDaysAgo } }, select: { createdAt: true } }),
+      prisma.user.findMany({ where: { createdAt: { gte: sevenDaysAgo } }, select: { createdAt: true } }),
+      prisma.tutoria.findMany({ where: { createdAt: { gte: sevenDaysAgo } }, select: { createdAt: true } }),
+      prisma.guardia.findMany({ where: { createdAt: { gte: sevenDaysAgo } }, select: { createdAt: true } }),
+      prisma.materialRequest.findMany({ where: { createdAt: { gte: sevenDaysAgo } }, select: { createdAt: true } }),
+    ]),
+  ]);
+
+  const stats = [
+    {
+      label: "Centros registrados",
+      value: centrosCount,
+      cta: "Ver todos los centros",
+      href: "/dashboard/centros",
+      icon: Landmark,
+      color: "bg-blue-50 text-[#2F6FED]",
+    },
+    {
+      label: "Usuarios activos",
+      value: usuariosActivosCount,
+      cta: "Ver usuarios",
+      href: "/dashboard/usuarios",
+      icon: Users,
+      color: "bg-emerald-50 text-emerald-600",
+    },
+    {
+      label: "Guardias registradas",
+      value: guardiasCount,
+      cta: "Ver guardias",
+      href: "/dashboard/auditoria",
+      icon: ShieldCheck,
+      color: "bg-violet-50 text-violet-600",
+    },
+    {
+      label: "Tutorías activas",
+      value: tutoriasActivasCount,
+      cta: "Ver tutorías",
+      href: "/dashboard/auditoria",
+      icon: Calendar,
+      color: "bg-amber-50 text-amber-600",
+    },
+    {
+      label: "Solicitudes de material",
+      value: materialCount,
+      cta: "Ver material",
+      href: "/dashboard/auditoria",
+      icon: FolderOpen,
+      color: "bg-sky-50 text-sky-600",
+    },
+  ];
+
+  const plansData = schoolsByPlan.map((p) => ({
+    name: PLAN_LABELS[p.plan] ?? p.plan,
+    value: p._count._all,
+    color: PLAN_COLORS[p.plan] ?? "#94A3B8",
+  }));
+
+  // Combinar centros y usuarios recientes en una sola lista de actividad real
+  const recentActivity = [
+    ...recentSchools.map((s) => ({
+      icon: Landmark,
+      color: "bg-emerald-50 text-emerald-600",
+      title: "Nuevo centro registrado",
+      detail: s.name,
+      time: timeAgo(s.createdAt),
+      at: s.createdAt,
+    })),
+    ...recentUsers.map((u) => ({
+      icon: UserPlus,
+      color: "bg-blue-50 text-[#2F6FED]",
+      title: "Usuario creado",
+      detail: u.email,
+      time: timeAgo(u.createdAt),
+      at: u.createdAt,
+    })),
+  ]
+    .sort((a, b) => b.at.getTime() - a.at.getTime())
+    .slice(0, 5);
+
+  const [schoolsIn7, usersIn7, tutoriasIn7, guardiasIn7, materialIn7] = activityLast7Days;
+  const allEvents = [
+    ...schoolsIn7,
+    ...usersIn7,
+    ...tutoriasIn7,
+    ...guardiasIn7,
+    ...materialIn7,
+  ];
+  const chartData = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(sevenDaysAgo);
+    d.setDate(d.getDate() + i);
+    const label = dayLabel(d);
+    const count = allEvents.filter((e) => dayLabel(new Date(e.createdAt)) === label).length;
+    return { day: label, value: count };
+  });
+
   return (
     <div>
       <DashboardHeader
@@ -150,7 +217,7 @@ export async function SuperAdminHome({
         subtitle="Aquí tienes un resumen general de la plataforma."
         userName={userName}
         role={role}
-        notificationCount={3}
+        notificationCount={recentActivity.length}
       />
 
       {/* Stats */}
@@ -181,36 +248,37 @@ export async function SuperAdminHome({
               Últimos 7 días
             </span>
           </div>
-          <ActivityChart />
+          <ActivityChart data={chartData} />
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <h3 className="mb-4 text-sm font-bold text-[#0B1D4D]">Actividad reciente</h3>
-          <div className="space-y-4">
-            {recentActivity.map((a) => (
-              <div key={a.title + a.detail} className="flex items-start gap-3">
-                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${a.color}`}>
-                  <a.icon className="h-4 w-4" />
+          {recentActivity.length === 0 ? (
+            <p className="text-xs text-slate-400">
+              Todavía no hay actividad. En cuanto crees centros o usuarios,
+              aparecerán aquí.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {recentActivity.map((a) => (
+                <div key={a.title + a.detail} className="flex items-start gap-3">
+                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${a.color}`}>
+                    <a.icon className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[13px] font-semibold text-slate-700">{a.title}</div>
+                    <div className="truncate text-xs text-slate-500">{a.detail}</div>
+                  </div>
+                  <div className="shrink-0 text-[11px] text-slate-400">{a.time}</div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[13px] font-semibold text-slate-700">{a.title}</div>
-                  <div className="truncate text-xs text-slate-500">{a.detail}</div>
-                </div>
-                <div className="shrink-0 text-[11px] text-slate-400">{a.time}</div>
-              </div>
-            ))}
-          </div>
-          <Link
-            href="/dashboard/auditoria"
-            className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[#2F6FED] hover:underline"
-          >
-            Ver toda la actividad <ArrowRight className="h-3 w-3" />
-          </Link>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <h3 className="mb-4 text-sm font-bold text-[#0B1D4D]">Centros por plan</h3>
-          <PlansDonut />
+          <PlansDonut data={plansData} />
           <Link
             href="/dashboard/planes"
             className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[#2F6FED] hover:underline"

@@ -10,17 +10,9 @@ import {
   Tooltip,
 } from "recharts";
 
-const data = [
-  { day: "18 May", value: 78 },
-  { day: "19 May", value: 95 },
-  { day: "20 May", value: 108 },
-  { day: "21 May", value: 82 },
-  { day: "22 May", value: 148 },
-  { day: "23 May", value: 138 },
-  { day: "24 May", value: 195 },
-];
+type Point = { day: string; value: number };
 
-export function ActivityChart() {
+export function ActivityChart({ data }: { data: Point[] }) {
   return (
     <ResponsiveContainer width="100%" height={260}>
       <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -35,6 +27,7 @@ export function ActivityChart() {
           tick={{ fontSize: 11, fill: "#94A3B8" }}
           axisLine={false}
           tickLine={false}
+          allowDecimals={false}
         />
         <Tooltip
           contentStyle={{

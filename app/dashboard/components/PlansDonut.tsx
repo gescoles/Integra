@@ -2,15 +2,22 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
-const data = [
-  { name: "Plan Básico", value: 5, color: "#2F6FED" },
-  { name: "Plan Pro", value: 9, color: "#22C55E" },
-  { name: "Plan Premium", value: 4, color: "#A855F7" },
-];
+type PlanCount = { name: string; value: number; color: string };
 
-const total = data.reduce((sum, d) => sum + d.value, 0);
+export function PlansDonut({ data }: { data: PlanCount[] }) {
+  const total = data.reduce((sum, d) => sum + d.value, 0);
 
-export function PlansDonut() {
+  if (total === 0) {
+    return (
+      <div className="flex h-[180px] flex-col items-center justify-center text-center">
+        <span className="text-2xl font-bold text-[#0B1D4D]">0</span>
+        <span className="mt-1 text-xs text-slate-400">
+          Todavía no hay centros creados
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="relative mx-auto h-[180px] w-[180px]">
@@ -49,7 +56,7 @@ export function PlansDonut() {
               <span className="text-slate-600">{entry.name}</span>
             </div>
             <span className="font-medium text-slate-500">
-              {entry.value} ({((entry.value / total) * 100).toFixed(1)}%)
+              {entry.value} ({total > 0 ? ((entry.value / total) * 100).toFixed(1) : 0}%)
             </span>
           </div>
         ))}

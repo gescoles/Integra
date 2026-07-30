@@ -1,29 +1,59 @@
 "use client";
 
-import { Bell, Calendar, ChevronDown } from "lucide-react";
-import { ROLE_LABELS_FULL } from "../constants";
+import { useEffect, useState } from "react";
+import { Bell } from "lucide-react";
+
+function LiveClock() {
+  const [now, setNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setNow(new Date());
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (!now) {
+    // Evita mismatch de hidratación: no renderiza hora hasta estar en cliente
+    return <div className="h-[52px] w-[190px]" />;
+  }
+
+  const dayName = now.toLocaleDateString("es-ES", { weekday: "long" });
+  const dateStr = now.toLocaleDateString("es-ES", { day: "numeric", month: "long" });
+  const timeStr = now.toLocaleTimeString("es-ES", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5">
+      <div className="flex flex-col items-end leading-none">
+        <span className="text-[11px] font-medium capitalize text-slate-400">
+          {dayName}, {dateStr}
+        </span>
+        <span className="mt-1 font-mono text-lg font-bold tabular-nums text-[#0B1D4D]">
+          {timeStr}
+        </span>
+      </div>
+      <span className="relative flex h-2.5 w-2.5">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+      </span>
+    </div>
+  );
+}
 
 export function DashboardHeader({
   title,
   subtitle,
-  userName,
-  role,
   notificationCount = 0,
 }: {
   title: string;
   subtitle: string;
-  userName: string;
-  role: string;
+  userName?: string;
+  role?: string;
   notificationCount?: number;
 }) {
-  const initials = userName.slice(0, 2).toUpperCase();
-  const roleLabel = ROLE_LABELS_FULL[role] ?? role;
-  const today = new Date().toLocaleDateString("es-ES", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-
   return (
     <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
       <div>
@@ -32,12 +62,6 @@ export function DashboardHeader({
       </div>
 
       <div className="flex items-center gap-3">
-        <button className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
-          <Calendar className="h-4 w-4" />
-          {today}
-          <ChevronDown className="h-4 w-4" />
-        </button>
-
         <button className="relative rounded-lg border border-slate-200 bg-white p-2.5 hover:bg-slate-50">
           <Bell className="h-4 w-4 text-slate-500" />
           {notificationCount > 0 && (
@@ -47,15 +71,7 @@ export function DashboardHeader({
           )}
         </button>
 
-        <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#2F6FED] text-xs font-bold text-white">
-            {initials}
-          </div>
-          <div className="leading-tight">
-            <div className="text-sm font-semibold text-[#0B1D4D]">{userName}</div>
-            <div className="text-[11px] text-slate-500">{roleLabel}</div>
-          </div>
-        </div>
+        <LiveClock />
       </div>
     </div>
   );

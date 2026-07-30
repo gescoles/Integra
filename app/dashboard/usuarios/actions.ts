@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { Role, UserStatus } from "@prisma/client";
 import { generatePassword } from "@/lib/generatePassword";
 import { sendPasswordEmail } from "@/lib/email";
@@ -35,6 +37,8 @@ export async function createUser(formData: FormData) {
   }
 
   const passwordHash = await bcrypt.hash(plainPassword, 10);
+  const avatarSeed = `${email}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const avatarUrl = `https://robohash.org/${encodeURIComponent(avatarSeed)}?set=set4&size=200x200`;
 
   await prisma.user.create({
     data: {
@@ -44,6 +48,7 @@ export async function createUser(formData: FormData) {
       passwordHash,
       role,
       schoolId,
+      avatarUrl,
     },
   });
 
@@ -74,5 +79,32 @@ export async function updateUser(formData: FormData) {
     data: { role, status, schoolId },
   });
 
+  revalidatePath("/dashboard/usuarios");
+}
+
+export async function deleteUser(id: string) {
+  if (!id) {
+    throw new Error("Falta el identificador del usuario.");
+  }
+
+  const session = await getServerSession(authOptions);
+  if (session?.user.id === id) {
+    throw new Error("No puedes eliminar tu propio usuario mientras tienes la sesión iniciada.");
+  }
+
+  const [tutoriasCount, guardiasCount, materialCount] = await Promise.all([
+    prisma.tutoria.count({ where: { profesorId: id } }),
+    prisma.guardia.count({ where: { profesorId: id } }),
+    prisma.materialRequest.count({ where: { profesorId: id } }),
+  ]);
+
+  const total = tutoriasCount + guardiasCount + materialCount;
+  if (total > 0) {
+    throw new Error(
+      `No se puede eliminar: este usuario tiene ${tutoriasCount} tutoría(s), ${guardiasCount} guardia(s) y ${materialCount} solicitud(es) de material asociadas. Reasígnalas a otro profesor primero.`
+    );
+  }
+
+  await prisma.user.delete({ where: { id } });
   revalidatePath("/dashboard/usuarios");
 }

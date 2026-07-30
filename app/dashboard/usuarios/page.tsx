@@ -34,6 +34,7 @@ export default async function UsuariosPage() {
     status: u.status,
     schoolId: u.schoolId,
     schoolName: u.school?.name ?? null,
+    avatarUrl: u.avatarUrl,
     lastAccessAt: u.lastAccessAt
       ? new Date(u.lastAccessAt).toLocaleString("es-ES", {
           day: "2-digit",

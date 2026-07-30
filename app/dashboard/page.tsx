@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { SuperAdminHome } from "./SuperAdminHome";
 import { CoordinadorHome } from "./CoordinadorHome";
+import { ProfesorHome } from "./ProfesorHome";
 import { DashboardHeader } from "./components/DashboardHeader";
 
 export default async function DashboardHomePage() {
@@ -19,7 +20,17 @@ export default async function DashboardHomePage() {
     return <CoordinadorHome userName={userName} role={role} schoolId={schoolId} />;
   }
 
-  // PROFESOR u otros roles: panel mínimo por ahora, se construirá en otra fase
+  if (role === "PROFESOR" && session?.user.id) {
+    return (
+      <ProfesorHome
+        userId={session.user.id}
+        userName={userName}
+        role={role}
+        schoolId={schoolId}
+      />
+    );
+  }
+
   return (
     <div>
       <DashboardHeader
@@ -30,8 +41,7 @@ export default async function DashboardHomePage() {
         notificationCount={0}
       />
       <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-24 text-center text-sm text-slate-400">
-        Tu panel de profesor está en construcción. Muy pronto podrás ver aquí
-        tus tutorías, guardias y material.
+        Tu panel está en construcción.
       </div>
     </div>
   );

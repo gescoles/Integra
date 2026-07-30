@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "../components/DashboardHeader";
+import { ModuleLocked } from "../components/ModuleLocked";
 import { TutoriasClient } from "./TutoriasClient";
 
 export default async function TutoriasPage() {
@@ -27,9 +28,34 @@ export default async function TutoriasPage() {
     );
   }
 
+  const school = await prisma.school.findUnique({
+    where: { id: schoolId },
+    select: { modules: true },
+  });
+
+  if (!school?.modules.includes("tutorias")) {
+    return (
+      <div>
+        <DashboardHeader
+          title="Tutorías"
+          subtitle="Gestiona las tutorías de tu centro."
+          userName={userName}
+          role={role}
+        />
+        <ModuleLocked moduleName="Tutorías" />
+      </div>
+    );
+  }
+
+  const isProfesor = role === "PROFESOR";
+  const userId = session?.user.id;
+  const subtitle = isProfesor
+    ? "Consulta tus propias tutorías."
+    : "Gestiona las tutorías de todo el centro.";
+
   const [tutoriasRaw, profesoresRaw] = await Promise.all([
     prisma.tutoria.findMany({
-      where: { schoolId },
+      where: isProfesor ? { schoolId, profesorId: userId } : { schoolId },
       include: { profesor: { select: { id: true, name: true } } },
       orderBy: { sessionDate: "desc" },
     }),
@@ -59,7 +85,7 @@ export default async function TutoriasPage() {
     <div>
       <DashboardHeader
         title="Tutorías"
-        subtitle="Gestiona las tutorías de tu centro."
+        subtitle={subtitle}
         userName={userName}
         role={role}
         notificationCount={0}

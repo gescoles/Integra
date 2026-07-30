@@ -17,9 +17,13 @@ import {
   Briefcase,
   UsersRound,
   ShieldAlert,
+  Lock,
+  CalendarClock,
 } from "lucide-react";
 import { HexLogo } from "@/app/components/Logo";
 import { ROLE_LABELS_FULL } from "../constants";
+import { SchoolBadge } from "./SchoolBadge";
+import { useUserAvatar } from "../SchoolContext";
 
 const superadminNav = [
   { href: "/dashboard", label: "Inicio", icon: Home },
@@ -31,13 +35,15 @@ const superadminNav = [
   { href: "/dashboard/configuracion", label: "Configuración", icon: Settings },
 ];
 
-// Navegación del equipo del centro (Coordinación/Dirección, Admin de centro, Profesor)
-const centroNav = [
-  { href: "/dashboard/tutorias", label: "Tutorías", icon: Users },
-  { href: "/dashboard/guardias", label: "Guardias", icon: ShieldCheck },
-  { href: "/dashboard/material", label: "Material", icon: BookOpen },
+// Módulos reales, construidos y ya funcionando — su visibilidad depende de si
+// el centro del usuario los tiene contratados (School.modules).
+const centroModulos = [
+  { key: "tutorias", href: "/dashboard/tutorias", label: "Tutorías", icon: Users },
+  { key: "guardias", href: "/dashboard/guardias", label: "Guardias", icon: ShieldCheck },
+  { key: "material", href: "/dashboard/material", label: "Material", icon: BookOpen },
 ];
 
+// Funcionalidades que todavía no existen para nadie, independientemente del plan
 const centroProximamente = [
   { label: "Prácticas", icon: Briefcase },
   { label: "Coordinación", icon: UsersRound },
@@ -47,15 +53,17 @@ const centroProximamente = [
 export function Sidebar({
   userName,
   role,
+  contractedModules = [],
 }: {
   userName: string;
   role: string;
+  contractedModules?: string[];
 }) {
   const pathname = usePathname();
+  const avatarUrl = useUserAvatar();
   const initials = userName.slice(0, 2).toUpperCase();
   const roleLabel = ROLE_LABELS_FULL[role] ?? role;
   const isSuperAdmin = role === "SUPERADMIN";
-  const navItems = isSuperAdmin ? superadminNav : centroNav;
 
   return (
     <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col bg-[#0B1D4D] lg:flex">
@@ -70,23 +78,75 @@ export function Sidebar({
       </div>
 
       <nav className="flex-1 space-y-1 px-4">
-        {navItems.map((item) => {
-          const active = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                active
-                  ? "bg-[#2F6FED] text-white"
-                  : "text-slate-300 hover:bg-white/5 hover:text-white"
-              }`}
-            >
-              <item.icon className="h-5 w-5" />
-              {item.label}
-            </Link>
-          );
-        })}
+        {isSuperAdmin &&
+          superadminNav.map((item) => {
+            const active = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                  active
+                    ? "bg-[#2F6FED] text-white"
+                    : "text-slate-300 hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                <item.icon className="h-5 w-5" />
+                {item.label}
+              </Link>
+            );
+          })}
+
+        {!isSuperAdmin && (
+          <Link
+            href="/dashboard/horario"
+            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              pathname === "/dashboard/horario"
+                ? "bg-[#2F6FED] text-white"
+                : "text-slate-300 hover:bg-white/5 hover:text-white"
+            }`}
+          >
+            <CalendarClock className="h-5 w-5" />
+            Mi horario
+          </Link>
+        )}
+
+        {!isSuperAdmin &&
+          centroModulos.map((item) => {
+            const contratado = contractedModules.includes(item.key);
+            const active = pathname === item.href;
+
+            if (!contratado) {
+              return (
+                <div
+                  key={item.key}
+                  title="Tu centro no tiene este módulo contratado"
+                  className="flex cursor-not-allowed items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-slate-500"
+                >
+                  <span className="flex items-center gap-3">
+                    <item.icon className="h-5 w-5" />
+                    {item.label}
+                  </span>
+                  <Lock className="h-3.5 w-3.5 text-slate-500" />
+                </div>
+              );
+            }
+
+            return (
+              <Link
+                key={item.key}
+                href={item.href}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                  active
+                    ? "bg-[#2F6FED] text-white"
+                    : "text-slate-300 hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                <item.icon className="h-5 w-5" />
+                {item.label}
+              </Link>
+            );
+          })}
 
         {!isSuperAdmin && (
           <div className="pt-4">
@@ -112,9 +172,19 @@ export function Sidebar({
       </nav>
 
       <div className="border-t border-white/10 px-4 py-4">
+        {!isSuperAdmin && (
+          <div className="mb-2">
+            <SchoolBadge variant="dark" />
+          </div>
+        )}
         <button className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-white/5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2F6FED] text-xs font-bold text-white">
-            {initials}
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#2F6FED] text-xs font-bold text-white">
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarUrl} alt={userName} className="h-full w-full object-cover" />
+            ) : (
+              initials
+            )}
           </div>
           <div className="flex-1 overflow-hidden leading-tight">
             <div className="truncate text-sm font-semibold text-white">{userName}</div>

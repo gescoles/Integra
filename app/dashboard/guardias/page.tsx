@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "../components/DashboardHeader";
+import { ModuleLocked } from "../components/ModuleLocked";
 import { GuardiasClient } from "./GuardiasClient";
 
 export default async function GuardiasPage() {
@@ -27,9 +28,34 @@ export default async function GuardiasPage() {
     );
   }
 
+  const school = await prisma.school.findUnique({
+    where: { id: schoolId },
+    select: { modules: true },
+  });
+
+  if (!school?.modules.includes("guardias")) {
+    return (
+      <div>
+        <DashboardHeader
+          title="Guardias"
+          subtitle="Planifica y consulta las guardias de tu centro."
+          userName={userName}
+          role={role}
+        />
+        <ModuleLocked moduleName="Guardias" />
+      </div>
+    );
+  }
+
+  const isProfesor = role === "PROFESOR";
+  const userId = session?.user.id;
+  const subtitle = isProfesor
+    ? "Consulta tus propias guardias."
+    : "Planifica y consulta las guardias de todo el centro.";
+
   const [guardiasRaw, profesoresRaw] = await Promise.all([
     prisma.guardia.findMany({
-      where: { schoolId },
+      where: isProfesor ? { schoolId, profesorId: userId } : { schoolId },
       include: { profesor: { select: { id: true, name: true } } },
       orderBy: { fecha: "desc" },
     }),
@@ -59,7 +85,7 @@ export default async function GuardiasPage() {
     <div>
       <DashboardHeader
         title="Guardias"
-        subtitle="Planifica y consulta las guardias de tu centro."
+        subtitle={subtitle}
         userName={userName}
         role={role}
         notificationCount={0}

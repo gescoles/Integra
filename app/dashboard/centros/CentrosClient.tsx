@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import {
   Search,
   RefreshCw,
@@ -8,8 +8,9 @@ import {
   MoreVertical,
   Pencil,
   Zap,
+  Trash2,
 } from "lucide-react";
-import { saveSchoolSettings } from "./actions";
+import { saveSchoolSettings, deleteSchool, uploadSchoolLogo } from "./actions";
 import {
   MODULES,
   PLAN_LABELS,
@@ -17,6 +18,7 @@ import {
   STATUS_LABELS,
   STATUS_COLORS,
 } from "./constants";
+import { Image as ImageIcon } from "lucide-react";
 
 type SchoolRow = {
   id: string;
@@ -29,6 +31,7 @@ type SchoolRow = {
   modules: string[];
   userCount: number;
   updatedAt: string;
+  logoUrl: string | null;
 };
 
 export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
@@ -42,6 +45,39 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [isDeleting, startDeleteTransition] = useTransition();
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isUploadingLogo, startLogoTransition] = useTransition();
+  const [logoError, setLogoError] = useState<string | null>(null);
+
+  function handleLogoUpload(schoolId: string, file: File) {
+    setLogoError(null);
+    const formData = new FormData();
+    formData.set("schoolId", schoolId);
+    formData.set("logo", file);
+    startLogoTransition(async () => {
+      try {
+        await uploadSchoolLogo(formData);
+      } catch (e) {
+        setLogoError(e instanceof Error ? e.message : "No se pudo subir la imagen.");
+      }
+    });
+  }
+
+  function handleDelete(id: string, name: string) {
+    setDeleteError(null);
+    if (!confirm(`¿Seguro que quieres eliminar el centro "${name}"? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+    startDeleteTransition(async () => {
+      try {
+        await deleteSchool(id);
+        if (selectedId === id) setSelectedId(null);
+      } catch (e) {
+        setDeleteError(e instanceof Error ? e.message : "No se pudo eliminar el centro.");
+      }
+    });
+  }
 
   const cities = useMemo(
     () => Array.from(new Set(schools.map((s) => s.city).filter(Boolean))) as string[],
@@ -91,6 +127,12 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
       {/* Lista de centros */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5">
         <h3 className="mb-4 text-sm font-bold text-[#0B1D4D]">Lista de centros</h3>
+
+        {deleteError && (
+          <div className="mb-4 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600">
+            {deleteError}
+          </div>
+        )}
 
         <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <div className="relative sm:col-span-3 lg:col-span-1">
@@ -270,6 +312,14 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
                             <Eye className="h-3.5 w-3.5" />
                           </button>
                           <button
+                            onClick={() => handleDelete(s.id, s.name)}
+                            disabled={isDeleting}
+                            title="Eliminar centro"
+                            className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                          <button
                             title="Más opciones"
                             className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#2F6FED]"
                           >
@@ -350,6 +400,38 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
           <form key={selected.id} action={handleSave} className="space-y-4">
             <input type="hidden" name="id" value={selected.id} />
             <div className="text-sm font-semibold text-slate-700">{selected.name}</div>
+
+            {/* Foto del centro — se sube al instante, aparte del resto del formulario */}
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-slate-600">
+                Foto del centro
+              </label>
+              <div className="flex items-center gap-3">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                  {selected.logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={selected.logoUrl} alt={selected.name} className="h-full w-full object-cover" />
+                  ) : (
+                    <ImageIcon className="h-5 w-5 text-slate-300" />
+                  )}
+                </div>
+                <label className="flex-1 cursor-pointer rounded-lg border border-dashed border-slate-300 px-3 py-2 text-center text-xs font-medium text-slate-500 hover:border-[#2F6FED] hover:text-[#2F6FED]">
+                  {isUploadingLogo ? "Subiendo..." : "Cambiar foto"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={isUploadingLogo}
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleLogoUpload(selected.id, file);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
+              {logoError && <p className="mt-1.5 text-[11px] text-red-600">{logoError}</p>}
+            </div>
 
             {saveError && (
               <div className="rounded-lg bg-red-50 px-3 py-2.5 text-xs text-red-600">

@@ -29,6 +29,7 @@ export default async function CentrosPage() {
     modules: s.modules,
     userCount: s._count.users,
     updatedAt: new Date(s.updatedAt).toLocaleDateString("es-ES"),
+    logoUrl: s.logoUrl,
   }));
 
   const stats = {

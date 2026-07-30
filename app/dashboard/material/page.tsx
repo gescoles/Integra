@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "../components/DashboardHeader";
+import { ModuleLocked } from "../components/ModuleLocked";
 import { MaterialClient } from "./MaterialClient";
 
 export default async function MaterialPage() {
@@ -27,9 +28,34 @@ export default async function MaterialPage() {
     );
   }
 
+  const school = await prisma.school.findUnique({
+    where: { id: schoolId },
+    select: { modules: true },
+  });
+
+  if (!school?.modules.includes("material")) {
+    return (
+      <div>
+        <DashboardHeader
+          title="Material"
+          subtitle="Solicitudes de material didáctico del centro."
+          userName={userName}
+          role={role}
+        />
+        <ModuleLocked moduleName="Material" />
+      </div>
+    );
+  }
+
+  const isProfesor = role === "PROFESOR";
+  const userId = session?.user.id;
+  const subtitle = isProfesor
+    ? "Tus solicitudes de material didáctico."
+    : "Solicitudes de material didáctico de todo el centro.";
+
   const [materialRaw, profesoresRaw] = await Promise.all([
     prisma.materialRequest.findMany({
-      where: { schoolId },
+      where: isProfesor ? { schoolId, profesorId: userId } : { schoolId },
       include: { profesor: { select: { id: true, name: true } } },
       orderBy: { createdAt: "desc" },
     }),
@@ -61,7 +87,7 @@ export default async function MaterialPage() {
     <div>
       <DashboardHeader
         title="Material"
-        subtitle="Solicitudes de material didáctico del centro."
+        subtitle={subtitle}
         userName={userName}
         role={role}
         notificationCount={0}

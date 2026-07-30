@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Search, Pencil, MoreVertical, X, Filter } from "lucide-react";
-import { updateUser } from "./actions";
+import { useMemo, useState, useTransition } from "react";
+import { Search, Pencil, MoreVertical, X, Filter, Trash2 } from "lucide-react";
+import { updateUser, deleteUser } from "./actions";
 import {
   ROLE_LABELS,
   ROLE_COLORS,
@@ -25,6 +25,7 @@ type UserRow = {
   schoolId: string | null;
   schoolName: string | null;
   lastAccessAt: string | null;
+  avatarUrl: string | null;
 };
 
 export function UsuariosClient({
@@ -41,6 +42,23 @@ export function UsuariosClient({
   const [pageSize, setPageSize] = useState(5);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [isDeleting, startDeleteTransition] = useTransition();
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  function handleDelete(id: string, name: string) {
+    setDeleteError(null);
+    if (!confirm(`¿Seguro que quieres eliminar a "${name}"? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+    startDeleteTransition(async () => {
+      try {
+        await deleteUser(id);
+        if (editingId === id) setEditingId(null);
+      } catch (e) {
+        setDeleteError(e instanceof Error ? e.message : "No se pudo eliminar el usuario.");
+      }
+    });
+  }
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -86,6 +104,12 @@ export function UsuariosClient({
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5">
       <h3 className="mb-4 text-sm font-bold text-[#0B1D4D]">Listado de usuarios</h3>
+
+      {deleteError && (
+        <div className="mb-4 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600">
+          {deleteError}
+        </div>
+      )}
 
       <div className="mb-4 flex flex-wrap gap-3">
         <div className="relative min-w-[220px] flex-1">
@@ -167,11 +191,16 @@ export function UsuariosClient({
                   <td className="py-3 pr-3">
                     <div className="flex items-center gap-2.5">
                       <div
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${avatarColor(
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-bold ${avatarColor(
                           u.name
                         )}`}
                       >
-                        {initials(u.name).toUpperCase()}
+                        {u.avatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={u.avatarUrl} alt={u.name} className="h-full w-full object-cover" />
+                        ) : (
+                          initials(u.name).toUpperCase()
+                        )}
                       </div>
                       <div>
                         <div className="font-semibold text-slate-700">{u.name}</div>
@@ -209,6 +238,14 @@ export function UsuariosClient({
                         className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#2F6FED]"
                       >
                         <MoreVertical className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(u.id, u.name)}
+                        disabled={isDeleting}
+                        title="Eliminar usuario"
+                        className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </td>

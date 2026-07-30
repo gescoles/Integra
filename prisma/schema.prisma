@@ -50,6 +50,7 @@ model School {
   status    SchoolStatus @default(ACTIVO)
   userLimit Int          @default(50)
   modules   String[]     @default([])
+  logoUrl   String?
   createdAt DateTime     @default(now())
   updatedAt DateTime     @default(now()) @updatedAt
   users     User[]
@@ -66,6 +67,7 @@ model User {
   dni          String?    @unique
   role         Role
   status       UserStatus @default(ACTIVO)
+  avatarUrl    String?
   lastAccessAt DateTime?
   schoolId     String?
   school       School?    @relation(fields: [schoolId], references: [id])
@@ -73,6 +75,7 @@ model User {
   tutorias     Tutoria[]
   guardias     Guardia[]
   material     MaterialRequest[]
+  horario      HorarioBloque[]
 }
 
 enum TutoriaStatus {
@@ -139,4 +142,18 @@ model MaterialRequest {
   costeEstimado Float            @default(0)
   status        MaterialStatus   @default(PENDIENTE)
   createdAt     DateTime         @default(now())
+}
+
+// Horario semanal recurrente del profesor (Lunes=1 ... Viernes=5)
+model HorarioBloque {
+  id         String   @id @default(cuid())
+  profesorId String
+  profesor   User     @relation(fields: [profesorId], references: [id])
+  diaSemana  Int
+  horaInicio String
+  horaFin    String
+  asignatura String
+  grupo      String?
+  color      String   @default("#2F6FED")
+  createdAt  DateTime @default(now())
 }
