@@ -41,6 +41,7 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
   const [pageSize, setPageSize] = useState(10);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const cities = useMemo(
     () => Array.from(new Set(schools.map((s) => s.city).filter(Boolean))) as string[],
@@ -73,8 +74,13 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
 
   async function handleSave(formData: FormData) {
     setPending(true);
+    setSaveError(null);
     try {
       await saveSchoolSettings(formData);
+    } catch (e) {
+      setSaveError(
+        e instanceof Error ? e.message : "No se pudo guardar. Inténtalo de nuevo."
+      );
     } finally {
       setPending(false);
     }
@@ -248,7 +254,10 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
                       <td className="py-3">
                         <div className="flex items-center gap-1">
                           <button
-                            onClick={() => setSelectedId(s.id)}
+                            onClick={() => {
+                              setSelectedId(s.id);
+                              setSaveError(null);
+                            }}
                             title="Edición rápida"
                             className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#2F6FED]"
                           >
@@ -341,6 +350,12 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
           <form key={selected.id} action={handleSave} className="space-y-4">
             <input type="hidden" name="id" value={selected.id} />
             <div className="text-sm font-semibold text-slate-700">{selected.name}</div>
+
+            {saveError && (
+              <div className="rounded-lg bg-red-50 px-3 py-2.5 text-xs text-red-600">
+                {saveError}
+              </div>
+            )}
 
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-slate-600">Plan</label>

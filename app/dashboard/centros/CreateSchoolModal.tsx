@@ -8,14 +8,22 @@ import { MODULES, PLAN_LABELS, TYPE_LABELS } from "./constants";
 export function CreateSchoolModal() {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   async function handleSubmit(formData: FormData) {
     setPending(true);
+    setError(null);
     try {
       await createSchool(formData);
       setOpen(false);
       formRef.current?.reset();
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : "No se pudo crear el centro. Inténtalo de nuevo."
+      );
     } finally {
       setPending(false);
     }
@@ -44,6 +52,12 @@ export function CreateSchoolModal() {
             </div>
 
             <form ref={formRef} action={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600">
+                  {error}
+                </div>
+              )}
+
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                   Nombre del centro

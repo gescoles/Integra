@@ -14,6 +14,13 @@ datasource db {
 enum Role {
   SUPERADMIN
   ADMIN_CENTRO
+  COORDINADOR
+  PROFESOR
+}
+
+enum UserStatus {
+  ACTIVO
+  INACTIVO
 }
 
 enum SchoolType {
@@ -49,12 +56,15 @@ model School {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id           String     @id @default(cuid())
+  email        String     @unique
   passwordHash String
   name         String?
+  dni          String?    @unique
   role         Role
+  status       UserStatus @default(ACTIVO)
+  lastAccessAt DateTime?
   schoolId     String?
-  school       School?  @relation(fields: [schoolId], references: [id])
-  createdAt    DateTime @default(now())
+  school       School?    @relation(fields: [schoolId], references: [id])
+  createdAt    DateTime   @default(now())
 }
