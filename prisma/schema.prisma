@@ -170,31 +170,36 @@ model Guardia {
   createdAt  DateTime      @default(now())
 }
 
-enum MaterialPriority {
-  ALTA
-  MEDIA
-  BAJA
+enum MaterialCategoria {
+  ELECTRONICA
+  COMPONENTES
+  HERRAMIENTAS
+  OTROS
 }
 
-enum MaterialStatus {
-  PENDIENTE
-  EN_REVISION
-  APROBADO
+enum MaterialEstado {
+  EN_STOCK
+  BAJO_STOCK
+  AGOTADO
 }
 
 model MaterialRequest {
-  id            String           @id @default(cuid())
+  id            String            @id @default(cuid())
   schoolId      String
-  school        School           @relation(fields: [schoolId], references: [id])
+  school        School            @relation(fields: [schoolId], references: [id])
   profesorId    String
-  profesor      User             @relation(fields: [profesorId], references: [id])
-  cicloModulo   String
-  materialName  String
-  cantidad      Int              @default(1)
-  prioridad     MaterialPriority @default(MEDIA)
-  costeEstimado Float            @default(0)
-  status        MaterialStatus   @default(PENDIENTE)
-  createdAt     DateTime         @default(now())
+  profesor      User              @relation(fields: [profesorId], references: [id])
+  nombre        String
+  curso         String
+  asignatura    String
+  cantidad      Int               @default(1)
+  precioUnidad  Float             @default(0)
+  proveedor     String
+  enlace        String?
+  justificacion String
+  categoria     MaterialCategoria @default(OTROS)
+  estado        MaterialEstado    @default(EN_STOCK)
+  createdAt     DateTime          @default(now())
 }
 
 // Horario semanal recurrente del profesor (Lunes=1 ... Viernes=5)

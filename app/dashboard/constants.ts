@@ -24,28 +24,36 @@ export const GUARDIA_STATUS_COLORS: Record<string, string> = {
   PENDIENTE: "bg-amber-50 text-amber-600",
 };
 
-export const MATERIAL_PRIORITY_LABELS: Record<string, string> = {
-  ALTA: "Alta",
-  MEDIA: "Media",
-  BAJA: "Baja",
+export const MATERIAL_CATEGORIA_LABELS: Record<string, string> = {
+  ELECTRONICA: "Electrónica",
+  COMPONENTES: "Componentes",
+  HERRAMIENTAS: "Herramientas",
+  OTROS: "Otros",
 };
 
-export const MATERIAL_PRIORITY_COLORS: Record<string, string> = {
-  ALTA: "bg-red-50 text-red-500",
-  MEDIA: "bg-amber-50 text-amber-600",
-  BAJA: "bg-emerald-50 text-emerald-600",
+export const MATERIAL_CATEGORIA_COLORS: Record<string, string> = {
+  ELECTRONICA: "bg-blue-50 text-[#2F6FED]",
+  COMPONENTES: "bg-violet-50 text-violet-600",
+  HERRAMIENTAS: "bg-amber-50 text-amber-600",
+  OTROS: "bg-slate-100 text-slate-500",
 };
 
-export const MATERIAL_STATUS_LABELS: Record<string, string> = {
-  PENDIENTE: "Pendiente",
-  EN_REVISION: "En revisión",
-  APROBADO: "Aprobado",
+export const MATERIAL_ESTADO_LABELS: Record<string, string> = {
+  EN_STOCK: "En stock",
+  BAJO_STOCK: "Bajo stock",
+  AGOTADO: "Agotado",
 };
 
-export const MATERIAL_STATUS_COLORS: Record<string, string> = {
-  PENDIENTE: "bg-amber-50 text-amber-600",
-  EN_REVISION: "bg-blue-50 text-[#2F6FED]",
-  APROBADO: "bg-emerald-50 text-emerald-600",
+export const MATERIAL_ESTADO_COLORS: Record<string, string> = {
+  EN_STOCK: "text-emerald-600",
+  BAJO_STOCK: "text-amber-600",
+  AGOTADO: "text-red-500",
+};
+
+export const MATERIAL_ESTADO_DOT: Record<string, string> = {
+  EN_STOCK: "bg-emerald-500",
+  BAJO_STOCK: "bg-amber-500",
+  AGOTADO: "bg-red-500",
 };
 
 export const ROLE_LABELS_FULL: Record<string, string> = {

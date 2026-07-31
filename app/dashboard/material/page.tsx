@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "../components/DashboardHeader";
 import { ModuleLocked } from "../components/ModuleLocked";
 import { MaterialClient } from "./MaterialClient";
+import { MaterialFormModal } from "./MaterialFormModal";
 
 export default async function MaterialPage() {
   const session = await getServerSession(authOptions);
@@ -11,13 +12,14 @@ export default async function MaterialPage() {
     session?.user.name || session?.user.email.split("@")[0] || "Usuario";
   const role = session?.user.role ?? "COORDINADOR";
   const schoolId = session?.user.schoolId ?? null;
+  const userId = session?.user.id;
 
   if (!schoolId) {
     return (
       <div>
         <DashboardHeader
           title="Material"
-          subtitle="Solicitudes de material didáctico del centro."
+          subtitle="Material didáctico del centro."
           userName={userName}
           role={role}
         />
@@ -38,7 +40,7 @@ export default async function MaterialPage() {
       <div>
         <DashboardHeader
           title="Material"
-          subtitle="Solicitudes de material didáctico del centro."
+          subtitle="Material didáctico del centro."
           userName={userName}
           role={role}
         />
@@ -47,52 +49,43 @@ export default async function MaterialPage() {
     );
   }
 
-  const isProfesor = role === "PROFESOR";
-  const userId = session?.user.id;
-  const subtitle = isProfesor
-    ? "Tus solicitudes de material didáctico."
-    : "Solicitudes de material didáctico de todo el centro.";
+  if (!userId) return null;
 
-  const [materialRaw, profesoresRaw] = await Promise.all([
-    prisma.materialRequest.findMany({
-      where: isProfesor ? { schoolId, profesorId: userId } : { schoolId },
-      include: { profesor: { select: { id: true, name: true } } },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.user.findMany({
-      where: { schoolId, role: { in: ["PROFESOR", "COORDINADOR"] } },
-      select: { id: true, name: true, email: true },
-      orderBy: { name: "asc" },
-    }),
-  ]);
+  const materialRaw = await prisma.materialRequest.findMany({
+    where: { profesorId: userId },
+    include: { profesor: { select: { id: true, name: true, email: true } } },
+    orderBy: { createdAt: "desc" },
+  });
 
   const rows = materialRaw.map((m) => ({
     id: m.id,
-    materialName: m.materialName,
-    cicloModulo: m.cicloModulo,
+    nombre: m.nombre,
+    curso: m.curso,
+    asignatura: m.asignatura,
     cantidad: m.cantidad,
-    prioridad: m.prioridad,
-    costeEstimado: m.costeEstimado,
-    status: m.status,
+    precioUnidad: m.precioUnidad,
+    proveedor: m.proveedor,
+    enlace: m.enlace,
+    categoria: m.categoria,
+    estado: m.estado,
+    justificacion: m.justificacion,
     profesorId: m.profesorId,
-    profesorName: m.profesor?.name ?? "—",
-  }));
-
-  const profesores = profesoresRaw.map((p) => ({
-    id: p.id,
-    name: p.name ?? p.email,
+    profesorName: m.profesor?.name ?? m.profesor?.email ?? "—",
   }));
 
   return (
     <div>
       <DashboardHeader
         title="Material"
-        subtitle={subtitle}
+        subtitle="El material didáctico que has pedido."
         userName={userName}
         role={role}
         notificationCount={0}
       />
-      <MaterialClient rows={rows} profesores={profesores} />
+      <div className="mb-5 flex justify-end">
+        <MaterialFormModal userName={userName} />
+      </div>
+      <MaterialClient rows={rows} currentUserId={userId} />
     </div>
   );
 }
