@@ -15,7 +15,6 @@ type MaterialData = {
   proveedor: string;
   enlace: string | null;
   categoria: string;
-  estado: string;
   justificacion?: string;
 };
 
