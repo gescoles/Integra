@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Search, Pencil, MoreVertical, X, Filter, Trash2 } from "lucide-react";
-import { updateUser, deleteUser } from "./actions";
+import { Search, Pencil, MoreVertical, X, Filter, Trash2, AlertTriangle } from "lucide-react";
+import { updateUser, deleteUser, getUserDeleteImpact } from "./actions";
 import {
   ROLE_LABELS,
   ROLE_COLORS,
@@ -44,21 +44,51 @@ export function UsuariosClient({
   const [pending, setPending] = useState(false);
   const [isDeleting, startDeleteTransition] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
+  const [deleteImpact, setDeleteImpact] = useState<{
+    tutorias: number;
+    guardias: number;
+    material: number;
+    alumnos: number;
+  } | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [loadingImpact, setLoadingImpact] = useState(false);
 
-  function handleDelete(id: string, name: string) {
+  async function handleDelete(id: string, name: string) {
     setDeleteError(null);
-    if (!confirm(`¿Seguro que quieres eliminar a "${name}"? Esta acción no se puede deshacer.`)) {
-      return;
+    setLoadingImpact(true);
+    const user = users.find((u) => u.id === id) ?? null;
+    setDeleteTarget(user);
+    setDeleteConfirmText("");
+    try {
+      const impact = await getUserDeleteImpact(id);
+      setDeleteImpact(impact);
+    } catch {
+      setDeleteImpact(null);
+    } finally {
+      setLoadingImpact(false);
     }
+  }
+
+  function performDeleteUser() {
+    if (!deleteTarget) return;
     startDeleteTransition(async () => {
       try {
-        await deleteUser(id);
-        if (editingId === id) setEditingId(null);
+        await deleteUser(deleteTarget.id);
+        if (editingId === deleteTarget.id) setEditingId(null);
+        setDeleteTarget(null);
       } catch (e) {
         setDeleteError(e instanceof Error ? e.message : "No se pudo eliminar el usuario.");
       }
     });
   }
+
+  const hasImpact =
+    deleteImpact &&
+    (deleteImpact.tutorias > 0 ||
+      deleteImpact.guardias > 0 ||
+      deleteImpact.material > 0 ||
+      deleteImpact.alumnos > 0);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -412,6 +442,83 @@ export function UsuariosClient({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: confirmación fuerte para eliminar usuario */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-[#0B1D4D]">Eliminar usuario</h2>
+                {loadingImpact ? (
+                  <p className="mt-1 text-sm text-slate-500">Comprobando datos asociados...</p>
+                ) : hasImpact ? (
+                  <p className="mt-1 text-sm text-slate-600">
+                    <strong>{deleteTarget.name}</strong> tiene{" "}
+                    {deleteImpact!.tutorias > 0 && <>{deleteImpact!.tutorias} tutoría(s), </>}
+                    {deleteImpact!.guardias > 0 && <>{deleteImpact!.guardias} guardia(s), </>}
+                    {deleteImpact!.material > 0 && <>{deleteImpact!.material} solicitud(es) de material, </>}
+                    {deleteImpact!.alumnos > 0 && <>{deleteImpact!.alumnos} alumno(s)</>}. Si continúas, se
+                    eliminará el usuario <strong>y todo lo anterior</strong>, en todos los sitios (historial,
+                    calendario, Inicio...). Esta acción no se puede deshacer.
+                  </p>
+                ) : (
+                  <p className="mt-1 text-sm text-slate-600">
+                    ¿Seguro que quieres eliminar a <strong>{deleteTarget.name}</strong>? Esta acción no se
+                    puede deshacer.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {deleteError && (
+              <div className="mb-4 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600">{deleteError}</div>
+            )}
+
+            {hasImpact && (
+              <>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                  Escribe <span className="font-mono text-red-600">eliminar {deleteTarget.name}</span> para
+                  confirmar
+                </label>
+                <input
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder={`eliminar ${deleteTarget.name}`}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-red-400"
+                />
+              </>
+            )}
+
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={
+                  isDeleting ||
+                  loadingImpact ||
+                  (hasImpact
+                    ? deleteConfirmText.trim().toLowerCase() !== `eliminar ${deleteTarget.name}`.toLowerCase()
+                    : false)
+                }
+                onClick={performDeleteUser}
+                className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {isDeleting ? "Eliminando..." : "Eliminar definitivamente"}
+              </button>
+            </div>
           </div>
         </div>
       )}

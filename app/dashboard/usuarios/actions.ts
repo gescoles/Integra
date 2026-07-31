@@ -82,6 +82,16 @@ export async function updateUser(formData: FormData) {
   revalidatePath("/dashboard/usuarios");
 }
 
+export async function getUserDeleteImpact(id: string) {
+  const [tutorias, guardias, material, alumnos] = await Promise.all([
+    prisma.tutoria.count({ where: { profesorId: id } }),
+    prisma.guardia.count({ where: { profesorId: id } }),
+    prisma.materialRequest.count({ where: { profesorId: id } }),
+    prisma.alumno.count({ where: { profesorId: id } }),
+  ]);
+  return { tutorias, guardias, material, alumnos };
+}
+
 export async function deleteUser(id: string) {
   if (!id) {
     throw new Error("Falta el identificador del usuario.");
@@ -92,18 +102,23 @@ export async function deleteUser(id: string) {
     throw new Error("No puedes eliminar tu propio usuario mientras tienes la sesión iniciada.");
   }
 
-  const [tutoriasCount, guardiasCount, materialCount] = await Promise.all([
-    prisma.tutoria.count({ where: { profesorId: id } }),
-    prisma.guardia.count({ where: { profesorId: id } }),
-    prisma.materialRequest.count({ where: { profesorId: id } }),
-  ]);
+  const alumnos = await prisma.alumno.findMany({
+    where: { profesorId: id },
+    select: { id: true },
+  });
+  const alumnoIds = alumnos.map((a) => a.id);
 
-  const total = tutoriasCount + guardiasCount + materialCount;
-  if (total > 0) {
-    throw new Error(
-      `No se puede eliminar: este usuario tiene ${tutoriasCount} tutoría(s), ${guardiasCount} guardia(s) y ${materialCount} solicitud(es) de material asociadas. Reasígnalas a otro profesor primero.`
-    );
+  // Se borra todo lo asociado, en el orden correcto para no romper claves foráneas.
+  if (alumnoIds.length > 0) {
+    await prisma.alumnoContacto.deleteMany({ where: { alumnoId: { in: alumnoIds } } });
   }
+  await prisma.tutoria.deleteMany({ where: { profesorId: id } });
+  await prisma.guardia.deleteMany({ where: { profesorId: id } });
+  await prisma.materialRequest.deleteMany({ where: { profesorId: id } });
+  await prisma.alumno.deleteMany({ where: { profesorId: id } });
+  await prisma.horarioBloque.deleteMany({ where: { profesorId: id } });
+  await prisma.calendarEvento.deleteMany({ where: { userId: id } });
+  await prisma.aviso.deleteMany({ where: { autorId: id } });
 
   await prisma.user.delete({ where: { id } });
   revalidatePath("/dashboard/usuarios");

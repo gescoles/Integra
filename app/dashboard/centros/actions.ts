@@ -60,17 +60,21 @@ export async function deleteSchool(id: string) {
     throw new Error("Falta el identificador del centro.");
   }
 
-  const [usersCount, tutoriasCount, guardiasCount, materialCount] = await Promise.all([
-    prisma.user.count({ where: { schoolId: id } }),
-    prisma.tutoria.count({ where: { schoolId: id } }),
-    prisma.guardia.count({ where: { schoolId: id } }),
-    prisma.materialRequest.count({ where: { schoolId: id } }),
-  ]);
+  const [usersCount, tutoriasCount, guardiasCount, materialCount, alumnosCount, avisosCount] =
+    await Promise.all([
+      prisma.user.count({ where: { schoolId: id } }),
+      prisma.tutoria.count({ where: { schoolId: id } }),
+      prisma.guardia.count({ where: { schoolId: id } }),
+      prisma.materialRequest.count({ where: { schoolId: id } }),
+      prisma.alumno.count({ where: { schoolId: id } }),
+      prisma.aviso.count({ where: { schoolId: id } }),
+    ]);
 
-  const total = usersCount + tutoriasCount + guardiasCount + materialCount;
+  const total =
+    usersCount + tutoriasCount + guardiasCount + materialCount + alumnosCount + avisosCount;
   if (total > 0) {
     throw new Error(
-      `No se puede eliminar: este centro tiene ${usersCount} usuario(s), ${tutoriasCount} tutoría(s), ${guardiasCount} guardia(s) y ${materialCount} solicitud(es) de material asociadas. Elimínalos o reasígnalos primero.`
+      `No se puede eliminar: este centro tiene ${usersCount} usuario(s), ${tutoriasCount} tutoría(s), ${guardiasCount} guardia(s), ${materialCount} solicitud(es) de material, ${alumnosCount} alumno(s) y ${avisosCount} aviso(s) asociados. Elimínalos o reasígnalos primero.`
     );
   }
 
