@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "./components/DashboardHeader";
-import { LockedCard } from "./components/LockedCard";
 import { AvisosSection } from "./components/AvisosSection";
 import {
   ShieldCheck,
@@ -160,72 +159,68 @@ export async function ProfesorHome({
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Próxima tutoría */}
-        {hasTutorias ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50">
-                <MessageCircle className="h-4 w-4 text-[#2F6FED]" />
-              </div>
-              <span className="text-xs font-semibold text-slate-500">Próxima tutoría</span>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50">
+              <MessageCircle className="h-4 w-4 text-[#2F6FED]" />
             </div>
-            {nextTutoria ? (
-              <>
-                <div className="mt-2 text-xl font-bold text-[#0B1D4D]">
-                  {nextTutoria.sessionDate.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
-                </div>
-                <p className="text-xs text-slate-500">
-                  {nextTutoria.cicloModulo ?? ""} · Tutoría individual
-                  <br />
-                  {nextTutoria.studentName}
-                </p>
-                <Link
-                  href="/dashboard/tutorias"
-                  className="mt-2 inline-flex items-center justify-center rounded-lg bg-[#2F6FED] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#255ed1]"
-                >
-                  Abrir tutoría
-                </Link>
-              </>
-            ) : (
-              <p className="mt-2 text-xs text-slate-400">Sin tutorías para hoy.</p>
-            )}
+            <span className="text-xs font-semibold text-slate-500">Próxima tutoría</span>
           </div>
-        ) : (
-          <LockedCard title="Próxima tutoría" moduleName="Tutorías" />
-        )}
+          {!hasTutorias ? (
+            <p className="mt-2 text-xs text-slate-400">Módulo no contratado por tu centro.</p>
+          ) : nextTutoria ? (
+            <>
+              <div className="mt-2 text-xl font-bold text-[#0B1D4D]">
+                {nextTutoria.sessionDate.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
+              </div>
+              <p className="text-xs text-slate-500">
+                {nextTutoria.cicloModulo ?? ""} · Tutoría individual
+                <br />
+                {nextTutoria.studentName}
+              </p>
+              <Link
+                href="/dashboard/tutorias"
+                className="mt-2 inline-flex items-center justify-center rounded-lg bg-[#2F6FED] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#255ed1]"
+              >
+                Abrir tutoría
+              </Link>
+            </>
+          ) : (
+            <p className="mt-2 text-xs text-slate-400">Sin tutorías para hoy.</p>
+          )}
+        </div>
 
         {/* Próxima guardia */}
-        {hasGuardias ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50">
-                <ShieldCheck className="h-4 w-4 text-emerald-600" />
-              </div>
-              <span className="text-xs font-semibold text-slate-500">Próxima guardia</span>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50">
+              <ShieldCheck className="h-4 w-4 text-emerald-600" />
             </div>
-            {nextGuardia ? (
-              <>
-                <div className="mt-2 text-xl font-bold text-[#0B1D4D]">
-                  {nextGuardia.fecha.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
-                </div>
-                <p className="text-xs text-slate-500">
-                  {nextGuardia.ubicacion ?? ""}
-                  <br />
-                  {nextGuardia.turno}
-                </p>
-                <Link
-                  href="/dashboard/guardias"
-                  className="mt-2 inline-flex items-center justify-center rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50"
-                >
-                  Ver mis guardias
-                </Link>
-              </>
-            ) : (
-              <p className="mt-2 text-xs text-slate-400">Sin guardias para hoy.</p>
-            )}
+            <span className="text-xs font-semibold text-slate-500">Próxima guardia</span>
           </div>
-        ) : (
-          <LockedCard title="Próxima guardia" moduleName="Guardias" />
-        )}
+          {!hasGuardias ? (
+            <p className="mt-2 text-xs text-slate-400">Módulo no contratado por tu centro.</p>
+          ) : nextGuardia ? (
+            <>
+              <div className="mt-2 text-xl font-bold text-[#0B1D4D]">
+                {nextGuardia.fecha.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
+              </div>
+              <p className="text-xs text-slate-500">
+                {nextGuardia.ubicacion ?? ""}
+                <br />
+                {nextGuardia.turno}
+              </p>
+              <Link
+                href="/dashboard/guardias"
+                className="mt-2 inline-flex items-center justify-center rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50"
+              >
+                Ver mis guardias
+              </Link>
+            </>
+          ) : (
+            <p className="mt-2 text-xs text-slate-400">Sin guardias para hoy.</p>
+          )}
+        </div>
 
         {/* Próximo evento */}
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
