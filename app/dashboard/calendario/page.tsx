@@ -27,9 +27,9 @@ export default async function CalendarioPage({
 
   const offset = Number(searchParams.offset ?? 0) || 0;
   const monday = getWeekStart(offset);
-  const friday = addDays(monday, 4);
-  const fridayEnd = new Date(friday);
-  fridayEnd.setHours(23, 59, 59, 999);
+  const sunday = addDays(monday, 6);
+  const sundayEnd = new Date(sunday);
+  sundayEnd.setHours(23, 59, 59, 999);
 
   const school = session.user.schoolId
     ? await prisma.school.findUnique({ where: { id: session.user.schoolId }, select: { modules: true } })
@@ -41,24 +41,24 @@ export default async function CalendarioPage({
   const [horarioBloques, eventos, tutorias, guardias] = await Promise.all([
     prisma.horarioBloque.findMany({ where: { profesorId: session.user.id } }),
     prisma.calendarEvento.findMany({
-      where: { userId: session.user.id, fecha: { gte: monday, lte: fridayEnd } },
+      where: { userId: session.user.id, fecha: { gte: monday, lte: sundayEnd } },
     }),
     hasTutorias
       ? prisma.tutoria.findMany({
-          where: { profesorId: session.user.id, sessionDate: { gte: monday, lte: fridayEnd } },
+          where: { profesorId: session.user.id, sessionDate: { gte: monday, lte: sundayEnd } },
         })
       : Promise.resolve([]),
     hasGuardias
       ? prisma.guardia.findMany({
-          where: { profesorId: session.user.id, fecha: { gte: monday, lte: fridayEnd } },
+          where: { profesorId: session.user.id, fecha: { gte: monday, lte: sundayEnd } },
         })
       : Promise.resolve([]),
   ]);
 
-  const dias = Array.from({ length: 5 }, (_, i) => {
+  const dias = Array.from({ length: 7 }, (_, i) => {
     const date = addDays(monday, i);
     const dateIso = isoDate(date);
-    const diaSemana = i + 1; // Lunes=1 ... Viernes=5
+    const diaSemana = i + 1; // Lunes=1 ... Domingo=7
     const today = isoDate(new Date()) === dateIso;
 
     const items = [

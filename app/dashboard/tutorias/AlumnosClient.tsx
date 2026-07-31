@@ -37,6 +37,7 @@ type TutoriaItem = {
   medio: string | null;
   notas: string | null;
   status: string;
+  proximoSeguimiento: string | null;
 };
 type Alumno = {
   id: string;
@@ -449,6 +450,17 @@ export function AlumnosClient({
                 />
               </div>
 
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                  Próximo seguimiento <span className="text-slate-400">(opcional)</span>
+                </label>
+                <input
+                  name="proximoSeguimiento"
+                  type="date"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                />
+              </div>
+
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
@@ -718,6 +730,22 @@ export function AlumnosClient({
                   minLength={10}
                   rows={5}
                   defaultValue={editingTutoria.notas ?? ""}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                  Próximo seguimiento <span className="text-slate-400">(opcional)</span>
+                </label>
+                <input
+                  name="proximoSeguimiento"
+                  type="date"
+                  defaultValue={
+                    editingTutoria.proximoSeguimiento
+                      ? new Date(editingTutoria.proximoSeguimiento).toISOString().slice(0, 10)
+                      : ""
+                  }
                   className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
                 />
               </div>

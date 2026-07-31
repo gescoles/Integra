@@ -106,6 +106,7 @@ export async function createTutoriaAlumno(formData: FormData) {
   const conQuien = formData.get("conQuien") as ConQuien;
   const medio = formData.get("medio") as MedioContacto;
   const notas = (formData.get("notas") as string)?.trim();
+  const proximoSeguimientoRaw = formData.get("proximoSeguimiento") as string;
 
   if (!alumnoId) throw new Error("Falta el alumno.");
   if (!fecha || !hora) throw new Error("Indica la fecha y la hora.");
@@ -117,6 +118,9 @@ export async function createTutoriaAlumno(formData: FormData) {
   const [y, m, d] = fecha.split("-").map(Number);
   const [hh, mm] = hora.split(":").map(Number);
   const sessionDate = new Date(y, m - 1, d, hh, mm);
+  const proximoSeguimiento = proximoSeguimientoRaw
+    ? new Date(`${proximoSeguimientoRaw}T00:00:00`)
+    : null;
 
   await prisma.tutoria.create({
     data: {
@@ -129,6 +133,7 @@ export async function createTutoriaAlumno(formData: FormData) {
       conQuien,
       medio,
       notas: notas || null,
+      proximoSeguimiento,
       status: "NUEVA",
     },
   });
@@ -154,6 +159,7 @@ export async function updateTutoriaAlumno(formData: FormData) {
   const medio = formData.get("medio") as MedioContacto;
   const notas = (formData.get("notas") as string)?.trim();
   const status = formData.get("status") as string;
+  const proximoSeguimientoRaw = formData.get("proximoSeguimiento") as string;
 
   if (!fecha || !hora) throw new Error("Indica la fecha y la hora.");
   if (!notas) throw new Error("Escribe un resumen de lo hablado en la tutoría.");
@@ -161,6 +167,9 @@ export async function updateTutoriaAlumno(formData: FormData) {
   const [y, m, d] = fecha.split("-").map(Number);
   const [hh, mm] = hora.split(":").map(Number);
   const sessionDate = new Date(y, m - 1, d, hh, mm);
+  const proximoSeguimiento = proximoSeguimientoRaw
+    ? new Date(`${proximoSeguimientoRaw}T00:00:00`)
+    : null;
 
   await prisma.tutoria.update({
     where: { id },
@@ -169,6 +178,7 @@ export async function updateTutoriaAlumno(formData: FormData) {
       conQuien,
       medio,
       notas: notas || null,
+      proximoSeguimiento,
       status: status as never,
     },
   });

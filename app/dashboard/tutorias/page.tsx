@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "../components/DashboardHeader";
 import { ModuleLocked } from "../components/ModuleLocked";
-import { TutoriasClient } from "./TutoriasClient";
+import { CentroTutoriasClient } from "./CentroTutoriasClient";
 import { AlumnosClient } from "./AlumnosClient";
 
 async function getAlumnosData(profesorId: string, alumnoSeleccionado?: string) {
@@ -37,6 +37,7 @@ async function getAlumnosData(profesorId: string, alumnoSeleccionado?: string) {
       medio: t.medio,
       notas: t.notas,
       status: t.status,
+      proximoSeguimiento: t.proximoSeguimiento ? t.proximoSeguimiento.toISOString() : null,
     })),
   }));
 
@@ -48,27 +49,73 @@ async function getAlumnosData(profesorId: string, alumnoSeleccionado?: string) {
 }
 
 async function getCentroData(schoolId: string) {
-  const [tutoriasRaw, profesoresRaw] = await Promise.all([
+  const inicioMes = new Date();
+  inicioMes.setDate(1);
+  inicioMes.setHours(0, 0, 0, 0);
+  const finMes = new Date(inicioMes);
+  finMes.setMonth(finMes.getMonth() + 1);
+  finMes.setMilliseconds(-1);
+
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const finHoy = new Date(hoy);
+  finHoy.setHours(23, 59, 59, 999);
+
+  const [tutoriasRaw, alumnosRaw, profesoresRaw] = await Promise.all([
     prisma.tutoria.findMany({
       where: { schoolId },
-      include: { profesor: { select: { id: true, name: true } } },
+      include: {
+        profesor: { select: { id: true, name: true, email: true } },
+        alumno: { select: { id: true, nombre: true, curso: true } },
+      },
       orderBy: { sessionDate: "desc" },
     }),
+    prisma.alumno.findMany({
+      where: { schoolId },
+      include: {
+        contactos: true,
+        profesor: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { nombre: "asc" },
+    }),
     prisma.user.findMany({
-      where: { schoolId, role: { in: ["PROFESOR", "COORDINADOR"] } },
+      where: { schoolId, role: { in: ["PROFESOR", "COORDINADOR", "ADMIN_CENTRO"] } },
       select: { id: true, name: true, email: true },
       orderBy: { name: "asc" },
     }),
   ]);
 
-  const rows = tutoriasRaw.map((t) => ({
+  const tutorias = tutoriasRaw.map((t) => ({
     id: t.id,
+    sessionDate: t.sessionDate.toISOString(),
     studentName: t.studentName,
     cicloModulo: t.cicloModulo,
-    status: t.status,
-    sessionDate: t.sessionDate.toISOString(),
+    alumnoId: t.alumnoId,
     profesorId: t.profesorId,
-    profesorName: t.profesor?.name ?? "—",
+    profesorName: t.profesor?.name ?? t.profesor?.email ?? "—",
+    conQuien: t.conQuien,
+    medio: t.medio,
+    status: t.status,
+    notas: t.notas,
+    proximoSeguimiento: t.proximoSeguimiento ? t.proximoSeguimiento.toISOString() : null,
+  }));
+
+  const alumnos = alumnosRaw.map((a) => ({
+    id: a.id,
+    nombre: a.nombre,
+    curso: a.curso,
+    edad: a.edad,
+    riesgo: a.riesgo,
+    avatarUrl: a.avatarUrl,
+    profesorId: a.profesorId,
+    profesorName: a.profesor?.name ?? a.profesor?.email ?? "—",
+    createdAt: a.createdAt.toISOString(),
+    contactos: a.contactos.map((c) => ({
+      id: c.id,
+      relacion: c.relacion,
+      telefono: c.telefono,
+      email: c.email,
+    })),
   }));
 
   const profesores = profesoresRaw.map((p) => ({
@@ -76,7 +123,32 @@ async function getCentroData(schoolId: string) {
     name: p.name ?? p.email,
   }));
 
-  return { rows, profesores };
+  const tutoriasHoy = tutoriasRaw.filter(
+    (t) => t.sessionDate >= hoy && t.sessionDate <= finHoy
+  );
+  const tutoriasHoyFamilia = tutoriasHoy.filter((t) => t.conQuien === "FAMILIA").length;
+  const tutoriasHoyAlumno = tutoriasHoy.filter((t) => t.conQuien === "ALUMNO").length;
+
+  const pendientesSeguimiento = tutoriasRaw.filter((t) => t.status === "SEGUIMIENTO").length;
+  const alumnosConAlertas = alumnosRaw.filter(
+    (a) => a.riesgo === "MEDIO" || a.riesgo === "ALTO"
+  ).length;
+  const profesoresActivos = new Set(
+    tutoriasRaw
+      .filter((t) => t.sessionDate >= inicioMes && t.sessionDate <= finMes)
+      .map((t) => t.profesorId)
+  ).size;
+
+  const stats = {
+    tutoriasHoy: tutoriasHoy.length,
+    tutoriasHoyFamilia,
+    tutoriasHoyAlumno,
+    pendientesSeguimiento,
+    alumnosConAlertas,
+    profesoresActivos,
+  };
+
+  return { tutorias, alumnos, profesores, stats };
 }
 
 export default async function TutoriasPage({
@@ -155,8 +227,10 @@ export default async function TutoriasPage({
       const { alumnos, selected } = await getAlumnosData(userId, searchParams.alumno);
       content = <AlumnosClient alumnos={alumnos} selected={selected} tutorName={userName} />;
     } else {
-      const { rows, profesores } = await getCentroData(schoolId);
-      content = <TutoriasClient rows={rows} profesores={profesores} />;
+      const { tutorias, alumnos, profesores, stats } = await getCentroData(schoolId);
+      content = (
+        <CentroTutoriasClient tutorias={tutorias} alumnos={alumnos} profesores={profesores} stats={stats} />
+      );
     }
 
     return (

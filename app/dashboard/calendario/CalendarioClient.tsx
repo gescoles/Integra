@@ -132,8 +132,8 @@ export function CalendarioClient({
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-        <div className="grid min-w-[760px] grid-cols-[64px_repeat(5,1fr)]">
+      <div className="rounded-2xl border border-slate-200 bg-white">
+        <div className="grid grid-cols-[52px_repeat(7,1fr)]">
           {/* Cabecera de días */}
           <div className="border-b border-r border-slate-100" />
           {dias.map((dia) => (

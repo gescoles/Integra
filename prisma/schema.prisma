@@ -109,21 +109,22 @@ enum RiesgoNivel {
 }
 
 model Tutoria {
-  id           String        @id @default(cuid())
-  schoolId     String
-  school       School        @relation(fields: [schoolId], references: [id])
-  profesorId   String
-  profesor     User          @relation(fields: [profesorId], references: [id])
-  alumnoId     String?
-  alumno       Alumno?       @relation(fields: [alumnoId], references: [id])
-  studentName  String
-  cicloModulo  String?
-  status       TutoriaStatus @default(NUEVA)
-  sessionDate  DateTime      @default(now())
-  conQuien     ConQuien?
-  medio        MedioContacto?
-  notas        String?
-  createdAt    DateTime      @default(now())
+  id                 String        @id @default(cuid())
+  schoolId           String
+  school             School        @relation(fields: [schoolId], references: [id])
+  profesorId         String
+  profesor           User          @relation(fields: [profesorId], references: [id])
+  alumnoId           String?
+  alumno             Alumno?       @relation(fields: [alumnoId], references: [id])
+  studentName        String
+  cicloModulo        String?
+  status             TutoriaStatus @default(NUEVA)
+  sessionDate        DateTime      @default(now())
+  conQuien           ConQuien?
+  medio              MedioContacto?
+  notas              String?
+  proximoSeguimiento DateTime?
+  createdAt          DateTime      @default(now())
 }
 
 model Alumno {

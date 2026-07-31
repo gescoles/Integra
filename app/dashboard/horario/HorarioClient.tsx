@@ -21,6 +21,8 @@ const DIAS = [
   { value: 3, label: "Miércoles" },
   { value: 4, label: "Jueves" },
   { value: 5, label: "Viernes" },
+  { value: 6, label: "Sábado" },
+  { value: 7, label: "Domingo" },
 ];
 
 const COLORES = [
@@ -108,8 +110,8 @@ export function HorarioClient({ bloques }: { bloques: Bloque[] }) {
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-        <div className="grid min-w-[760px] grid-cols-[64px_repeat(5,1fr)]">
+      <div className="rounded-2xl border border-slate-200 bg-white">
+        <div className="grid grid-cols-[52px_repeat(7,1fr)]">
           <div className="border-b border-r border-slate-100" />
           {DIAS.map((dia) => (
             <div
