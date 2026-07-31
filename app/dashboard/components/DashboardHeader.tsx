@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
+import { ThemeToggle } from "./ThemeToggle";
 
 function LiveClock() {
   const [now, setNow] = useState<Date | null>(null);
@@ -62,6 +63,8 @@ export function DashboardHeader({
       </div>
 
       <div className="flex items-center gap-3">
+        <ThemeToggle />
+
         <button className="relative rounded-lg border border-slate-200 bg-white p-2.5 hover:bg-slate-50">
           <Bell className="h-4 w-4 text-slate-500" />
           {notificationCount > 0 && (
