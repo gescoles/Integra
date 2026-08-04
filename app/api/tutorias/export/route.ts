@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
   }
 
   const schoolIdParam = req.nextUrl.searchParams.get("school");
+  const profesorIdParam = req.nextUrl.searchParams.get("profesor");
   // Un Coordinador/Admin de centro solo puede exportar su propio centro,
   // ignorando cualquier otro id que le pasen por la URL.
   const schoolId = role === "SUPERADMIN" ? schoolIdParam : session.user.schoolId;
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse("Falta indicar el centro.", { status: 400 });
   }
 
-  const [school, profesores, alumnos, tutorias] = await Promise.all([
+  const [school, profesoresRaw, alumnos, tutorias] = await Promise.all([
     prisma.school.findUnique({ where: { id: schoolId }, select: { name: true } }),
     prisma.user.findMany({
       where: { schoolId, role: { in: ["PROFESOR", "COORDINADOR", "ADMIN_CENTRO"] } },
@@ -57,6 +58,13 @@ export async function GET(req: NextRequest) {
   if (!school) {
     return new NextResponse("Centro no encontrado.", { status: 404 });
   }
+
+  // Si desde la tabla ya tenían un profesor concreto elegido, el Excel
+  // descarga solo esa pestaña; si estaba en "Todos los profesores", se
+  // descargan todas.
+  const profesores = profesorIdParam
+    ? profesoresRaw.filter((p) => p.id === profesorIdParam)
+    : profesoresRaw;
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Integra";
@@ -137,11 +145,15 @@ export async function GET(req: NextRequest) {
   const buffer = await workbook.xlsx.writeBuffer();
   const safeName = school.name.replace(/[^a-z0-9áéíóúñ]+/gi, "_");
   const fecha = new Date().toISOString().slice(0, 10);
+  const profesorSolo =
+    profesorIdParam && profesores[0]
+      ? `_${(profesores[0].name ?? profesores[0].email).replace(/[^a-z0-9áéíóúñ]+/gi, "_")}`
+      : "";
 
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="Tutorias_${safeName}_${fecha}.xlsx"`,
+      "Content-Disposition": `attachment; filename="Tutorias_${safeName}${profesorSolo}_${fecha}.xlsx"`,
     },
   });
 }

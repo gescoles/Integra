@@ -351,7 +351,7 @@ export function CentroTutoriasClient({
         </button>
 
         <a
-          href={`/api/tutorias/export?school=${schoolId}`}
+          href={`/api/tutorias/export?school=${schoolId}${profesorFilter ? `&profesor=${profesorFilter}` : ""}`}
           className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
         >
           <FileSpreadsheet className="h-4 w-4" /> {translate(locale, "tutorias.descargarExcel")}
