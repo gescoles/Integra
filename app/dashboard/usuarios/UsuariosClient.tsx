@@ -1,8 +1,11 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Search, Pencil, MoreVertical, X, Filter, Trash2, AlertTriangle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Search, Pencil, MoreVertical, X, Filter, Trash2, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { updateUser, deleteUser, getUserDeleteImpact } from "./actions";
+import { useLocale } from "../SchoolContext";
+import { translate } from "../i18n";
 import {
   ROLE_LABELS,
   ROLE_COLORS,
@@ -26,17 +29,27 @@ type UserRow = {
   schoolName: string | null;
   lastAccessAt: string | null;
   avatarUrl: string | null;
+  locale: string;
 };
 
 export function UsuariosClient({
   users,
   schools,
+  allSchools,
 }: {
   users: UserRow[];
   schools: SchoolOption[];
+  allSchools?: SchoolOption[];
 }) {
+  const router = useRouter();
+  const { locale } = useLocale();
+  // El filtro de arriba usa solo los centros "en juego" en esta vista, pero
+  // al editar un usuario individual debe poder reasignarse a CUALQUIER
+  // centro, no solo al que se está viendo ahora mismo.
+  const editSchools = allSchools ?? schools;
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("Todos");
+  const [blurNames, setBlurNames] = useState(false);
   const [schoolFilter, setSchoolFilter] = useState("Todos");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
@@ -77,6 +90,7 @@ export function UsuariosClient({
         await deleteUser(deleteTarget.id);
         if (editingId === deleteTarget.id) setEditingId(null);
         setDeleteTarget(null);
+        router.refresh();
       } catch (e) {
         setDeleteError(e instanceof Error ? e.message : "No se pudo eliminar el usuario.");
       }
@@ -116,6 +130,7 @@ export function UsuariosClient({
     try {
       await updateUser(formData);
       setEditingId(null);
+      router.refresh();
     } finally {
       setPending(false);
     }
@@ -150,7 +165,7 @@ export function UsuariosClient({
               setSearch(e.target.value);
               setPage(1);
             }}
-            placeholder="Buscar por nombre, email o rol..."
+            placeholder={translate(locale, "usuarios.buscarPlaceholder")}
             className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#2F6FED]"
           />
         </div>
@@ -163,7 +178,7 @@ export function UsuariosClient({
           }}
           className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
         >
-          <option value="Todos">Todos los roles</option>
+          <option value="Todos">{translate(locale, "usuarios.todosRoles")}</option>
           {ASSIGNABLE_ROLES.map((r) => (
             <option key={r} value={r}>
               {ROLE_LABELS[r]}
@@ -171,24 +186,37 @@ export function UsuariosClient({
           ))}
         </select>
 
-        <select
-          value={schoolFilter}
-          onChange={(e) => {
-            setSchoolFilter(e.target.value);
-            setPage(1);
-          }}
-          className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
-        >
-          <option value="Todos">Todos los centros</option>
-          {schools.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
+        {schools.length > 1 && (
+          <select
+            value={schoolFilter}
+            onChange={(e) => {
+              setSchoolFilter(e.target.value);
+              setPage(1);
+            }}
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+          >
+            <option value="Todos">{translate(locale, "usuarios.todosCentros")}</option>
+            {schools.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        )}
 
         <button className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
           <Filter className="h-4 w-4" /> Filtros
+        </button>
+
+        <button
+          onClick={() => setBlurNames((v) => !v)}
+          title="Difuminar nombres de los usuarios"
+          className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
+            blurNames ? "border-[#2F6FED] bg-blue-50 text-[#2F6FED]" : "border-slate-200 text-slate-600 hover:bg-slate-50"
+          }`}
+        >
+          {blurNames ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          {blurNames ? translate(locale, "usuarios.nombresOcultos") : translate(locale, "usuarios.ocultarNombres")}
         </button>
       </div>
 
@@ -201,13 +229,13 @@ export function UsuariosClient({
           <table className="w-full min-w-[820px] text-left text-xs">
             <thead>
               <tr className="border-b border-slate-100 text-slate-400">
-                <th className="pb-2 pr-3 font-medium">Usuario</th>
-                <th className="pb-2 pr-3 font-medium">Email</th>
-                <th className="pb-2 pr-3 font-medium">Rol</th>
-                <th className="pb-2 pr-3 font-medium">Centro</th>
-                <th className="pb-2 pr-3 font-medium">Estado</th>
-                <th className="pb-2 pr-3 font-medium">Último acceso</th>
-                <th className="pb-2 font-medium">Acciones</th>
+                <th className="pb-2 pr-3 font-medium">{translate(locale, "usuarios.colUsuario")}</th>
+                <th className="pb-2 pr-3 font-medium">{translate(locale, "usuarios.colEmail")}</th>
+                <th className="pb-2 pr-3 font-medium">{translate(locale, "usuarios.colRol")}</th>
+                <th className="pb-2 pr-3 font-medium">{translate(locale, "usuarios.colCentro")}</th>
+                <th className="pb-2 pr-3 font-medium">{translate(locale, "usuarios.colEstado")}</th>
+                <th className="pb-2 pr-3 font-medium">{translate(locale, "usuarios.colUltimoAcceso")}</th>
+                <th className="pb-2 font-medium">{translate(locale, "usuarios.colAcciones")}</th>
               </tr>
             </thead>
             <tbody>
@@ -239,7 +267,9 @@ export function UsuariosClient({
                         )}
                       </div>
                       <div>
-                        <div className="font-semibold text-slate-700">{u.name}</div>
+                        <div className={`font-semibold text-slate-700 ${blurNames ? "blur-sm select-none" : ""}`}>
+                          {u.name}
+                        </div>
                         {u.dni && <div className="text-[11px] text-slate-400">DNI: {u.dni}</div>}
                       </div>
                     </div>
@@ -401,8 +431,8 @@ export function UsuariosClient({
                   defaultValue={editing.schoolId ?? ""}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
                 >
-                  <option value="">Sin asignar</option>
-                  {schools.map((s) => (
+                  <option value="">{translate(locale, "usuarios.sinAsignar")}</option>
+                  {editSchools.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name}
                     </option>

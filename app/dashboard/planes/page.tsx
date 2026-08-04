@@ -1,10 +1,12 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { DashboardHeader } from "../components/DashboardHeader";
+import { translate } from "../i18n";
 import { CreditCard } from "lucide-react";
 
 export default async function PlanesPage() {
   const session = await getServerSession(authOptions);
+  const locale = session?.user.locale ?? "ES";
   const userName =
     session?.user.name || session?.user.email.split("@")[0] || "SuperAdmin";
   const role = session?.user.role ?? "SUPERADMIN";
@@ -12,8 +14,8 @@ export default async function PlanesPage() {
   return (
     <div>
       <DashboardHeader
-        title="Planes"
-        subtitle="Crea y administra los planes de suscripción."
+        title={translate(locale, "planes.title")}
+        subtitle={translate(locale, "planes.subtitle")}
         userName={userName}
         role={role}
       />

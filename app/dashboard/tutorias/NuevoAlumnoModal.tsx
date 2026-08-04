@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import { createAlumno } from "./alumnoActions";
 import { RIESGO_LABELS } from "./alumnoConstants";
+import { ButtonSpinner } from "../components/ButtonSpinner";
 
 export function NuevoAlumnoModal() {
   const router = useRouter();
@@ -162,8 +163,9 @@ export function NuevoAlumnoModal() {
                 <button
                   type="submit"
                   disabled={pending}
-                  className="rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
                 >
+                  {pending && <ButtonSpinner />}
                   {pending ? "Creando..." : "Crear alumno"}
                 </button>
               </div>

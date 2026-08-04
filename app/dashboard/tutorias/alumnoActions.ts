@@ -59,7 +59,7 @@ export async function updateAlumnoFicha(formData: FormData) {
 
   const id = formData.get("id") as string;
   const alumno = await prisma.alumno.findUnique({ where: { id } });
-  if (!alumno || alumno.profesorId !== session.user.id) {
+  if (!alumno || (alumno.profesorId !== session.user.id && session.user.role !== "SUPERADMIN")) {
     throw new Error("No puedes editar un alumno que no es tuyo.");
   }
 
@@ -105,12 +105,11 @@ export async function createTutoriaAlumno(formData: FormData) {
   const hora = formData.get("hora") as string;
   const conQuien = formData.get("conQuien") as ConQuien;
   const medio = formData.get("medio") as MedioContacto;
-  const notas = (formData.get("notas") as string)?.trim();
-  const proximoSeguimientoRaw = formData.get("proximoSeguimiento") as string;
+  const causa = (formData.get("causa") as string)?.trim();
 
   if (!alumnoId) throw new Error("Falta el alumno.");
   if (!fecha || !hora) throw new Error("Indica la fecha y la hora.");
-  if (!notas) throw new Error("Escribe un resumen de lo hablado en la tutoría.");
+  if (!causa) throw new Error("Indica la causa de la tutoría.");
 
   const alumno = await prisma.alumno.findUnique({ where: { id: alumnoId } });
   if (!alumno) throw new Error("Alumno no encontrado.");
@@ -118,9 +117,6 @@ export async function createTutoriaAlumno(formData: FormData) {
   const [y, m, d] = fecha.split("-").map(Number);
   const [hh, mm] = hora.split(":").map(Number);
   const sessionDate = new Date(y, m - 1, d, hh, mm);
-  const proximoSeguimiento = proximoSeguimientoRaw
-    ? new Date(`${proximoSeguimientoRaw}T00:00:00`)
-    : null;
 
   await prisma.tutoria.create({
     data: {
@@ -132,9 +128,8 @@ export async function createTutoriaAlumno(formData: FormData) {
       sessionDate,
       conQuien,
       medio,
-      notas: notas || null,
-      proximoSeguimiento,
-      status: "NUEVA",
+      causa,
+      status: "PENDIENTE",
     },
   });
 
@@ -149,38 +144,67 @@ export async function updateTutoriaAlumno(formData: FormData) {
 
   const id = formData.get("id") as string;
   const tutoria = await prisma.tutoria.findUnique({ where: { id } });
-  if (!tutoria || tutoria.profesorId !== session.user.id) {
+  if (!tutoria || (tutoria.profesorId !== session.user.id && session.user.role !== "SUPERADMIN")) {
     throw new Error("No puedes modificar una tutoría que no es tuya.");
+  }
+  if (tutoria.status === "COMPLETADA") {
+    throw new Error("Esta tutoría ya está cerrada y no se puede modificar.");
   }
 
   const fecha = formData.get("fecha") as string;
   const hora = formData.get("hora") as string;
   const conQuien = formData.get("conQuien") as ConQuien;
   const medio = formData.get("medio") as MedioContacto;
-  const notas = (formData.get("notas") as string)?.trim();
-  const status = formData.get("status") as string;
-  const proximoSeguimientoRaw = formData.get("proximoSeguimiento") as string;
+  const causa = (formData.get("causa") as string)?.trim();
 
   if (!fecha || !hora) throw new Error("Indica la fecha y la hora.");
-  if (!notas) throw new Error("Escribe un resumen de lo hablado en la tutoría.");
+  if (!causa) throw new Error("Indica la causa de la tutoría.");
 
   const [y, m, d] = fecha.split("-").map(Number);
   const [hh, mm] = hora.split(":").map(Number);
   const sessionDate = new Date(y, m - 1, d, hh, mm);
-  const proximoSeguimiento = proximoSeguimientoRaw
-    ? new Date(`${proximoSeguimientoRaw}T00:00:00`)
-    : null;
 
   await prisma.tutoria.update({
     where: { id },
-    data: {
-      sessionDate,
-      conQuien,
-      medio,
-      notas: notas || null,
-      proximoSeguimiento,
-      status: status as never,
-    },
+    data: { sessionDate, conQuien, medio, causa },
+  });
+
+  revalidatePath("/dashboard/tutorias");
+  revalidatePath("/dashboard/calendario");
+  revalidatePath("/dashboard");
+}
+
+export async function cerrarTutoria(formData: FormData) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user.id) throw new Error("No autorizado.");
+
+  const id = formData.get("id") as string;
+  const tutoria = await prisma.tutoria.findUnique({ where: { id } });
+  if (!tutoria || (tutoria.profesorId !== session.user.id && session.user.role !== "SUPERADMIN")) {
+    throw new Error("No puedes cerrar una tutoría que no es tuya.");
+  }
+  if (tutoria.status === "COMPLETADA") {
+    throw new Error("Esta tutoría ya está cerrada y no se puede modificar.");
+  }
+
+  const notas = (formData.get("notas") as string)?.trim();
+  const proximoSeguimientoRaw = formData.get("proximoSeguimiento") as string;
+
+  if (!notas) throw new Error("Escribe un resumen de lo tratado en la sesión.");
+
+  let proximoSeguimiento: Date | null = null;
+  if (proximoSeguimientoRaw) {
+    proximoSeguimiento = new Date(`${proximoSeguimientoRaw}T00:00:00`);
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    if (proximoSeguimiento < hoy) {
+      throw new Error("El próximo seguimiento no puede ser una fecha anterior a hoy.");
+    }
+  }
+
+  await prisma.tutoria.update({
+    where: { id },
+    data: { notas, proximoSeguimiento, status: "COMPLETADA" },
   });
 
   revalidatePath("/dashboard/tutorias");
@@ -193,7 +217,7 @@ export async function deleteTutoriaAlumno(id: string) {
   if (!session?.user.id) throw new Error("No autorizado.");
 
   const tutoria = await prisma.tutoria.findUnique({ where: { id } });
-  if (!tutoria || tutoria.profesorId !== session.user.id) {
+  if (!tutoria || (tutoria.profesorId !== session.user.id && session.user.role !== "SUPERADMIN")) {
     throw new Error("No puedes eliminar una tutoría que no es tuya.");
   }
 
@@ -208,7 +232,7 @@ export async function deleteAlumno(id: string) {
   if (!session?.user.id) throw new Error("No autorizado.");
 
   const alumno = await prisma.alumno.findUnique({ where: { id } });
-  if (!alumno || alumno.profesorId !== session.user.id) {
+  if (!alumno || (alumno.profesorId !== session.user.id && session.user.role !== "SUPERADMIN")) {
     throw new Error("No puedes eliminar un alumno que no es tuyo.");
   }
 

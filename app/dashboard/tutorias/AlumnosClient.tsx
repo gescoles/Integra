@@ -9,16 +9,18 @@ import {
   Pencil,
   Plus,
   X,
-  MessageCircle,
   CheckCircle2,
   AlertTriangle,
   Trash2,
+  ClipboardCheck,
+  Eye,
 } from "lucide-react";
 import { NuevoAlumnoModal } from "./NuevoAlumnoModal";
 import {
   createTutoriaAlumno,
   updateAlumnoFicha,
   updateTutoriaAlumno,
+  cerrarTutoria,
   deleteTutoriaAlumno,
   deleteAlumno,
 } from "./alumnoActions";
@@ -28,6 +30,9 @@ import {
   CON_QUIEN_LABELS,
   MEDIO_LABELS,
 } from "./alumnoConstants";
+import { TUTORIA_STATUS_COLORS } from "../constants";
+import { useLocale } from "../SchoolContext";
+import { translate } from "../i18n";
 
 type Contacto = { id: string; relacion: string; telefono: string | null; email: string | null };
 type TutoriaItem = {
@@ -35,6 +40,7 @@ type TutoriaItem = {
   sessionDate: string;
   conQuien: string | null;
   medio: string | null;
+  causa: string;
   notas: string | null;
   status: string;
   proximoSeguimiento: string | null;
@@ -51,10 +57,8 @@ type Alumno = {
 };
 
 const STATUS_ICON: Record<string, ReactElement> = {
-  NUEVA: <MessageCircle className="h-4 w-4 text-[#2F6FED]" />,
-  SEGUIMIENTO: <MessageCircle className="h-4 w-4 text-violet-500" />,
-  COMPLETADA: <CheckCircle2 className="h-4 w-4 text-emerald-500" />,
   PENDIENTE: <AlertTriangle className="h-4 w-4 text-amber-500" />,
+  COMPLETADA: <CheckCircle2 className="h-4 w-4 text-emerald-500" />,
 };
 
 function alumnoInitials(name: string) {
@@ -72,12 +76,18 @@ export function AlumnosClient({
   tutorName: string;
 }) {
   const router = useRouter();
+  const { locale } = useLocale();
   const [search, setSearch] = useState("");
   const [nuevaTutoriaOpen, setNuevaTutoriaOpen] = useState(false);
   const [editFichaOpen, setEditFichaOpen] = useState(false);
   const [editingTutoria, setEditingTutoria] = useState<TutoriaItem | null>(null);
+  const [viewingTutoria, setViewingTutoria] = useState<TutoriaItem | null>(null);
+  const [cerrandoTutoria, setCerrandoTutoria] = useState<TutoriaItem | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [cerrarError, setCerrarError] = useState<string | null>(null);
+  const [justLength, setJustLength] = useState(0);
   const [pending, startTransition] = useTransition();
+  const [cerrando, startCerrarTransition] = useTransition();
 
   async function handleEditTutoria(formData: FormData) {
     setError(null);
@@ -99,6 +109,19 @@ export function AlumnosClient({
         setEditingTutoria(null);
       } catch (e) {
         setError(e instanceof Error ? e.message : "No se pudo eliminar.");
+      }
+    });
+  }
+
+  async function handleCerrarTutoria(formData: FormData) {
+    setCerrarError(null);
+    startCerrarTransition(async () => {
+      try {
+        await cerrarTutoria(formData);
+        setCerrandoTutoria(null);
+        setJustLength(0);
+      } catch (e) {
+        setCerrarError(e instanceof Error ? e.message : "No se pudo cerrar la tutoría.");
       }
     });
   }
@@ -167,7 +190,7 @@ export function AlumnosClient({
     <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
       {/* Lista de alumnos */}
       <div className="rounded-2xl border border-slate-200 bg-white p-4">
-        <h3 className="mb-3 text-sm font-bold text-[#0B1D4D]">Mis alumnos</h3>
+        <h3 className="mb-3 text-sm font-bold text-[#0B1D4D]">{translate(locale, "tutorias.misAlumnos")}</h3>
         <div className="mb-3">
           <NuevoAlumnoModal />
         </div>
@@ -176,14 +199,14 @@ export function AlumnosClient({
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar alumno..."
+            placeholder={translate(locale, "tutorias.buscarAlumnoPlaceholder")}
             className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#2F6FED]"
           />
         </div>
 
         {filtered.length === 0 ? (
           <p className="py-8 text-center text-xs text-slate-400">
-            {alumnos.length === 0 ? "Todavía no tienes alumnos dados de alta." : "Sin resultados."}
+            {alumnos.length === 0 ? translate(locale, "tutorias.sinAlumnos") : translate(locale, "tutorias.sinResultados")}
           </p>
         ) : (
           <div className="max-h-[560px] space-y-1 overflow-y-auto">
@@ -211,10 +234,16 @@ export function AlumnosClient({
                     />
                   )}
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-semibold text-slate-700">{a.nombre}</div>
                   <div className="text-xs text-slate-400">{a.curso}</div>
                 </div>
+                <span
+                  title={translate(locale, "tutorias.totalTutorias")}
+                  className="shrink-0 rounded-full bg-[#0B1D4D] px-1.5 py-0.5 text-[10px] font-bold text-white"
+                >
+                  {a.tutorias.length}
+                </span>
               </button>
             ))}
           </div>
@@ -225,8 +254,8 @@ export function AlumnosClient({
       {!selected ? (
         <div className="flex items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white py-24 text-center text-sm text-slate-400">
           {alumnos.length === 0
-            ? "Da de alta a tu primer alumno para empezar."
-            : "Selecciona un alumno de la lista para ver su ficha."}
+            ? translate(locale, "tutorias.daDeAltaPrimerAlumno")
+            : translate(locale, "tutorias.seleccionaAlumno")}
         </div>
       ) : (
         <div className="space-y-5">
@@ -253,22 +282,22 @@ export function AlumnosClient({
                   <h2 className="text-lg font-bold text-[#0B1D4D]">{selected.nombre}</h2>
                   <p className="text-sm text-slate-500">
                     {selected.curso}
-                    {selected.edad ? ` · ${selected.edad} años` : ""}
+                    {selected.edad ? ` · ${selected.edad} ${translate(locale, "tutorias.anios")}` : ""}
                   </p>
-                  <p className="mt-1 text-xs text-slate-400">Tutor/a: {tutorName}</p>
+                  <p className="mt-1 text-xs text-slate-400">{translate(locale, "tutorias.tutorLabel")} {tutorName}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <span
                   className={`rounded-full border px-3 py-1 text-xs font-semibold ${RIESGO_COLORS[selected.riesgo]}`}
                 >
-                  {RIESGO_LABELS[selected.riesgo]}
+                  {translate(locale, `riesgo.${selected.riesgo}` as never)}
                 </span>
                 <button
                   onClick={() => setEditFichaOpen(true)}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
                 >
-                  <Pencil className="h-3.5 w-3.5" /> Editar ficha
+                  <Pencil className="h-3.5 w-3.5" /> {translate(locale, "tutorias.editarFicha")}
                 </button>
               </div>
             </div>
@@ -276,7 +305,7 @@ export function AlumnosClient({
             {(madre || padre) && (
               <div className="mt-5 border-t border-slate-100 pt-4">
                 <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Contacto familiar
+                  {translate(locale, "tutorias.contactoFamiliar")}
                 </h3>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {[madre, padre].filter(Boolean).map((c) => (
@@ -302,53 +331,84 @@ export function AlumnosClient({
 
           <div className="rounded-2xl border border-slate-200 bg-white p-5">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-[#0B1D4D]">Historial de tutorías</h3>
+              <h3 className="text-sm font-bold text-[#0B1D4D]">{translate(locale, "tutorias.historialTutorias")}</h3>
               <button
                 onClick={() => setNuevaTutoriaOpen(true)}
                 className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
               >
-                <Plus className="h-4 w-4" /> Registrar nueva tutoría
+                <Plus className="h-4 w-4" /> {translate(locale, "tutorias.registrarNuevaTutoria")}
               </button>
             </div>
 
             {selected.tutorias.length === 0 ? (
               <p className="py-8 text-center text-sm text-slate-400">
-                Todavía no hay tutorías registradas para este alumno.
+                {translate(locale, "tutorias.sinTutoriasRegistradas")}
               </p>
             ) : (
               <div className="space-y-3">
                 {selected.tutorias.map((t) => {
                   const date = new Date(t.sessionDate);
                   return (
-                    <button
+                    <div
                       key={t.id}
-                      onClick={() => setEditingTutoria(t)}
-                      className="flex w-full gap-3 rounded-xl border border-slate-100 p-3 text-left hover:border-[#2F6FED]"
+                      className="flex flex-wrap items-start gap-3 rounded-xl border border-slate-100 p-3"
                     >
-                      <div className="w-12 shrink-0 text-center">
-                        <div className="text-lg font-bold text-slate-700">
-                          {date.toLocaleDateString("es-ES", { day: "2-digit" })}
+                      <button
+                        onClick={() => (t.status === "COMPLETADA" ? setViewingTutoria(t) : setEditingTutoria(t))}
+                        className="flex flex-1 gap-3 text-left"
+                      >
+                        <div className="w-12 shrink-0 text-center">
+                          <div className="text-lg font-bold text-slate-700">
+                            {date.toLocaleDateString("es-ES", { day: "2-digit" })}
+                          </div>
+                          <div className="text-[10px] uppercase text-slate-400">
+                            {date.toLocaleDateString("es-ES", { month: "short" })}
+                          </div>
                         </div>
-                        <div className="text-[10px] uppercase text-slate-400">
-                          {date.toLocaleDateString("es-ES", { month: "short" })}
-                        </div>
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          {STATUS_ICON[t.status]}
-                          <span className="text-sm font-semibold text-slate-700">
-                            Tutoría {t.conQuien ? `· ${CON_QUIEN_LABELS[t.conQuien]}` : ""}
-                          </span>
-                          {t.medio && (
-                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
-                              {MEDIO_LABELS[t.medio]}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {STATUS_ICON[t.status]}
+                            <span className="text-sm font-semibold text-slate-700">
+                              {t.conQuien ? translate(locale, `conQuien.${t.conQuien}` as never) : translate(locale, "tutorias.tutoriaFallback")}
                             </span>
+                            {t.medio && (
+                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                                {translate(locale, `medio.${t.medio}` as never)}
+                              </span>
+                            )}
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${TUTORIA_STATUS_COLORS[t.status]}`}
+                            >
+                              {translate(locale, `status.${t.status}` as never)}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs text-slate-500">
+                            <span className="font-medium text-slate-600">{translate(locale, "tutorias.colCausa")}:</span> {t.causa}
+                          </p>
+                          {t.status === "COMPLETADA" && t.notas && (
+                            <p className="mt-1 text-xs text-slate-500">{t.notas}</p>
                           )}
                         </div>
-                        {t.notas && <p className="mt-1 text-xs text-slate-500">{t.notas}</p>}
-                      </div>
-                      <Pencil className="h-3.5 w-3.5 shrink-0 text-slate-300" />
-                    </button>
+                        {t.status === "COMPLETADA" ? (
+                          <Eye className="h-3.5 w-3.5 shrink-0 text-slate-300" />
+                        ) : (
+                          <Pencil className="h-3.5 w-3.5 shrink-0 text-slate-300" />
+                        )}
+                      </button>
+
+                      {t.status === "PENDIENTE" && (
+                        <button
+                          onClick={() => {
+                            setCerrarError(null);
+                            setJustLength(0);
+                            setCerrandoTutoria(t);
+                          }}
+                          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+                        >
+                          <ClipboardCheck className="h-3.5 w-3.5" /> {translate(locale, "tutorias.cerrarTutoria")}
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -362,7 +422,7 @@ export function AlumnosClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-[#0B1D4D]">Registrar nueva tutoría</h2>
+              <h2 className="text-lg font-bold text-[#0B1D4D]">{translate(locale, "tutorias.registrarNuevaTutoria")}</h2>
               <button
                 onClick={() => setNuevaTutoriaOpen(false)}
                 className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
@@ -382,7 +442,7 @@ export function AlumnosClient({
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">Fecha</label>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "tutorias.colFecha")}</label>
                   <input
                     name="fecha"
                     type="date"
@@ -392,7 +452,7 @@ export function AlumnosClient({
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">Hora</label>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "tutorias.hora")}</label>
                   <input
                     name="hora"
                     type="time"
@@ -404,30 +464,30 @@ export function AlumnosClient({
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">Con quién</label>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "tutorias.conQuienLabel")}</label>
                 <select
                   name="conQuien"
                   defaultValue="ALUMNO"
                   className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
                 >
-                  {Object.entries(CON_QUIEN_LABELS).map(([value, label]) => (
+                  {Object.keys(CON_QUIEN_LABELS).map((value) => (
                     <option key={value} value={value}>
-                      {label}
+                      {translate(locale, `conQuien.${value}` as never)}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">Medio</label>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "tutorias.medioLabel")}</label>
                 <select
                   name="medio"
                   defaultValue="PRESENCIAL"
                   className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
                 >
-                  {Object.entries(MEDIO_LABELS).map(([value, label]) => (
+                  {Object.keys(MEDIO_LABELS).map((value) => (
                     <option key={value} value={value}>
-                      {label}
+                      {translate(locale, `medio.${value}` as never)}
                     </option>
                   ))}
                 </select>
@@ -435,31 +495,19 @@ export function AlumnosClient({
 
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                  Resumen de la tutoría <span className="text-red-500">*</span>
+                  {translate(locale, "tutorias.causaDeLaTutoria")} <span className="text-red-500">*</span>
                 </label>
-                <p className="mb-1.5 text-xs text-slate-400">
-                  ¿Qué se ha hablado? Anota los puntos clave, acuerdos y cómo ha ido.
-                </p>
-                <textarea
-                  name="notas"
+                <input
+                  name="causa"
                   required
-                  rows={5}
-                  minLength={10}
-                  placeholder="Ej. Hemos hablado sobre su falta de concentración en clase y la importancia de la organización del estudio. Se acuerda revisar la agenda semanalmente..."
+                  placeholder={translate(locale, "tutorias.causaPlaceholder")}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
                 />
               </div>
 
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                  Próximo seguimiento <span className="text-slate-400">(opcional)</span>
-                </label>
-                <input
-                  name="proximoSeguimiento"
-                  type="date"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
-                />
-              </div>
+              <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                {translate(locale, "tutorias.seCrearaAviso1")} <strong>{translate(locale, "status.PENDIENTE")}</strong>. {translate(locale, "tutorias.seCrearaAviso2")}
+              </p>
 
               <div className="flex justify-end gap-3 pt-2">
                 <button
@@ -467,14 +515,14 @@ export function AlumnosClient({
                   onClick={() => setNuevaTutoriaOpen(false)}
                   className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
                 >
-                  Cancelar
+                  {translate(locale, "common.cancelar")}
                 </button>
                 <button
                   type="submit"
                   disabled={pending}
                   className="rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
                 >
-                  {pending ? "Registrando..." : "Registrar tutoría"}
+                  {pending ? translate(locale, "tutorias.registrando") : translate(locale, "tutorias.registrarTutoria")}
                 </button>
               </div>
             </form>
@@ -487,7 +535,7 @@ export function AlumnosClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-[#0B1D4D]">Editar ficha</h2>
+              <h2 className="text-lg font-bold text-[#0B1D4D]">{translate(locale, "tutorias.editarFicha")}</h2>
               <button
                 onClick={() => setEditFichaOpen(false)}
                 className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
@@ -506,7 +554,7 @@ export function AlumnosClient({
               <input type="hidden" name="id" value={selected.id} />
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">Nombre</label>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "tutorias.nombre")}</label>
                 <input
                   name="nombre"
                   required
@@ -518,7 +566,7 @@ export function AlumnosClient({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                    Curso / Grupo
+                    {translate(locale, "tutorias.cursoGrupo")}
                   </label>
                   <input
                     name="curso"
@@ -528,7 +576,7 @@ export function AlumnosClient({
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">Edad</label>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "tutorias.edad")}</label>
                   <input
                     name="edad"
                     type="number"
@@ -540,56 +588,56 @@ export function AlumnosClient({
 
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                  Nivel de riesgo
+                  {translate(locale, "tutorias.nivelRiesgo")}
                 </label>
                 <select
                   name="riesgo"
                   defaultValue={selected.riesgo}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
                 >
-                  {Object.entries(RIESGO_LABELS).map(([value, label]) => (
+                  {Object.keys(RIESGO_LABELS).map((value) => (
                     <option key={value} value={value}>
-                      {label}
+                      {translate(locale, `riesgo.${value}` as never)}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div className="border-t border-slate-100 pt-4">
-                <h3 className="mb-3 text-sm font-semibold text-slate-700">Contacto familiar</h3>
+                <h3 className="mb-3 text-sm font-semibold text-slate-700">{translate(locale, "tutorias.contactoFamiliar")}</h3>
                 <div className="space-y-3">
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-500">Madre</label>
+                    <label className="mb-1 block text-xs font-medium text-slate-500">{translate(locale, "tutorias.madre")}</label>
                     <div className="grid grid-cols-2 gap-2">
                       <input
                         name="madreTelefono"
                         defaultValue={madre?.telefono ?? ""}
-                        placeholder="Teléfono"
+                        placeholder={translate(locale, "tutorias.telefono")}
                         className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
                       />
                       <input
                         name="madreEmail"
                         type="email"
                         defaultValue={madre?.email ?? ""}
-                        placeholder="Email"
+                        placeholder={translate(locale, "tutorias.email")}
                         className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-500">Padre</label>
+                    <label className="mb-1 block text-xs font-medium text-slate-500">{translate(locale, "tutorias.padre")}</label>
                     <div className="grid grid-cols-2 gap-2">
                       <input
                         name="padreTelefono"
                         defaultValue={padre?.telefono ?? ""}
-                        placeholder="Teléfono"
+                        placeholder={translate(locale, "tutorias.telefono")}
                         className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
                       />
                       <input
                         name="padreEmail"
                         type="email"
                         defaultValue={padre?.email ?? ""}
-                        placeholder="Email"
+                        placeholder={translate(locale, "tutorias.email")}
                         className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
                       />
                     </div>
@@ -604,7 +652,7 @@ export function AlumnosClient({
                   disabled={pending}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
                 >
-                  <Trash2 className="h-4 w-4" /> Eliminar alumno
+                  <Trash2 className="h-4 w-4" /> {translate(locale, "tutorias.eliminarAlumno")}
                 </button>
                 <div className="flex gap-3">
                   <button
@@ -612,14 +660,14 @@ export function AlumnosClient({
                     onClick={() => setEditFichaOpen(false)}
                     className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
                   >
-                    Cancelar
+                    {translate(locale, "common.cancelar")}
                   </button>
                   <button
                     type="submit"
                     disabled={pending}
                     className="rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
                   >
-                    {pending ? "Guardando..." : "Guardar cambios"}
+                    {pending ? translate(locale, "common.guardando") : translate(locale, "tutorias.guardarCambios")}
                   </button>
                 </div>
               </div>
@@ -627,12 +675,111 @@ export function AlumnosClient({
           </div>
         </div>
       )}
-      {/* Modal: editar/eliminar tutoría */}
+
+      {/* Modal: ver tutoría cerrada (solo lectura) */}
+      {viewingTutoria && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-1 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                </div>
+                <h2 className="text-lg font-bold text-[#0B1D4D]">{translate(locale, "tutorias.tutoriaCerrada")}</h2>
+              </div>
+              <button
+                onClick={() => setViewingTutoria(null)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="mb-4 pl-11 text-xs text-slate-500">
+              {translate(locale, "tutorias.tutoriaCompletadaNota")}
+            </p>
+
+            <div className="space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs font-semibold text-slate-400">{translate(locale, "tutorias.colFecha")}</div>
+                  <div className="text-slate-700">
+                    {new Date(viewingTutoria.sessionDate).toLocaleDateString("es-ES", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-slate-400">{translate(locale, "tutorias.hora")}</div>
+                  <div className="text-slate-700">
+                    {new Date(viewingTutoria.sessionDate).toLocaleTimeString("es-ES", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs font-semibold text-slate-400">{translate(locale, "tutorias.conQuienLabel")}</div>
+                  <div className="text-slate-700">
+                    {viewingTutoria.conQuien ? translate(locale, `conQuien.${viewingTutoria.conQuien}` as never) : "—"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-slate-400">{translate(locale, "tutorias.medioLabel")}</div>
+                  <div className="text-slate-700">
+                    {viewingTutoria.medio ? translate(locale, `medio.${viewingTutoria.medio}` as never) : "—"}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div className="text-xs font-semibold text-slate-400">Causa</div>
+                <div className="text-slate-700">{viewingTutoria.causa || "—"}</div>
+              </div>
+
+              <div>
+                <div className="text-xs font-semibold text-slate-400">{translate(locale, "tutorias.resumenTutoriaLabel")}</div>
+                <p className="mt-1 whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-slate-700">
+                  {viewingTutoria.notas || "—"}
+                </p>
+              </div>
+
+              <div>
+                <div className="text-xs font-semibold text-slate-400">{translate(locale, "tutorias.proximoSeguimiento")}</div>
+                <div className="text-slate-700">
+                  {viewingTutoria.proximoSeguimiento
+                    ? new Date(viewingTutoria.proximoSeguimiento).toLocaleDateString("es-ES", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                      })
+                    : translate(locale, "tutorias.sinFechaIndicada")}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 flex justify-end">
+              <button
+                onClick={() => setViewingTutoria(null)}
+                className="rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
+              >
+                {translate(locale, "common.cerrar")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: editar datos básicos de una tutoría */}
       {editingTutoria && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-[#0B1D4D]">Editar tutoría</h2>
+              <h2 className="text-lg font-bold text-[#0B1D4D]">{translate(locale, "tutorias.editarTutoria")}</h2>
               <button
                 onClick={() => setEditingTutoria(null)}
                 className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
@@ -652,7 +799,7 @@ export function AlumnosClient({
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">Fecha</label>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "tutorias.colFecha")}</label>
                   <input
                     name="fecha"
                     type="date"
@@ -662,7 +809,7 @@ export function AlumnosClient({
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">Hora</label>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "tutorias.hora")}</label>
                   <input
                     name="hora"
                     type="time"
@@ -677,75 +824,43 @@ export function AlumnosClient({
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">Con quién</label>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "tutorias.conQuienLabel")}</label>
                 <select
                   name="conQuien"
                   defaultValue={editingTutoria.conQuien ?? "ALUMNO"}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
                 >
-                  {Object.entries(CON_QUIEN_LABELS).map(([value, label]) => (
+                  {Object.keys(CON_QUIEN_LABELS).map((value) => (
                     <option key={value} value={value}>
-                      {label}
+                      {translate(locale, `conQuien.${value}` as never)}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">Medio</label>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "tutorias.medioLabel")}</label>
                 <select
                   name="medio"
                   defaultValue={editingTutoria.medio ?? "PRESENCIAL"}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
                 >
-                  {Object.entries(MEDIO_LABELS).map(([value, label]) => (
+                  {Object.keys(MEDIO_LABELS).map((value) => (
                     <option key={value} value={value}>
-                      {label}
+                      {translate(locale, `medio.${value}` as never)}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">Estado</label>
-                <select
-                  name="status"
-                  defaultValue={editingTutoria.status}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
-                >
-                  <option value="NUEVA">Nueva</option>
-                  <option value="SEGUIMIENTO">En seguimiento</option>
-                  <option value="COMPLETADA">Completada</option>
-                  <option value="PENDIENTE">Pendiente</option>
-                </select>
-              </div>
-
-              <div>
                 <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                  Resumen de la tutoría <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  name="notas"
-                  required
-                  minLength={10}
-                  rows={5}
-                  defaultValue={editingTutoria.notas ?? ""}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                  Próximo seguimiento <span className="text-slate-400">(opcional)</span>
+                  {translate(locale, "tutorias.causaDeLaTutoria")} <span className="text-red-500">*</span>
                 </label>
                 <input
-                  name="proximoSeguimiento"
-                  type="date"
-                  defaultValue={
-                    editingTutoria.proximoSeguimiento
-                      ? new Date(editingTutoria.proximoSeguimiento).toISOString().slice(0, 10)
-                      : ""
-                  }
+                  name="causa"
+                  required
+                  defaultValue={editingTutoria.causa}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
                 />
               </div>
@@ -757,7 +872,7 @@ export function AlumnosClient({
                   disabled={pending}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
                 >
-                  <Trash2 className="h-4 w-4" /> Eliminar
+                  <Trash2 className="h-4 w-4" /> {translate(locale, "common.eliminar")}
                 </button>
                 <div className="flex gap-3">
                   <button
@@ -765,14 +880,14 @@ export function AlumnosClient({
                     onClick={() => setEditingTutoria(null)}
                     className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
                   >
-                    Cancelar
+                    {translate(locale, "common.cancelar")}
                   </button>
                   <button
                     type="submit"
                     disabled={pending}
                     className="rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
                   >
-                    {pending ? "Guardando..." : "Guardar cambios"}
+                    {pending ? translate(locale, "common.guardando") : translate(locale, "tutorias.guardarCambios")}
                   </button>
                 </div>
               </div>
@@ -780,6 +895,94 @@ export function AlumnosClient({
           </div>
         </div>
       )}
+
+      {/* Modal: cerrar tutoría (resumen + próximo seguimiento) */}
+      {cerrandoTutoria && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-1 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50">
+                  <ClipboardCheck className="h-4 w-4 text-emerald-600" />
+                </div>
+                <h2 className="text-lg font-bold text-[#0B1D4D]">{translate(locale, "tutorias.cerrarTutoria")}</h2>
+              </div>
+              <button
+                onClick={() => setCerrandoTutoria(null)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="mb-3 pl-11 text-xs text-slate-500">
+              {translate(locale, "tutorias.completaInfoCerrar")}
+            </p>
+            <div className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+              {translate(locale, "tutorias.avisoCerradaPre")} <strong>{translate(locale, "tutorias.avisoCerradaStrong")}</strong> {translate(locale, "tutorias.avisoCerradaPost")}
+            </div>
+
+            {cerrarError && (
+              <div className="mb-4 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600">
+                {cerrarError}
+              </div>
+            )}
+
+            <form action={handleCerrarTutoria} className="space-y-4">
+              <input type="hidden" name="id" value={cerrandoTutoria.id} />
+
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                  {translate(locale, "tutorias.resumenTutoriaLabel")} <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  name="notas"
+                  required
+                  maxLength={1000}
+                  rows={5}
+                  onChange={(e) => setJustLength(e.target.value.length)}
+                  placeholder={translate(locale, "tutorias.resumenPlaceholder")}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                />
+                <p className="mt-1 text-right text-xs text-slate-400">{justLength}/1000</p>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                  {translate(locale, "tutorias.proximoSeguimiento")} <span className="text-slate-400">{translate(locale, "common.opcional")}</span>
+                </label>
+                <input
+                  name="proximoSeguimiento"
+                  type="date"
+                  min={new Date().toISOString().slice(0, 10)}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                />
+                <p className="mt-1 text-xs text-slate-400">
+                  {translate(locale, "tutorias.fechaProximoSeguimientoDesc")}
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCerrandoTutoria(null)}
+                  className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                >
+                  {translate(locale, "common.cancelar")}
+                </button>
+                <button
+                  type="submit"
+                  disabled={cerrando}
+                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  {cerrando ? translate(locale, "common.guardando") : translate(locale, "tutorias.guardarYCompletar")}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Modal: confirmación fuerte para eliminar alumno con tutorías */}
       {deleteAlumnoOpen && selected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -789,15 +992,20 @@ export function AlumnosClient({
                 <AlertTriangle className="h-5 w-5 text-red-500" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-[#0B1D4D]">Eliminar alumno</h2>
+                <h2 className="text-lg font-bold text-[#0B1D4D]">{translate(locale, "tutorias.eliminarAlumno")}</h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  <strong>{selected.nombre}</strong> tiene{" "}
+                  <strong>{selected.nombre}</strong> {translate(locale, "tutorias.tieneTutoria")}{" "}
                   <strong>
-                    {selected.tutorias.length} tutoría{selected.tutorias.length === 1 ? "" : "s"} registrada
-                    {selected.tutorias.length === 1 ? "" : "s"}
+                    {selected.tutorias.length}{" "}
+                    {selected.tutorias.length === 1
+                      ? translate(locale, "tutorias.tutoriaWord")
+                      : translate(locale, "tutorias.tutoriasWord")}{" "}
+                    {selected.tutorias.length === 1
+                      ? translate(locale, "tutorias.registradaWord")
+                      : translate(locale, "tutorias.registradasWord")}
                   </strong>
-                  . Si continúas, se eliminará el alumno <strong>y todas sus tutorías</strong>, en todos los sitios
-                  (historial, calendario e Inicio). Esta acción no se puede deshacer.
+                  {translate(locale, "tutorias.siContinuas")} <strong>{translate(locale, "tutorias.yTodasSusTutorias")}</strong>
+                  {translate(locale, "tutorias.entodosLosSitios")}
                 </p>
               </div>
             </div>
@@ -807,8 +1015,7 @@ export function AlumnosClient({
             )}
 
             <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-              Escribe <span className="font-mono text-red-600">eliminar {selected.nombre}</span> para
-              confirmar
+              {translate(locale, "tutorias.escribePara")} <span className="font-mono text-red-600">eliminar {selected.nombre}</span> {translate(locale, "tutorias.paraConfirmar")}
             </label>
             <input
               value={deleteConfirmText}
@@ -823,7 +1030,7 @@ export function AlumnosClient({
                 onClick={() => setDeleteAlumnoOpen(false)}
                 className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
               >
-                Cancelar
+                {translate(locale, "common.cancelar")}
               </button>
               <button
                 type="button"
@@ -834,7 +1041,7 @@ export function AlumnosClient({
                 onClick={() => performDeleteAlumno(selected.id)}
                 className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {pending ? "Eliminando..." : "Eliminar definitivamente"}
+                {pending ? translate(locale, "tutorias.eliminando") : translate(locale, "tutorias.eliminarDefinitivamente")}
               </button>
             </div>
           </div>

@@ -24,24 +24,31 @@ import {
 import { HexLogo } from "@/app/components/Logo";
 import { ROLE_LABELS_FULL } from "../constants";
 import { SchoolBadge } from "./SchoolBadge";
-import { useUserAvatar } from "../SchoolContext";
+import { LanguageSwitcher } from "./LanguageSwitcher";
+import { useUserAvatar, useLocale } from "../SchoolContext";
+import { translate, TranslationKey } from "../i18n";
 
-const superadminNav = [
-  { href: "/dashboard", label: "Inicio", icon: Home },
-  { href: "/dashboard/centros", label: "Centros", icon: Landmark },
-  { href: "/dashboard/usuarios", label: "Usuarios", icon: Users },
-  { href: "/dashboard/roles", label: "Roles y permisos", icon: ShieldCheck },
-  { href: "/dashboard/planes", label: "Planes", icon: CreditCard },
-  { href: "/dashboard/auditoria", label: "Auditoría", icon: Clock },
-  { href: "/dashboard/configuracion", label: "Configuración", icon: Settings },
+const superadminNav: { href: string; labelKey: TranslationKey; icon: typeof Home }[] = [
+  { href: "/dashboard", labelKey: "nav.inicio", icon: Home },
+  { href: "/dashboard/centros", labelKey: "nav.centros", icon: Landmark },
+  { href: "/dashboard/usuarios", labelKey: "nav.usuarios", icon: Users },
+  { href: "/dashboard/tutorias", labelKey: "nav.tutorias", icon: Users },
+  { href: "/dashboard/guardias", labelKey: "nav.guardias", icon: ShieldCheck },
+  { href: "/dashboard/material", labelKey: "nav.material", icon: BookOpen },
+  { href: "/dashboard/calendario", labelKey: "nav.calendario", icon: CalendarDays },
+  { href: "/dashboard/horario", labelKey: "nav.horario", icon: CalendarClock },
+  { href: "/dashboard/roles", labelKey: "nav.roles", icon: ShieldCheck },
+  { href: "/dashboard/planes", labelKey: "nav.planes", icon: CreditCard },
+  { href: "/dashboard/auditoria", labelKey: "nav.auditoria", icon: Clock },
+  { href: "/dashboard/configuracion", labelKey: "nav.configuracion", icon: Settings },
 ];
 
 // Módulos reales, construidos y ya funcionando — su visibilidad depende de si
 // el centro del usuario los tiene contratados (School.modules).
-const centroModulos = [
-  { key: "tutorias", href: "/dashboard/tutorias", label: "Tutorías", icon: Users },
-  { key: "guardias", href: "/dashboard/guardias", label: "Guardias", icon: ShieldCheck },
-  { key: "material", href: "/dashboard/material", label: "Material", icon: BookOpen },
+const centroModulos: { key: string; href: string; labelKey: TranslationKey; icon: typeof Users }[] = [
+  { key: "tutorias", href: "/dashboard/tutorias", labelKey: "nav.tutorias", icon: Users },
+  { key: "guardias", href: "/dashboard/guardias", labelKey: "nav.guardias", icon: ShieldCheck },
+  { key: "material", href: "/dashboard/material", labelKey: "nav.material", icon: BookOpen },
 ];
 
 // Funcionalidades que todavía no existen para nadie, independientemente del plan
@@ -62,6 +69,7 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const avatarUrl = useUserAvatar();
+  const { locale } = useLocale();
   const initials = userName.slice(0, 2).toUpperCase();
   const roleLabel = ROLE_LABELS_FULL[role] ?? role;
   const isSuperAdmin = role === "SUPERADMIN";
@@ -93,7 +101,7 @@ export function Sidebar({
                 }`}
               >
                 <item.icon className="h-4 w-4" />
-                {item.label}
+                {translate(locale, item.labelKey)}
               </Link>
             );
           })}
@@ -108,7 +116,7 @@ export function Sidebar({
             }`}
           >
             <Home className="h-4 w-4" />
-            Inicio
+            {translate(locale, "nav.inicio")}
           </Link>
         )}
 
@@ -122,7 +130,7 @@ export function Sidebar({
             }`}
           >
             <CalendarDays className="h-4 w-4" />
-            Calendario
+            {translate(locale, "nav.calendario")}
           </Link>
         )}
 
@@ -136,7 +144,7 @@ export function Sidebar({
             }`}
           >
             <CalendarClock className="h-4 w-4" />
-            Mi horario
+            {translate(locale, "nav.miHorario")}
           </Link>
         )}
 
@@ -149,12 +157,12 @@ export function Sidebar({
               return (
                 <div
                   key={item.key}
-                  title="Tu centro no tiene este módulo contratado"
+                  title={translate(locale, "nav.moduloNoContratado")}
                   className="flex cursor-not-allowed items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-slate-500"
                 >
                   <span className="flex items-center gap-3">
                     <item.icon className="h-4 w-4" />
-                    {item.label}
+                    {translate(locale, item.labelKey)}
                   </span>
                   <Lock className="h-3.5 w-3.5 text-slate-500" />
                 </div>
@@ -172,7 +180,7 @@ export function Sidebar({
                 }`}
               >
                 <item.icon className="h-4 w-4" />
-                {item.label}
+                {translate(locale, item.labelKey)}
               </Link>
             );
           })}
@@ -180,7 +188,7 @@ export function Sidebar({
         {!isSuperAdmin && (
           <div className="pt-2">
             <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-              Próximamente
+              {translate(locale, "nav.proximamente")}
             </div>
             {centroProximamente.map((item) => (
               <div
@@ -192,7 +200,7 @@ export function Sidebar({
                   {item.label}
                 </span>
                 <span className="rounded-full bg-white/5 px-1.5 py-0.5 text-[9px] text-slate-400">
-                  Próximamente
+                  {translate(locale, "nav.proximamente")}
                 </span>
               </div>
             ))}
@@ -201,6 +209,7 @@ export function Sidebar({
       </nav>
 
       <div className="border-t border-white/10 px-4 py-3">
+        <LanguageSwitcher variant="dark" />
         {!isSuperAdmin && (
           <div className="mb-1.5">
             <SchoolBadge variant="dark" compact />
@@ -231,7 +240,7 @@ export function Sidebar({
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white"
         >
-          <LogOut className="h-4 w-4" /> Cerrar sesión
+          <LogOut className="h-4 w-4" /> {translate(locale, "sidebar.cerrarSesion")}
         </button>
       </div>
     </aside>

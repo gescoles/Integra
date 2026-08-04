@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "./components/DashboardHeader";
+import { translate, AppLocale } from "./i18n";
 import { AvisosSection } from "./components/AvisosSection";
 import {
   ShieldCheck,
@@ -32,18 +33,20 @@ export async function ProfesorHome({
   userName,
   role,
   schoolId,
+  locale = "ES",
 }: {
   userId: string;
   userName: string;
   role: string;
   schoolId: string | null;
+  locale?: AppLocale;
 }) {
   if (!schoolId) {
     return (
       <div>
         <DashboardHeader
-          title={`¡Bienvenido, ${userName}!`}
-          subtitle="Aquí tienes tus actividades y recursos para hoy."
+          title={`${translate(locale, "home.saludo")}, ${userName}!`}
+          subtitle={translate(locale, "home.subtitle.centro")}
           notificationCount={0}
         />
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-24 text-center text-sm text-slate-400">
@@ -147,8 +150,8 @@ export async function ProfesorHome({
   return (
     <div>
       <DashboardHeader
-        title={`¡Bienvenido, ${userName}!`}
-        subtitle="Aquí tienes tus actividades y recursos para hoy."
+        title={`${translate(locale, "home.saludo")}, ${userName}!`}
+        subtitle={translate(locale, "home.subtitle.centro")}
         notificationCount={agenda.length}
       />
 

@@ -55,28 +55,46 @@ export async function saveSchoolSettings(formData: FormData) {
   revalidatePath("/dashboard/centros");
 }
 
+export async function getSchoolDeleteImpact(id: string) {
+  const [usuarios, tutorias, guardias, material, alumnos, avisos] = await Promise.all([
+    prisma.user.count({ where: { schoolId: id } }),
+    prisma.tutoria.count({ where: { schoolId: id } }),
+    prisma.guardia.count({ where: { schoolId: id } }),
+    prisma.materialRequest.count({ where: { schoolId: id } }),
+    prisma.alumno.count({ where: { schoolId: id } }),
+    prisma.aviso.count({ where: { schoolId: id } }),
+  ]);
+  return { usuarios, tutorias, guardias, material, alumnos, avisos };
+}
+
 export async function deleteSchool(id: string) {
   if (!id) {
     throw new Error("Falta el identificador del centro.");
   }
 
-  const [usersCount, tutoriasCount, guardiasCount, materialCount, alumnosCount, avisosCount] =
-    await Promise.all([
-      prisma.user.count({ where: { schoolId: id } }),
-      prisma.tutoria.count({ where: { schoolId: id } }),
-      prisma.guardia.count({ where: { schoolId: id } }),
-      prisma.materialRequest.count({ where: { schoolId: id } }),
-      prisma.alumno.count({ where: { schoolId: id } }),
-      prisma.aviso.count({ where: { schoolId: id } }),
-    ]);
+  const usuarios = await prisma.user.findMany({ where: { schoolId: id }, select: { id: true } });
+  const userIds = usuarios.map((u) => u.id);
 
-  const total =
-    usersCount + tutoriasCount + guardiasCount + materialCount + alumnosCount + avisosCount;
-  if (total > 0) {
-    throw new Error(
-      `No se puede eliminar: este centro tiene ${usersCount} usuario(s), ${tutoriasCount} tutoría(s), ${guardiasCount} guardia(s), ${materialCount} solicitud(es) de material, ${alumnosCount} alumno(s) y ${avisosCount} aviso(s) asociados. Elimínalos o reasígnalos primero.`
-    );
+  const alumnosDelCentro = await prisma.alumno.findMany({
+    where: { schoolId: id },
+    select: { id: true },
+  });
+  const alumnoIds = alumnosDelCentro.map((a) => a.id);
+
+  // Se borra todo lo asociado, en el orden correcto para no romper claves foráneas.
+  if (alumnoIds.length > 0) {
+    await prisma.alumnoContacto.deleteMany({ where: { alumnoId: { in: alumnoIds } } });
   }
+  await prisma.tutoria.deleteMany({ where: { schoolId: id } });
+  await prisma.guardia.deleteMany({ where: { schoolId: id } });
+  await prisma.materialRequest.deleteMany({ where: { schoolId: id } });
+  await prisma.alumno.deleteMany({ where: { schoolId: id } });
+  await prisma.aviso.deleteMany({ where: { schoolId: id } });
+  if (userIds.length > 0) {
+    await prisma.horarioBloque.deleteMany({ where: { profesorId: { in: userIds } } });
+    await prisma.calendarEvento.deleteMany({ where: { userId: { in: userIds } } });
+  }
+  await prisma.user.deleteMany({ where: { schoolId: id } });
 
   await prisma.school.delete({ where: { id } });
   revalidatePath("/dashboard/centros");

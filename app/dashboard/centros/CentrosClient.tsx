@@ -9,8 +9,12 @@ import {
   Pencil,
   Zap,
   Trash2,
+  AlertTriangle,
+  EyeOff,
 } from "lucide-react";
-import { saveSchoolSettings, deleteSchool, uploadSchoolLogo } from "./actions";
+import { saveSchoolSettings, deleteSchool, uploadSchoolLogo, getSchoolDeleteImpact } from "./actions";
+import { useLocale } from "../SchoolContext";
+import { translate } from "../i18n";
 import {
   MODULES,
   PLAN_LABELS,
@@ -35,7 +39,9 @@ type SchoolRow = {
 };
 
 export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
+  const { locale } = useLocale();
   const [search, setSearch] = useState("");
+  const [blurNames, setBlurNames] = useState(false);
   const [estadoFilter, setEstadoFilter] = useState("Todos");
   const [planFilter, setPlanFilter] = useState("Todos");
   const [moduloFilter, setModuloFilter] = useState("Todos");
@@ -64,20 +70,55 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
     });
   }
 
-  function handleDelete(id: string, name: string) {
+  const [deleteTarget, setDeleteTarget] = useState<SchoolRow | null>(null);
+  const [deleteImpact, setDeleteImpact] = useState<{
+    usuarios: number;
+    tutorias: number;
+    guardias: number;
+    material: number;
+    alumnos: number;
+    avisos: number;
+  } | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [loadingImpact, setLoadingImpact] = useState(false);
+
+  async function handleDelete(id: string, name: string) {
     setDeleteError(null);
-    if (!confirm(`¿Seguro que quieres eliminar el centro "${name}"? Esta acción no se puede deshacer.`)) {
-      return;
+    setLoadingImpact(true);
+    const school = schools.find((s) => s.id === id) ?? null;
+    setDeleteTarget(school);
+    setDeleteConfirmText("");
+    try {
+      const impact = await getSchoolDeleteImpact(id);
+      setDeleteImpact(impact);
+    } catch {
+      setDeleteImpact(null);
+    } finally {
+      setLoadingImpact(false);
     }
+  }
+
+  function performDeleteSchool() {
+    if (!deleteTarget) return;
     startDeleteTransition(async () => {
       try {
-        await deleteSchool(id);
-        if (selectedId === id) setSelectedId(null);
+        await deleteSchool(deleteTarget.id);
+        if (selectedId === deleteTarget.id) setSelectedId(null);
+        setDeleteTarget(null);
       } catch (e) {
         setDeleteError(e instanceof Error ? e.message : "No se pudo eliminar el centro.");
       }
     });
   }
+
+  const hasImpact =
+    deleteImpact &&
+    (deleteImpact.usuarios > 0 ||
+      deleteImpact.tutorias > 0 ||
+      deleteImpact.guardias > 0 ||
+      deleteImpact.material > 0 ||
+      deleteImpact.alumnos > 0 ||
+      deleteImpact.avisos > 0);
 
   const cities = useMemo(
     () => Array.from(new Set(schools.map((s) => s.city).filter(Boolean))) as string[],
@@ -143,7 +184,7 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              placeholder="Buscar por nombre..."
+              placeholder={translate(locale, "centros.buscarPlaceholder")}
               className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-xs outline-none focus:border-[#2F6FED]"
             />
           </div>
@@ -219,6 +260,15 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
             >
               <RefreshCw className="h-3.5 w-3.5" />
             </button>
+            <button
+              onClick={() => setBlurNames((v) => !v)}
+              title="Difuminar nombres de los centros"
+              className={`shrink-0 rounded-lg border p-2 ${
+                blurNames ? "border-[#2F6FED] bg-blue-50 text-[#2F6FED]" : "border-slate-200 text-slate-500 hover:bg-slate-50"
+              }`}
+            >
+              {blurNames ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            </button>
           </div>
         </div>
 
@@ -231,14 +281,14 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
             <table className="w-full min-w-[720px] text-left text-xs">
               <thead>
                 <tr className="border-b border-slate-100 text-slate-400">
-                  <th className="pb-2 pr-3 font-medium">Centro</th>
-                  <th className="pb-2 pr-3 font-medium">Tipo</th>
-                  <th className="pb-2 pr-3 font-medium">Plan</th>
-                  <th className="pb-2 pr-3 font-medium">Módulos</th>
-                  <th className="pb-2 pr-3 font-medium">Usuarios</th>
-                  <th className="pb-2 pr-3 font-medium">Estado</th>
-                  <th className="pb-2 pr-3 font-medium">Actualizado</th>
-                  <th className="pb-2 font-medium">Acciones</th>
+                  <th className="pb-2 pr-3 font-medium">{translate(locale, "centros.colCentro")}</th>
+                  <th className="pb-2 pr-3 font-medium">{translate(locale, "centros.colTipo")}</th>
+                  <th className="pb-2 pr-3 font-medium">{translate(locale, "centros.colPlan")}</th>
+                  <th className="pb-2 pr-3 font-medium">{translate(locale, "centros.colModulos")}</th>
+                  <th className="pb-2 pr-3 font-medium">{translate(locale, "centros.colUsuarios")}</th>
+                  <th className="pb-2 pr-3 font-medium">{translate(locale, "centros.colEstado")}</th>
+                  <th className="pb-2 pr-3 font-medium">{translate(locale, "centros.colActualizado")}</th>
+                  <th className="pb-2 font-medium">{translate(locale, "centros.colAcciones")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -252,7 +302,9 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
                       }`}
                     >
                       <td className="py-3 pr-3">
-                        <div className="font-semibold text-slate-700">{s.name}</div>
+                        <div className={`font-semibold text-slate-700 ${blurNames ? "blur-sm select-none" : ""}`}>
+                          {s.name}
+                        </div>
                         {s.city && <div className="text-[11px] text-slate-400">{s.city}</div>}
                       </td>
                       <td className="py-3 pr-3 text-slate-500">{TYPE_LABELS[s.type]}</td>
@@ -519,6 +571,88 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
           </form>
         )}
       </div>
+
+      {/* Modal: confirmación fuerte para eliminar centro */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-[#0B1D4D]">Eliminar centro</h2>
+                {loadingImpact ? (
+                  <p className="mt-1 text-sm text-slate-500">Comprobando datos asociados...</p>
+                ) : hasImpact ? (
+                  <p className="mt-1 text-sm text-slate-600">
+                    <strong>{deleteTarget.name}</strong> tiene{" "}
+                    {deleteImpact!.usuarios > 0 && <>{deleteImpact!.usuarios} usuario(s), </>}
+                    {deleteImpact!.tutorias > 0 && <>{deleteImpact!.tutorias} tutoría(s), </>}
+                    {deleteImpact!.guardias > 0 && <>{deleteImpact!.guardias} guardia(s), </>}
+                    {deleteImpact!.material > 0 && <>{deleteImpact!.material} solicitud(es) de material, </>}
+                    {deleteImpact!.alumnos > 0 && <>{deleteImpact!.alumnos} alumno(s), </>}
+                    {deleteImpact!.avisos > 0 && <>{deleteImpact!.avisos} aviso(s)</>}. Si continúas, se
+                    eliminará el centro <strong>y todo lo anterior</strong>, sin excepción. Esta acción no
+                    se puede deshacer.
+                  </p>
+                ) : (
+                  <p className="mt-1 text-sm text-slate-600">
+                    ¿Seguro que quieres eliminar el centro <strong>{deleteTarget.name}</strong>? Esta
+                    acción no se puede deshacer.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {deleteError && (
+              <div className="mb-4 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600">
+                {deleteError}
+              </div>
+            )}
+
+            {hasImpact && (
+              <>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                  Escribe <span className="font-mono text-red-600">eliminar {deleteTarget.name}</span>{" "}
+                  para confirmar
+                </label>
+                <input
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder={`eliminar ${deleteTarget.name}`}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-red-400"
+                />
+              </>
+            )}
+
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={
+                  isDeleting ||
+                  loadingImpact ||
+                  (hasImpact
+                    ? deleteConfirmText.trim().toLowerCase() !==
+                      `eliminar ${deleteTarget.name}`.toLowerCase()
+                    : false)
+                }
+                onClick={performDeleteSchool}
+                className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {isDeleting ? "Eliminando..." : "Eliminar definitivamente"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

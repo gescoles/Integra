@@ -6,6 +6,8 @@ import { DashboardHeader } from "../components/DashboardHeader";
 import { ModuleLocked } from "../components/ModuleLocked";
 import { CentroTutoriasClient } from "./CentroTutoriasClient";
 import { AlumnosClient } from "./AlumnosClient";
+import { SchoolPicker, SchoolSwitcher } from "../components/SchoolPicker";
+import { translate } from "../i18n";
 
 async function getAlumnosData(profesorId: string, alumnoSeleccionado?: string) {
   const alumnosRaw = await prisma.alumno.findMany({
@@ -35,6 +37,7 @@ async function getAlumnosData(profesorId: string, alumnoSeleccionado?: string) {
       sessionDate: t.sessionDate.toISOString(),
       conQuien: t.conQuien,
       medio: t.medio,
+      causa: t.causa,
       notas: t.notas,
       status: t.status,
       proximoSeguimiento: t.proximoSeguimiento ? t.proximoSeguimiento.toISOString() : null,
@@ -95,6 +98,7 @@ async function getCentroData(schoolId: string) {
     profesorName: t.profesor?.name ?? t.profesor?.email ?? "—",
     conQuien: t.conQuien,
     medio: t.medio,
+    causa: t.causa,
     status: t.status,
     notas: t.notas,
     proximoSeguimiento: t.proximoSeguimiento ? t.proximoSeguimiento.toISOString() : null,
@@ -129,7 +133,7 @@ async function getCentroData(schoolId: string) {
   const tutoriasHoyFamilia = tutoriasHoy.filter((t) => t.conQuien === "FAMILIA").length;
   const tutoriasHoyAlumno = tutoriasHoy.filter((t) => t.conQuien === "ALUMNO").length;
 
-  const pendientesSeguimiento = tutoriasRaw.filter((t) => t.status === "SEGUIMIENTO").length;
+  const pendientesSeguimiento = tutoriasRaw.filter((t) => t.status === "PENDIENTE").length;
   const alumnosConAlertas = alumnosRaw.filter(
     (a) => a.riesgo === "MEDIO" || a.riesgo === "ALTO"
   ).length;
@@ -154,21 +158,56 @@ async function getCentroData(schoolId: string) {
 export default async function TutoriasPage({
   searchParams,
 }: {
-  searchParams: { alumno?: string; vista?: string };
+  searchParams: { alumno?: string; vista?: string; school?: string };
 }) {
   const session = await getServerSession(authOptions);
   const userName =
     session?.user.name || session?.user.email.split("@")[0] || "Usuario";
   const role = session?.user.role ?? "COORDINADOR";
-  const schoolId = session?.user.schoolId ?? null;
   const userId = session?.user.id;
+  const locale = session?.user.locale ?? "ES";
+
+  // SuperAdmin: elige cualquier centro para supervisarlo por completo
+  if (role === "SUPERADMIN") {
+    const schools = await prisma.school.findMany({
+      where: { modules: { has: "tutorias" } },
+      select: { id: true, name: true, logoUrl: true },
+      orderBy: { name: "asc" },
+    });
+
+    if (!searchParams.school) {
+      return (
+        <div>
+          <DashboardHeader title={translate(locale, "tutorias.title")} subtitle={translate(locale, "tutorias.subtitle.superadmin")} userName={userName} role={role} />
+          {schools.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-24 text-center text-sm text-slate-400">
+              Ningún centro tiene el módulo de Tutorías contratado todavía.
+            </div>
+          ) : (
+            <SchoolPicker schools={schools} locale={locale} basePath="/dashboard/tutorias" />
+          )}
+        </div>
+      );
+    }
+
+    const { tutorias, alumnos, profesores, stats } = await getCentroData(searchParams.school);
+    return (
+      <div>
+        <DashboardHeader title={translate(locale, "tutorias.title")} subtitle={translate(locale, "tutorias.subtitle.superadmin")} userName={userName} role={role} />
+        <SchoolSwitcher schools={schools} currentSchoolId={searchParams.school} locale={locale} basePath="/dashboard/tutorias" />
+        <CentroTutoriasClient tutorias={tutorias} alumnos={alumnos} profesores={profesores} stats={stats} isSuperAdmin />
+      </div>
+    );
+  }
+
+  const schoolId = session?.user.schoolId ?? null;
 
   if (!schoolId) {
     return (
       <div>
         <DashboardHeader
-          title="Tutorías"
-          subtitle="Gestiona las tutorías de tu centro."
+          title={translate(locale, "tutorias.title")}
+          subtitle={translate(locale, "tutorias.subtitle.coordinacion")}
           userName={userName}
           role={role}
         />
@@ -188,8 +227,8 @@ export default async function TutoriasPage({
     return (
       <div>
         <DashboardHeader
-          title="Tutorías"
-          subtitle="Gestiona las tutorías de tu centro."
+          title={translate(locale, "tutorias.title")}
+          subtitle={translate(locale, "tutorias.subtitle.coordinacion")}
           userName={userName}
           role={role}
         />
@@ -207,8 +246,8 @@ export default async function TutoriasPage({
     return (
       <div>
         <DashboardHeader
-          title="Tutorías"
-          subtitle="Gestiona tus alumnos y su historial de tutorías."
+          title={translate(locale, "tutorias.title")}
+          subtitle={translate(locale, "tutorias.subtitle.profesor")}
           userName={userName}
           role={role}
           notificationCount={0}
@@ -236,8 +275,8 @@ export default async function TutoriasPage({
     return (
       <div>
         <DashboardHeader
-          title="Tutorías"
-          subtitle="Gestiona tus alumnos, o consulta las tutorías de todo el centro."
+          title={translate(locale, "tutorias.title")}
+          subtitle={translate(locale, "tutorias.subtitle.coordinacion")}
           userName={userName}
           role={role}
           notificationCount={0}
@@ -250,7 +289,7 @@ export default async function TutoriasPage({
               vista === "mios" ? "bg-[#2F6FED] text-white" : "text-slate-600 hover:bg-slate-50"
             }`}
           >
-            Mis alumnos
+            {translate(locale, "tutorias.tabMios")}
           </Link>
           <Link
             href="/dashboard/tutorias?vista=centro"
@@ -258,7 +297,7 @@ export default async function TutoriasPage({
               vista === "centro" ? "bg-[#2F6FED] text-white" : "text-slate-600 hover:bg-slate-50"
             }`}
           >
-            Todo el centro
+            {translate(locale, "tutorias.tabCentro")}
           </Link>
         </div>
 

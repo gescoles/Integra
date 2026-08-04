@@ -1,13 +1,17 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import { createAviso } from "./avisosActions";
+import { ButtonSpinner } from "./ButtonSpinner";
 
 export function NuevoAvisoButton() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const formRef = useRef<HTMLFormElement>(null);
 
   async function handleSubmit(formData: FormData) {
     setError(null);
@@ -15,6 +19,8 @@ export function NuevoAvisoButton() {
       try {
         await createAviso(formData);
         setOpen(false);
+        formRef.current?.reset();
+        router.refresh();
       } catch (e) {
         setError(e instanceof Error ? e.message : "No se pudo publicar el aviso.");
       }
@@ -49,7 +55,7 @@ export function NuevoAvisoButton() {
               </div>
             )}
 
-            <form action={handleSubmit} className="space-y-4">
+            <form ref={formRef} action={handleSubmit} className="space-y-4">
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-slate-700">Título</label>
                 <input
@@ -95,8 +101,9 @@ export function NuevoAvisoButton() {
                 <button
                   type="submit"
                   disabled={pending}
-                  className="rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
                 >
+                  {pending && <ButtonSpinner />}
                   {pending ? "Publicando..." : "Publicar aviso"}
                 </button>
               </div>

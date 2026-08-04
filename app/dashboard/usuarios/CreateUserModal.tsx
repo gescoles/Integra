@@ -1,13 +1,16 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { X, Plus } from "lucide-react";
 import { createUser } from "./actions";
 import { ROLE_LABELS, ASSIGNABLE_ROLES } from "./constants";
+import { ButtonSpinner } from "../components/ButtonSpinner";
 
 type SchoolOption = { id: string; name: string };
 
 export function CreateUserModal({ schools }: { schools: SchoolOption[] }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +24,7 @@ export function CreateUserModal({ schools }: { schools: SchoolOption[] }) {
       await createUser(formData);
       setOpen(false);
       formRef.current?.reset();
+      router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo crear el usuario.");
     } finally {
@@ -147,10 +151,11 @@ export function CreateUserModal({ schools }: { schools: SchoolOption[] }) {
                   </label>
                   <select
                     name="schoolId"
-                    defaultValue=""
+                    defaultValue={schools[0]?.id ?? ""}
+                    required
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
                   >
-                    <option value="">Sin asignar</option>
+                    {schools.length === 0 && <option value="">No hay centros creados todavía</option>}
                     {schools.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name}
@@ -171,8 +176,9 @@ export function CreateUserModal({ schools }: { schools: SchoolOption[] }) {
                 <button
                   type="submit"
                   disabled={pending}
-                  className="rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
                 >
+                  {pending && <ButtonSpinner />}
                   {pending ? "Creando..." : "Crear usuario"}
                 </button>
               </div>

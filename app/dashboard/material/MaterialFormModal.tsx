@@ -1,9 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Pencil, X, ClipboardList, Link2, Euro, UserCircle } from "lucide-react";
 import { createMaterial, updateMaterial } from "./actions";
 import { MATERIAL_CATEGORIA_LABELS } from "../constants";
+import { useLocale } from "../SchoolContext";
+import { translate } from "../i18n";
+import { ButtonSpinner } from "../components/ButtonSpinner";
 
 type MaterialData = {
   id: string;
@@ -27,6 +31,8 @@ export function MaterialFormModal({
   material?: MaterialData;
   trigger?: "button" | "icon";
 }) {
+  const router = useRouter();
+  const { locale } = useLocale();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +53,7 @@ export function MaterialFormModal({
       setOpen(false);
       formRef.current?.reset();
       setJustLength(0);
+      router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo guardar el material.");
     } finally {
@@ -224,9 +231,9 @@ export function MaterialFormModal({
                   defaultValue={material?.categoria ?? "OTROS"}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
                 >
-                  {Object.entries(MATERIAL_CATEGORIA_LABELS).map(([value, label]) => (
+                  {Object.keys(MATERIAL_CATEGORIA_LABELS).map((value) => (
                     <option key={value} value={value}>
-                      {label}
+                      {translate(locale, `categoria.${value}` as never)}
                     </option>
                   ))}
                 </select>
@@ -262,6 +269,7 @@ export function MaterialFormModal({
                   disabled={pending}
                   className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
                 >
+                  {pending && <ButtonSpinner />}
                   {pending ? "Guardando..." : isEdit ? "Guardar cambios" : "Guardar material"}
                 </button>
               </div>

@@ -1,7 +1,8 @@
 "use client";
 
 import { Building2 } from "lucide-react";
-import { useSchoolInfo } from "../SchoolContext";
+import { useSchoolInfo, useLocale } from "../SchoolContext";
+import { translate } from "../i18n";
 
 export function SchoolBadge({
   variant = "light",
@@ -11,6 +12,7 @@ export function SchoolBadge({
   compact?: boolean;
 }) {
   const school = useSchoolInfo();
+  const { locale } = useLocale();
   if (!school) return null;
 
   const isDark = variant === "dark";
@@ -42,7 +44,7 @@ export function SchoolBadge({
           {school.name}
         </div>
         <div className={`${compact ? "text-[9px]" : "text-[11px]"} ${isDark ? "text-slate-400" : "text-slate-500"}`}>
-          Centro asignado
+          {translate(locale, "sidebar.centroAsignado")}
         </div>
       </div>
     </div>

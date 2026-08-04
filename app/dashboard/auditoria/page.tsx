@@ -1,10 +1,12 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { DashboardHeader } from "../components/DashboardHeader";
+import { translate } from "../i18n";
 import { Clock } from "lucide-react";
 
 export default async function AuditoriaPage() {
   const session = await getServerSession(authOptions);
+  const locale = session?.user.locale ?? "ES";
   const userName =
     session?.user.name || session?.user.email.split("@")[0] || "SuperAdmin";
   const role = session?.user.role ?? "SUPERADMIN";
@@ -12,8 +14,8 @@ export default async function AuditoriaPage() {
   return (
     <div>
       <DashboardHeader
-        title="Auditoría"
-        subtitle="Consulta el historial de actividad de la plataforma."
+        title={translate(locale, "auditoria.title")}
+        subtitle={translate(locale, "auditoria.subtitle")}
         userName={userName}
         role={role}
       />

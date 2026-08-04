@@ -41,6 +41,12 @@ enum SchoolStatus {
   INACTIVO
 }
 
+enum Locale {
+  CA
+  ES
+  EN
+}
+
 model School {
   id        String       @id @default(cuid())
   name      String
@@ -70,6 +76,7 @@ model User {
   role         Role
   status       UserStatus @default(ACTIVO)
   avatarUrl    String?
+  locale       Locale     @default(ES)
   lastAccessAt DateTime?
   schoolId     String?
   school       School?    @relation(fields: [schoolId], references: [id])
@@ -84,15 +91,14 @@ model User {
 }
 
 enum TutoriaStatus {
-  NUEVA
-  SEGUIMIENTO
-  COMPLETADA
   PENDIENTE
+  COMPLETADA
 }
 
 enum ConQuien {
   FAMILIA
   ALUMNO
+  AMBOS
 }
 
 enum MedioContacto {
@@ -118,7 +124,8 @@ model Tutoria {
   alumno             Alumno?       @relation(fields: [alumnoId], references: [id])
   studentName        String
   cicloModulo        String?
-  status             TutoriaStatus @default(NUEVA)
+  causa              String        @default("")
+  status             TutoriaStatus @default(PENDIENTE)
   sessionDate        DateTime      @default(now())
   conQuien           ConQuien?
   medio              MedioContacto?

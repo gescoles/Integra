@@ -90,19 +90,31 @@ export default function LoginPage() {
       redirect: false,
     });
 
-    setLoading(false);
-
     if (result?.error) {
+      setLoading(false);
       setError("Correo o contraseña incorrectos.");
       return;
     }
 
+    // Dejamos "loading" activo (mostrando el overlay de "Entrando...") hasta
+    // que la navegación al dashboard se complete; así no hay ningún momento
+    // en el que la pantalla parezca congelada entre el login y el panel.
     router.push("/dashboard");
     router.refresh();
   }
 
   return (
     <main className="flex min-h-screen flex-col bg-white">
+      {loading && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-white/90 backdrop-blur-sm">
+          <HexLogo size={48} />
+          <div className="relative h-10 w-10">
+            <div className="absolute inset-0 rounded-full border-4 border-slate-200" />
+            <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-[#2F6FED]" />
+          </div>
+          <p className="text-sm font-medium text-slate-500">Entrando a tu panel…</p>
+        </div>
+      )}
       <div className="grid flex-1 lg:grid-cols-2">
         {/* Left panel */}
         <div className="relative hidden overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-blue-100 lg:flex lg:flex-col lg:justify-start lg:px-16 lg:pt-20">

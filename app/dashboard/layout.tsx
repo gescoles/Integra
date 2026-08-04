@@ -37,11 +37,15 @@ export default async function DashboardLayout({
 
   const currentUser = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { avatarUrl: true },
+    select: { avatarUrl: true, locale: true },
   });
 
   return (
-    <SchoolProvider school={schoolInfo} avatarUrl={currentUser?.avatarUrl ?? null}>
+    <SchoolProvider
+      school={schoolInfo}
+      avatarUrl={currentUser?.avatarUrl ?? null}
+      locale={currentUser?.locale ?? "ES"}
+    >
       <div className="min-h-screen bg-slate-50">
         <Sidebar
           userName={userName}

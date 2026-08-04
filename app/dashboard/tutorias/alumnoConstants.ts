@@ -13,6 +13,7 @@ export const RIESGO_COLORS: Record<string, string> = {
 export const CON_QUIEN_LABELS: Record<string, string> = {
   FAMILIA: "Familia",
   ALUMNO: "Alumno",
+  AMBOS: "Familia + Alumno",
 };
 
 export const MEDIO_LABELS: Record<string, string> = {

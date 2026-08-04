@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "../components/DashboardHeader";
+import { translate } from "../i18n";
 import { CreateSchoolModal } from "./CreateSchoolModal";
 import { CentrosClient } from "./CentrosClient";
 import { Building2, Briefcase, ShieldCheck, Users, ClipboardList, ArrowRight } from "lucide-react";
@@ -9,6 +10,7 @@ import Link from "next/link";
 
 export default async function CentrosPage() {
   const session = await getServerSession(authOptions);
+  const locale = session?.user.locale ?? "ES";
   const userName =
     session?.user.name || session?.user.email.split("@")[0] || "SuperAdmin";
   const role = session?.user.role ?? "SUPERADMIN";
@@ -42,8 +44,8 @@ export default async function CentrosPage() {
   return (
     <div>
       <DashboardHeader
-        title="Gestión de centros"
-        subtitle="Crea nuevos centros, revisa los existentes y administra sus módulos, planes y límites de usuarios."
+        title={translate(locale, "centros.title")}
+        subtitle={translate(locale, "centros.subtitle")}
         userName={userName}
         role={role}
         notificationCount={3}

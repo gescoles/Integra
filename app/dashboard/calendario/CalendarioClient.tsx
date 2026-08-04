@@ -6,6 +6,8 @@ import { ChevronLeft, ChevronRight, Plus, Trash2, X, Settings } from "lucide-rea
 import { createEvento, deleteEvento } from "./actions";
 import { deleteTutoriaAlumno } from "../tutorias/alumnoActions";
 import { NowIndicator } from "../components/NowIndicator";
+import { useLocale } from "../SchoolContext";
+import { translate } from "../i18n";
 
 type Item = {
   id: string;
@@ -39,13 +41,16 @@ export function CalendarioClient({
   offset,
   hourStart,
   hourEnd,
+  readOnly = false,
 }: {
   dias: DiaData[];
   weekRangeLabel: string;
   offset: number;
   hourStart: number;
   hourEnd: number;
+  readOnly?: boolean;
 }) {
+  const { locale } = useLocale();
   const [open, setOpen] = useState(false);
   const [defaultDate, setDefaultDate] = useState<string>(dias[0]?.dateIso ?? "");
   const [error, setError] = useState<string | null>(null);
@@ -76,8 +81,8 @@ export function CalendarioClient({
   function handleDelete(realId: string, tipo: "evento" | "tutoria") {
     const mensaje =
       tipo === "tutoria"
-        ? "¿Eliminar esta tutoría? No se puede deshacer."
-        : "¿Eliminar este evento?";
+        ? translate(locale, "tutorias.confirmEliminar")
+        : translate(locale, "calendario.confirmEliminarEvento");
     if (!confirm(mensaje)) return;
     setDeletingId(realId);
     startTransition(async () => {
@@ -119,17 +124,19 @@ export function CalendarioClient({
               href="/dashboard/calendario"
               className="ml-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-[#2F6FED] hover:bg-blue-50"
             >
-              Hoy
+              {translate(locale, "calendario.hoy")}
             </Link>
           )}
         </div>
 
-        <button
-          onClick={() => openModal(dias.find((d) => d.isToday)?.dateIso ?? dias[0].dateIso)}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
-        >
-          <Plus className="h-4 w-4" /> Programar
-        </button>
+        {!readOnly && (
+          <button
+            onClick={() => openModal(dias.find((d) => d.isToday)?.dateIso ?? dias[0].dateIso)}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
+          >
+            <Plus className="h-4 w-4" /> {translate(locale, "calendario.programar")}
+          </button>
+        )}
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white">
@@ -152,7 +159,7 @@ export function CalendarioClient({
               </span>
               {dia.isToday && (
                 <span className="rounded-full bg-[#2F6FED] px-2 py-0.5 text-[10px] font-semibold text-white">
-                  Hoy
+                  {translate(locale, "calendario.hoy")}
                 </span>
               )}
             </div>
@@ -192,13 +199,15 @@ export function CalendarioClient({
               )}
 
               {/* Botón flotante para programar en este día */}
-              <button
-                onClick={() => openModal(dia.dateIso)}
-                className="absolute right-1 top-1 z-10 rounded p-1 text-slate-300 opacity-0 hover:bg-slate-100 hover:text-[#2F6FED] group-hover:opacity-100"
-                title="Programar en este día"
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </button>
+              {!readOnly && (
+                <button
+                  onClick={() => openModal(dia.dateIso)}
+                  className="absolute right-1 top-1 z-10 rounded p-1 text-slate-300 opacity-0 hover:bg-slate-100 hover:text-[#2F6FED] group-hover:opacity-100"
+                  title={translate(locale, "calendario.programarEnEsteDia")}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              )}
 
               {dia.items.map((item) => {
                 const top = Math.max(0, (item.start / 60) * ROW_HEIGHT);
@@ -241,26 +250,26 @@ export function CalendarioClient({
         <div className="flex flex-wrap items-center gap-4">
           <span className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "#2F6FED" }} />
-            Horario semanal
+            {translate(locale, "calendario.horarioSemanal")}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "#F59E0B" }} />
-            Tutorías
+            {translate(locale, "tutorias.title")}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "#8B5CF6" }} />
-            Guardias
+            {translate(locale, "guardias.title")}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-slate-400" />
-            Mis eventos
+            {translate(locale, "calendario.misEventos")}
           </span>
         </div>
         <Link
           href="/dashboard/horario"
           className="inline-flex items-center gap-1 font-semibold text-[#2F6FED] hover:underline"
         >
-          <Settings className="h-3.5 w-3.5" /> Configurar mi horario
+          <Settings className="h-3.5 w-3.5" /> {translate(locale, "calendario.configurarMiHorario")}
         </Link>
       </div>
 
@@ -268,7 +277,7 @@ export function CalendarioClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-[#0B1D4D]">Programar evento</h2>
+              <h2 className="text-lg font-bold text-[#0B1D4D]">{translate(locale, "calendario.programarEvento")}</h2>
               <button
                 onClick={() => setOpen(false)}
                 className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
@@ -285,21 +294,22 @@ export function CalendarioClient({
 
             <form action={handleSubmit} className="space-y-4">
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">Título</label>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "calendario.titulo")}</label>
                 <input
                   name="title"
                   required
-                  placeholder="Ej. Reunión de departamento"
+                  placeholder={translate(locale, "calendario.tituloPlaceholder")}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
                 />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">Fecha</label>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "tutorias.colFecha")}</label>
                 <input
                   name="fecha"
                   type="date"
                   required
+                  min={new Date().toISOString().slice(0, 10)}
                   defaultValue={defaultDate}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
                 />
@@ -308,7 +318,7 @@ export function CalendarioClient({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                    Hora inicio
+                    {translate(locale, "calendario.horaInicio")}
                   </label>
                   <input
                     name="horaInicio"
@@ -320,7 +330,7 @@ export function CalendarioClient({
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                    Hora fin
+                    {translate(locale, "calendario.horaFin")}
                   </label>
                   <input
                     name="horaFin"
@@ -333,7 +343,7 @@ export function CalendarioClient({
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">Color</label>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">{translate(locale, "calendario.color")}</label>
                 <div className="flex gap-2">
                   {COLORES.map((c) => (
                     <label key={c}>
@@ -359,14 +369,14 @@ export function CalendarioClient({
                   onClick={() => setOpen(false)}
                   className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
                 >
-                  Cancelar
+                  {translate(locale, "common.cancelar")}
                 </button>
                 <button
                   type="submit"
                   disabled={pending}
                   className="rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
                 >
-                  {pending ? "Programando..." : "Programar"}
+                  {pending ? translate(locale, "calendario.programando") : translate(locale, "calendario.programar")}
                 </button>
               </div>
             </form>

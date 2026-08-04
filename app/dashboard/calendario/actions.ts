@@ -21,6 +21,12 @@ export async function createEvento(formData: FormData) {
   if (horaFin <= horaInicio) throw new Error("La hora de fin debe ser posterior a la de inicio.");
 
   const [y, m, d] = fecha.split("-").map(Number);
+  const fechaEvento = new Date(y, m - 1, d);
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  if (fechaEvento < hoy) {
+    throw new Error("No puedes programar un evento en una fecha anterior a hoy.");
+  }
 
   await prisma.calendarEvento.create({
     data: {

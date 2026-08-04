@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "./components/DashboardHeader";
 import { ActivityChart } from "./components/ActivityChart";
 import { PlansDonut } from "./components/PlansDonut";
+import { translate, AppLocale } from "./i18n";
 import {
   Landmark,
   Users,
@@ -83,9 +84,11 @@ function dayLabel(d: Date) {
 export async function SuperAdminHome({
   userName,
   role,
+  locale = "ES",
 }: {
   userName: string;
   role: string;
+  locale?: AppLocale;
 }) {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
@@ -213,8 +216,8 @@ export async function SuperAdminHome({
   return (
     <div>
       <DashboardHeader
-        title={`¡Bienvenido, ${userName}!`}
-        subtitle="Aquí tienes un resumen general de la plataforma."
+        title={`${translate(locale, "home.saludo")}, ${userName}!`}
+        subtitle={translate(locale, "home.subtitle.superadmin")}
         userName={userName}
         role={role}
         notificationCount={recentActivity.length}

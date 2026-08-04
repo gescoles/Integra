@@ -2,15 +2,77 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "../components/DashboardHeader";
+import { translate } from "../i18n";
 import { ModuleLocked } from "../components/ModuleLocked";
 import { MaterialClient } from "./MaterialClient";
 import { MaterialFormModal } from "./MaterialFormModal";
+import { SchoolPicker, SchoolSwitcher } from "../components/SchoolPicker";
 
-export default async function MaterialPage() {
+export default async function MaterialPage({
+  searchParams,
+}: {
+  searchParams: { school?: string };
+}) {
   const session = await getServerSession(authOptions);
+  const locale = session?.user.locale ?? "ES";
   const userName =
     session?.user.name || session?.user.email.split("@")[0] || "Usuario";
   const role = session?.user.role ?? "COORDINADOR";
+
+  // SuperAdmin: elige cualquier centro y ve/gestiona TODO su material
+  if (role === "SUPERADMIN") {
+    const schools = await prisma.school.findMany({
+      where: { modules: { has: "material" } },
+      select: { id: true, name: true, logoUrl: true },
+      orderBy: { name: "asc" },
+    });
+
+    if (!searchParams.school) {
+      return (
+        <div>
+          <DashboardHeader title={translate(locale, "material.title")} subtitle={translate(locale, "material.subtitle.superadmin")} userName={userName} role={role} />
+          {schools.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-24 text-center text-sm text-slate-400">
+              Ningún centro tiene el módulo de Material contratado todavía.
+            </div>
+          ) : (
+            <SchoolPicker schools={schools} locale={locale} basePath="/dashboard/material" />
+          )}
+        </div>
+      );
+    }
+
+    const materialRaw = await prisma.materialRequest.findMany({
+      where: { schoolId: searchParams.school },
+      include: { profesor: { select: { id: true, name: true, email: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const rows = materialRaw.map((m) => ({
+      id: m.id,
+      nombre: m.nombre,
+      curso: m.curso,
+      asignatura: m.asignatura,
+      cantidad: m.cantidad,
+      precioUnidad: m.precioUnidad,
+      proveedor: m.proveedor,
+      enlace: m.enlace,
+      categoria: m.categoria,
+      estado: m.estado,
+      justificacion: m.justificacion,
+      profesorId: m.profesorId,
+      profesorName: m.profesor?.name ?? m.profesor?.email ?? "—",
+    }));
+
+    return (
+      <div>
+        <DashboardHeader title={translate(locale, "material.title")} subtitle={translate(locale, "material.subtitle.superadmin")} userName={userName} role={role} />
+        <SchoolSwitcher schools={schools} currentSchoolId={searchParams.school} locale={locale} basePath="/dashboard/material" />
+        <MaterialClient rows={rows} currentUserId={session!.user.id} isSuperAdmin />
+      </div>
+    );
+  }
+
   const schoolId = session?.user.schoolId ?? null;
   const userId = session?.user.id;
 
@@ -18,8 +80,8 @@ export default async function MaterialPage() {
     return (
       <div>
         <DashboardHeader
-          title="Material"
-          subtitle="Material didáctico del centro."
+          title={translate(locale, "material.title")}
+          subtitle={translate(locale, "material.subtitle.centro")}
           userName={userName}
           role={role}
         />
@@ -39,8 +101,8 @@ export default async function MaterialPage() {
     return (
       <div>
         <DashboardHeader
-          title="Material"
-          subtitle="Material didáctico del centro."
+          title={translate(locale, "material.title")}
+          subtitle={translate(locale, "material.subtitle.centro")}
           userName={userName}
           role={role}
         />
@@ -76,8 +138,8 @@ export default async function MaterialPage() {
   return (
     <div>
       <DashboardHeader
-        title="Material"
-        subtitle="El material didáctico que has pedido."
+        title={translate(locale, "material.title")}
+        subtitle={translate(locale, "material.subtitle.centro")}
         userName={userName}
         role={role}
         notificationCount={0}

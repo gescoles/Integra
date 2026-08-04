@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { Plus, Trash2, X, Pencil } from "lucide-react";
 import { addHorarioBloque, updateHorarioBloque, deleteHorarioBloque } from "./actions";
 import { NowIndicator } from "../components/NowIndicator";
+import { useLocale } from "../SchoolContext";
+import { translate } from "../i18n";
 
 type Bloque = {
   id: string;
@@ -15,15 +17,7 @@ type Bloque = {
   color: string;
 };
 
-const DIAS = [
-  { value: 1, label: "Lunes" },
-  { value: 2, label: "Martes" },
-  { value: 3, label: "Miércoles" },
-  { value: 4, label: "Jueves" },
-  { value: 5, label: "Viernes" },
-  { value: 6, label: "Sábado" },
-  { value: 7, label: "Domingo" },
-];
+const DIA_VALUES = [1, 2, 3, 4, 5, 6, 7];
 
 const COLORES = [
   "#2F6FED", "#8B5CF6", "#22C55E", "#F59E0B", "#EF4444", "#0EA5E9",
@@ -45,7 +39,9 @@ const HOY_DIA_SEMANA = (() => {
   return d === 0 ? 7 : d;
 })();
 
-export function HorarioClient({ bloques }: { bloques: Bloque[] }) {
+export function HorarioClient({ bloques, readOnly = false }: { bloques: Bloque[]; readOnly?: boolean }) {
+  const { locale } = useLocale();
+  const DIAS = DIA_VALUES.map((value) => ({ value, label: translate(locale, `dia.${value}` as never) }));
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Bloque | null>(null);
   const [defaultDia, setDefaultDia] = useState(1);
@@ -87,7 +83,7 @@ export function HorarioClient({ bloques }: { bloques: Bloque[] }) {
   }
 
   function handleDelete(id: string) {
-    if (!confirm("¿Eliminar este bloque del horario?")) return;
+    if (!confirm(translate(locale, "horario.confirmEliminarBloque"))) return;
     setDeletingId(id);
     startTransition(async () => {
       try {
@@ -101,14 +97,16 @@ export function HorarioClient({ bloques }: { bloques: Bloque[] }) {
 
   return (
     <div>
-      <div className="mb-4 flex justify-end">
-        <button
-          onClick={() => openCreate(1)}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
-        >
-          <Plus className="h-4 w-4" /> Programar
-        </button>
-      </div>
+      {!readOnly && (
+        <div className="mb-4 flex justify-end">
+          <button
+            onClick={() => openCreate(1)}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
+          >
+            <Plus className="h-4 w-4" /> {translate(locale, "calendario.programar")}
+          </button>
+        </div>
+      )}
 
       <div className="rounded-2xl border border-slate-200 bg-white">
         <div className="grid grid-cols-[52px_repeat(7,1fr)]">
@@ -162,13 +160,15 @@ export function HorarioClient({ bloques }: { bloques: Bloque[] }) {
                   <NowIndicator hourStart={HOUR_START} hourEnd={HOUR_END} rowHeight={ROW_HEIGHT} />
                 )}
 
-                <button
-                  onClick={() => openCreate(dia.value)}
-                  className="absolute right-1 top-1 z-10 rounded p-1 text-slate-300 opacity-0 hover:bg-slate-100 hover:text-[#2F6FED] group-hover:opacity-100"
-                  title="Programar en este día"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
+                {!readOnly && (
+                  <button
+                    onClick={() => openCreate(dia.value)}
+                    className="absolute right-1 top-1 z-10 rounded p-1 text-slate-300 opacity-0 hover:bg-slate-100 hover:text-[#2F6FED] group-hover:opacity-100"
+                    title={translate(locale, "calendario.programarEnEsteDia")}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                )}
 
                 {bloquesDia.map((b) => {
                   const top = minutesFromHourStart(b.horaInicio) / 60 * ROW_HEIGHT;
@@ -179,13 +179,16 @@ export function HorarioClient({ bloques }: { bloques: Bloque[] }) {
                   return (
                     <button
                       key={b.id}
-                      onClick={() => openEdit(b)}
-                      className="group/item absolute left-0.5 right-0.5 overflow-hidden rounded-md border-l-4 px-1.5 py-1 text-left"
+                      onClick={() => !readOnly && openEdit(b)}
+                      disabled={readOnly}
+                      className={`group/item absolute left-0.5 right-0.5 overflow-hidden rounded-md border-l-4 px-1.5 py-1 text-left ${readOnly ? "cursor-default" : ""}`}
                       style={{ top, height, backgroundColor: `${b.color}1A`, borderColor: b.color }}
                     >
                       <div className="flex items-center gap-1 truncate text-[11px] font-semibold" style={{ color: b.color }}>
                         {b.horaInicio} {b.asignatura}
-                        <Pencil className="h-2.5 w-2.5 opacity-0 group-hover/item:opacity-100" />
+                        {!readOnly && (
+                          <Pencil className="h-2.5 w-2.5 opacity-0 group-hover/item:opacity-100" />
+                        )}
                       </div>
                       {b.grupo && <div className="truncate text-[10px] text-slate-500">{b.grupo}</div>}
                     </button>
@@ -202,7 +205,7 @@ export function HorarioClient({ bloques }: { bloques: Bloque[] }) {
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-lg font-bold text-[#0B1D4D]">
-                {editing ? "Editar bloque" : "Programar bloque de horario"}
+                {editing ? translate(locale, "horario.editarBloque") : translate(locale, "horario.programarBloqueHorario")}
               </h2>
               <button
                 onClick={() => setOpen(false)}
@@ -220,7 +223,7 @@ export function HorarioClient({ bloques }: { bloques: Bloque[] }) {
 
             <form action={handleSubmit} className="space-y-4">
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">Día</label>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "horario.dia")}</label>
                 <select
                   name="diaSemana"
                   defaultValue={editing?.diaSemana ?? defaultDia}
@@ -237,7 +240,7 @@ export function HorarioClient({ bloques }: { bloques: Bloque[] }) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                    Hora inicio
+                    {translate(locale, "calendario.horaInicio")}
                   </label>
                   <input
                     name="horaInicio"
@@ -249,7 +252,7 @@ export function HorarioClient({ bloques }: { bloques: Bloque[] }) {
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                    Hora fin
+                    {translate(locale, "calendario.horaFin")}
                   </label>
                   <input
                     name="horaFin"
@@ -263,30 +266,30 @@ export function HorarioClient({ bloques }: { bloques: Bloque[] }) {
 
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                  Asignatura
+                  {translate(locale, "horario.asignatura")}
                 </label>
                 <input
                   name="asignatura"
                   required
                   defaultValue={editing?.asignatura ?? ""}
-                  placeholder="Ej. Matemáticas"
+                  placeholder={translate(locale, "horario.asignaturaPlaceholder")}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
                 />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">Grupo</label>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "horario.grupo")}</label>
                 <input
                   name="grupo"
                   required
                   defaultValue={editing?.grupo ?? ""}
-                  placeholder="Ej. 1º ESO A"
+                  placeholder={translate(locale, "horario.grupoPlaceholder")}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">Color</label>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">{translate(locale, "calendario.color")}</label>
                 <div className="flex flex-wrap gap-2">
                   {COLORES.map((c) => (
                     <label key={c}>
@@ -314,7 +317,7 @@ export function HorarioClient({ bloques }: { bloques: Bloque[] }) {
                     disabled={pending && deletingId === editing.id}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
                   >
-                    <Trash2 className="h-4 w-4" /> Eliminar
+                    <Trash2 className="h-4 w-4" /> {translate(locale, "common.eliminar")}
                   </button>
                 ) : (
                   <span />
@@ -325,14 +328,18 @@ export function HorarioClient({ bloques }: { bloques: Bloque[] }) {
                     onClick={() => setOpen(false)}
                     className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
                   >
-                    Cancelar
+                    {translate(locale, "common.cancelar")}
                   </button>
                   <button
                     type="submit"
                     disabled={pending}
                     className="rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
                   >
-                    {pending ? "Guardando..." : editing ? "Guardar cambios" : "Programar"}
+                    {pending
+                      ? translate(locale, "common.guardando")
+                      : editing
+                      ? translate(locale, "tutorias.guardarCambios")
+                      : translate(locale, "calendario.programar")}
                   </button>
                 </div>
               </div>

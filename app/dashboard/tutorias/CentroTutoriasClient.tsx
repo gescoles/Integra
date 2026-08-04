@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import {
   Search,
   Calendar,
@@ -13,16 +13,22 @@ import {
   RefreshCw,
   MessageCircle,
   GraduationCap,
+  Eye,
+  EyeOff,
+  Trash2,
+  ClipboardCheck,
+  CheckCircle2,
 } from "lucide-react";
 import {
   TUTORIA_STATUS_LABELS,
   TUTORIA_STATUS_COLORS,
 } from "../constants";
 import {
-  RIESGO_LABELS,
   RIESGO_COLORS,
-  CON_QUIEN_LABELS,
 } from "./alumnoConstants";
+import { deleteTutoriaAlumno, cerrarTutoria, deleteAlumno } from "./alumnoActions";
+import { useLocale } from "../SchoolContext";
+import { translate } from "../i18n";
 
 type Contacto = { id: string; relacion: string; telefono: string | null; email: string | null };
 
@@ -49,6 +55,7 @@ type TutoriaRow = {
   profesorName: string;
   conQuien: string | null;
   medio: string | null;
+  causa: string;
   status: string;
   notas: string | null;
   proximoSeguimiento: string | null;
@@ -79,17 +86,61 @@ export function CentroTutoriasClient({
   alumnos,
   profesores,
   stats,
+  isSuperAdmin = false,
 }: {
   tutorias: TutoriaRow[];
   alumnos: AlumnoRow[];
   profesores: Profesor[];
   stats: Stats;
+  isSuperAdmin?: boolean;
 }) {
+  const { locale } = useLocale();
   const [profesorFilter, setProfesorFilter] = useState<string>("");
   const [search, setSearch] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("Todos");
   const [cursoFilter, setCursoFilter] = useState("Todos");
   const [selectedAlumnoId, setSelectedAlumnoId] = useState<string | null>(null);
+  const [viewingTutoria, setViewingTutoria] = useState<TutoriaRow | null>(null);
+  const [cerrandoModo, setCerrandoModo] = useState(false);
+  const [cerrarNotas, setCerrarNotas] = useState("");
+  const [cerrarFecha, setCerrarFecha] = useState("");
+  const [adminError, setAdminError] = useState<string | null>(null);
+  const [adminPending, startAdminTransition] = useTransition();
+
+  function handleAdminDeleteTutoria(id: string) {
+    if (!confirm("¿Eliminar esta tutoría? No se puede deshacer.")) return;
+    startAdminTransition(async () => {
+      try {
+        await deleteTutoriaAlumno(id);
+        setViewingTutoria(null);
+      } catch (e) {
+        setAdminError(e instanceof Error ? e.message : "No se pudo eliminar.");
+      }
+    });
+  }
+
+  function handleAdminCerrar(id: string) {
+    if (!cerrarNotas.trim()) {
+      setAdminError("Escribe un resumen de lo tratado en la sesión.");
+      return;
+    }
+    const fd = new FormData();
+    fd.set("id", id);
+    fd.set("notas", cerrarNotas);
+    if (cerrarFecha) fd.set("proximoSeguimiento", cerrarFecha);
+    startAdminTransition(async () => {
+      try {
+        await cerrarTutoria(fd);
+        setViewingTutoria(null);
+        setCerrandoModo(false);
+        setCerrarNotas("");
+        setCerrarFecha("");
+      } catch (e) {
+        setAdminError(e instanceof Error ? e.message : "No se pudo cerrar la tutoría.");
+      }
+    });
+  }
+  const [blurNames, setBlurNames] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const profesorActual = profesores.find((p) => p.id === profesorFilter) ?? null;
@@ -110,7 +161,7 @@ export function CentroTutoriasClient({
     });
   }, [alumnosDelProfesor, search, cursoFilter]);
 
-  function contarPorTipo(alumnoId: string, tipo: "FAMILIA" | "ALUMNO") {
+  function contarPorTipo(alumnoId: string, tipo: "FAMILIA" | "ALUMNO" | "AMBOS") {
     return tutorias.filter((t) => t.alumnoId === alumnoId && t.conQuien === tipo).length;
   }
 
@@ -136,10 +187,11 @@ export function CentroTutoriasClient({
         .filter((t) => t.alumnoId === selectedAlumno.id)
         .sort((a, b) => new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime())
     : [];
-  const ultimaNota = tutoriasAlumno[0] ?? null;
-  const proximoSeguimientoAlumno = tutoriasAlumno
-    .filter((t) => t.proximoSeguimiento)
-    .sort((a, b) => new Date(a.proximoSeguimiento!).getTime() - new Date(b.proximoSeguimiento!).getTime())[0];
+  const ultimaNota = tutoriasAlumno.find((t) => t.status === "COMPLETADA" && t.notas) ?? null;
+  // La tutoría más reciente (ya viene ordenada por fecha desc) que tenga un
+  // próximo seguimiento indicado — así siempre coincide con lo que se ve al
+  // abrir esa tutoría con el icono del ojo.
+  const proximoSeguimientoAlumno = tutoriasAlumno.find((t) => t.proximoSeguimiento) ?? null;
 
   const madre = selectedAlumno?.contactos.find((c) => c.relacion === "Madre");
   const padre = selectedAlumno?.contactos.find((c) => c.relacion === "Padre");
@@ -161,10 +213,10 @@ export function CentroTutoriasClient({
             <Calendar className="h-5 w-5 text-[#2F6FED]" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-slate-500">Tutorías hoy</div>
+            <div className="text-xs font-semibold text-slate-500">{translate(locale, "tutorias.statHoy")}</div>
             <div className="text-2xl font-bold text-[#0B1D4D]">{stats.tutoriasHoy}</div>
             <div className="text-xs text-slate-400">
-              {stats.tutoriasHoyFamilia} con familia · {stats.tutoriasHoyAlumno} con alumno
+              {stats.tutoriasHoyFamilia} {translate(locale, "tutorias.conFamilia")} · {stats.tutoriasHoyAlumno} {translate(locale, "tutorias.conAlumno")}
             </div>
           </div>
         </div>
@@ -173,9 +225,9 @@ export function CentroTutoriasClient({
             <Clock className="h-5 w-5 text-amber-600" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-slate-500">Pendientes de seguimiento</div>
+            <div className="text-xs font-semibold text-slate-500">{translate(locale, "tutorias.statPendientes")}</div>
             <div className="text-2xl font-bold text-[#0B1D4D]">{stats.pendientesSeguimiento}</div>
-            <div className="text-xs text-slate-400">Requieren acción</div>
+            <div className="text-xs text-slate-400">{translate(locale, "tutorias.requierenAccion")}</div>
           </div>
         </div>
         <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4">
@@ -183,9 +235,9 @@ export function CentroTutoriasClient({
             <AlertTriangle className="h-5 w-5 text-red-500" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-slate-500">Alumnos con alertas</div>
+            <div className="text-xs font-semibold text-slate-500">{translate(locale, "tutorias.statAlertas")}</div>
             <div className="text-2xl font-bold text-[#0B1D4D]">{stats.alumnosConAlertas}</div>
-            <div className="text-xs text-slate-400">Riesgo medio o alto</div>
+            <div className="text-xs text-slate-400">{translate(locale, "tutorias.riesgoMedioAlto")}</div>
           </div>
         </div>
         <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4">
@@ -193,9 +245,9 @@ export function CentroTutoriasClient({
             <Users className="h-5 w-5 text-violet-600" />
           </div>
           <div>
-            <div className="text-xs font-semibold text-slate-500">Profesores activos</div>
+            <div className="text-xs font-semibold text-slate-500">{translate(locale, "tutorias.statProfesoresActivos")}</div>
             <div className="text-2xl font-bold text-[#0B1D4D]">{stats.profesoresActivos}</div>
-            <div className="text-xs text-slate-400">Con tutorías este mes</div>
+            <div className="text-xs text-slate-400">{translate(locale, "tutorias.conTutoriasEsteMes")}</div>
           </div>
         </div>
       </div>
@@ -207,7 +259,7 @@ export function CentroTutoriasClient({
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por alumno, curso o palabra clave..."
+            placeholder={translate(locale, "tutorias.buscarPlaceholder")}
             className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#2F6FED]"
           />
         </div>
@@ -220,7 +272,7 @@ export function CentroTutoriasClient({
           }}
           className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
         >
-          <option value="">Todos los profesores</option>
+          <option value="">{translate(locale, "tutorias.todosProfesores")}</option>
           {profesores.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -233,10 +285,10 @@ export function CentroTutoriasClient({
           onChange={(e) => setEstadoFilter(e.target.value)}
           className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
         >
-          <option value="Todos">Todos los estados</option>
-          {Object.entries(TUTORIA_STATUS_LABELS).map(([value, label]) => (
+          <option value="Todos">{translate(locale, "tutorias.todosEstados")}</option>
+          {Object.keys(TUTORIA_STATUS_LABELS).map((value) => (
             <option key={value} value={value}>
-              {label}
+              {translate(locale, `status.${value}` as never)}
             </option>
           ))}
         </select>
@@ -246,7 +298,7 @@ export function CentroTutoriasClient({
           onChange={(e) => setCursoFilter(e.target.value)}
           className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
         >
-          <option value="Todos">Todos los cursos / ciclos</option>
+          <option value="Todos">{translate(locale, "tutorias.todosCursos")}</option>
           {cursos.map((c) => (
             <option key={c} value={c}>
               {c}
@@ -258,7 +310,20 @@ export function CentroTutoriasClient({
           onClick={clearFilters}
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#2F6FED] hover:underline"
         >
-          <RefreshCw className="h-3.5 w-3.5" /> Limpiar filtros
+          <RefreshCw className="h-3.5 w-3.5" /> {translate(locale, "tutorias.limpiarFiltros")}
+        </button>
+
+        <button
+          onClick={() => setBlurNames((v) => !v)}
+          title="Difuminar nombres (útil al compartir pantalla)"
+          className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold ${
+            blurNames
+              ? "border-[#2F6FED] bg-blue-50 text-[#2F6FED]"
+              : "border-slate-200 text-slate-500 hover:bg-slate-50"
+          }`}
+        >
+          {blurNames ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+          {blurNames ? translate(locale, "tutorias.nombresOcultos") : translate(locale, "tutorias.ocultarNombres")}
         </button>
       </div>
 
@@ -267,15 +332,17 @@ export function CentroTutoriasClient({
         {/* Columna 1: alumnos del profesor */}
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
           <h3 className="mb-3 text-sm font-bold text-[#0B1D4D]">
-            Alumnos {profesorActual ? `de ${profesorActual.name}` : "de todo el centro"} ({alumnosFiltrados.length})
+            {translate(locale, "tutorias.colAlumno")}s {profesorActual ? `de ${profesorActual.name}` : translate(locale, "tutorias.deCentro")} ({alumnosFiltrados.length})
           </h3>
           {alumnosFiltrados.length === 0 ? (
-            <p className="py-8 text-center text-xs text-slate-400">Sin alumnos con estos filtros.</p>
+            <p className="py-8 text-center text-xs text-slate-400">{translate(locale, "tutorias.sinAlumnosFiltros")}</p>
           ) : (
             <div className="max-h-[600px] space-y-1 overflow-y-auto">
               {alumnosFiltrados.map((a) => {
                 const conFamilia = contarPorTipo(a.id, "FAMILIA");
                 const conAlumno = contarPorTipo(a.id, "ALUMNO");
+                const conAmbos = contarPorTipo(a.id, "AMBOS");
+                const total = conFamilia + conAlumno + conAmbos;
                 return (
                   <button
                     key={a.id}
@@ -291,17 +358,19 @@ export function CentroTutoriasClient({
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-semibold text-slate-700">{a.nombre}</div>
+                      <div
+                        className={`truncate text-sm font-semibold text-slate-700 ${blurNames ? "blur-sm select-none" : ""}`}
+                      >
+                        {a.nombre}
+                      </div>
                       <div className="text-xs text-slate-400">{a.curso}</div>
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-0.5">
-                      <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600">
-                        {conFamilia}
-                      </span>
-                      <span className="rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-[#2F6FED]">
-                        {conAlumno}
-                      </span>
-                    </div>
+                    <span
+                      title={translate(locale, "tutorias.totalTutorias")}
+                      className="shrink-0 rounded-full bg-[#0B1D4D] px-1.5 py-0.5 text-[10px] font-bold text-white"
+                    >
+                      {total}
+                    </span>
                   </button>
                 );
               })}
@@ -313,29 +382,30 @@ export function CentroTutoriasClient({
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-bold text-[#0B1D4D]">
-              Tutorías {profesorActual ? `(${profesorActual.name})` : "(todo el centro)"}
+              {translate(locale, "tutorias.title")} {profesorActual ? `(${profesorActual.name})` : translate(locale, "tutorias.deTodoElCentroParent")}
             </h3>
             <span className="text-xs text-slate-400">
-              Mostrando {tutoriasVisibles.length} de {tutoriasFiltradas.length}
+              {translate(locale, "tutorias.mostrando")} {tutoriasVisibles.length} {translate(locale, "tutorias.de")} {tutoriasFiltradas.length}
             </span>
           </div>
 
           {tutoriasFiltradas.length === 0 ? (
             <div className="rounded-xl border border-dashed border-slate-300 py-16 text-center text-sm text-slate-400">
-              No hay tutorías que coincidan con estos filtros.
+              {translate(locale, "tutorias.sinTutoriasFiltros")}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-slate-100 text-slate-400">
-                    <th className="pb-2 pr-3 font-medium">Fecha</th>
-                    <th className="pb-2 pr-3 font-medium">Alumno</th>
-                    <th className="pb-2 pr-3 font-medium">Profesor</th>
-                    <th className="pb-2 pr-3 font-medium">Tipo</th>
-                    <th className="pb-2 pr-3 font-medium">Estado</th>
-                    <th className="pb-2 pr-3 font-medium">Nota breve</th>
-                    <th className="pb-2 font-medium">Seguimiento</th>
+                    <th className="pb-2 pr-3 font-medium">{translate(locale, "tutorias.colFecha")}</th>
+                    <th className="pb-2 pr-3 font-medium">{translate(locale, "tutorias.colAlumno")}</th>
+                    <th className="pb-2 pr-3 font-medium">{translate(locale, "tutorias.colProfesor")}</th>
+                    <th className="pb-2 pr-3 font-medium">{translate(locale, "tutorias.colTipo")}</th>
+                    <th className="pb-2 pr-3 font-medium">{translate(locale, "tutorias.colEstado")}</th>
+                    <th className="pb-2 pr-3 font-medium">{translate(locale, "tutorias.colCausa")}</th>
+                    <th className="pb-2 pr-3 font-medium">{translate(locale, "tutorias.colSeguimiento")}</th>
+                    <th className="pb-2 font-medium">{translate(locale, "tutorias.colVer")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -350,32 +420,51 @@ export function CentroTutoriasClient({
                         <div className="text-[11px] text-slate-400">{fmtHora(t.sessionDate)}</div>
                       </td>
                       <td className="py-3 pr-3">
-                        <div className="font-semibold text-slate-700">{t.studentName}</div>
+                        <div className={`font-semibold text-slate-700 ${blurNames ? "blur-sm select-none" : ""}`}>
+                          {t.studentName}
+                        </div>
                         <div className="text-[11px] text-slate-400">{t.cicloModulo}</div>
                       </td>
-                      <td className="py-3 pr-3 text-slate-500">{t.profesorName}</td>
+                      <td className={`py-3 pr-3 text-slate-500 ${blurNames ? "blur-sm select-none" : ""}`}>
+                        {t.profesorName}
+                      </td>
                       <td className="py-3 pr-3">
                         <span className="inline-flex items-center gap-1 text-slate-500">
-                          {t.conQuien === "FAMILIA" ? (
-                            <Users className="h-3 w-3" />
-                          ) : (
-                            <GraduationCap className="h-3 w-3" />
+                          {t.conQuien === "FAMILIA" && <Users className="h-3 w-3" />}
+                          {t.conQuien === "ALUMNO" && <GraduationCap className="h-3 w-3" />}
+                          {t.conQuien === "AMBOS" && (
+                            <span className="flex items-center gap-0.5">
+                              <Users className="h-3 w-3" />
+                              <GraduationCap className="h-3 w-3" />
+                            </span>
                           )}
-                          {t.conQuien ? CON_QUIEN_LABELS[t.conQuien] : "—"}
+                          {t.conQuien ? translate(locale, `conQuien.${t.conQuien}` as never) : "—"}
                         </span>
                       </td>
                       <td className="py-3 pr-3">
                         <span
                           className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${TUTORIA_STATUS_COLORS[t.status]}`}
                         >
-                          {TUTORIA_STATUS_LABELS[t.status]}
+                          {translate(locale, `status.${t.status}` as never)}
                         </span>
                       </td>
                       <td className="max-w-[220px] py-3 pr-3 text-slate-500">
-                        <span className="line-clamp-2">{t.notas ?? "—"}</span>
+                        <span className="line-clamp-2">{t.causa || "—"}</span>
                       </td>
-                      <td className="py-3 text-slate-500">
+                      <td className="py-3 pr-3 text-slate-500">
                         {t.proximoSeguimiento ? fmtFecha(t.proximoSeguimiento) : "—"}
+                      </td>
+                      <td className="py-3">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setViewingTutoria(t);
+                          }}
+                          title={translate(locale, "tutorias.verResumenCompleto")}
+                          className="rounded-md p-1.5 text-slate-400 hover:bg-blue-50 hover:text-[#2F6FED]"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -400,18 +489,45 @@ export function CentroTutoriasClient({
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
           {!selectedAlumno ? (
             <div className="flex h-full min-h-[300px] items-center justify-center text-center text-xs text-slate-400">
-              Selecciona un alumno de la lista o de la tabla para ver su ficha.
+              {translate(locale, "tutorias.seleccionaFicha")}
             </div>
           ) : (
             <>
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-sm font-bold text-[#0B1D4D]">Detalle del alumno</h3>
-                <button
-                  onClick={() => setSelectedAlumnoId(null)}
-                  className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                <div className="flex items-center gap-1.5">
+                  {isSuperAdmin && (
+                    <button
+                      onClick={() => {
+                        if (
+                          !confirm(
+                            `¿Eliminar a ${selectedAlumno.nombre}? Se borrarán también todas sus tutorías. Esta acción no se puede deshacer.`
+                          )
+                        )
+                          return;
+                        startAdminTransition(async () => {
+                          try {
+                            await deleteAlumno(selectedAlumno.id);
+                            setSelectedAlumnoId(null);
+                          } catch (e) {
+                            setAdminError(e instanceof Error ? e.message : "No se pudo eliminar.");
+                          }
+                        });
+                      }}
+                      disabled={adminPending}
+                      title={translate(locale, "tutorias.eliminarAlumno")}
+                      className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setSelectedAlumnoId(null)}
+                    className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center gap-3">
@@ -426,7 +542,11 @@ export function CentroTutoriasClient({
                   )}
                 </div>
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-bold text-[#0B1D4D]">{selectedAlumno.nombre}</div>
+                  <div
+                    className={`truncate text-sm font-bold text-[#0B1D4D] ${blurNames ? "blur-sm select-none" : ""}`}
+                  >
+                    {selectedAlumno.nombre}
+                  </div>
                   <div className="text-xs text-slate-400">
                     {selectedAlumno.curso}
                     {selectedAlumno.edad ? ` · ${selectedAlumno.edad} años` : ""}
@@ -437,7 +557,7 @@ export function CentroTutoriasClient({
               <span
                 className={`mt-2 inline-block rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${RIESGO_COLORS[selectedAlumno.riesgo]}`}
               >
-                {RIESGO_LABELS[selectedAlumno.riesgo]}
+                {translate(locale, `riesgo.${selectedAlumno.riesgo}` as never)}
               </span>
 
               <div className="mt-3 space-y-0.5 text-xs text-slate-500">
@@ -456,9 +576,9 @@ export function CentroTutoriasClient({
                     <div className="mb-1 flex items-center gap-1.5 text-[11px] text-slate-400">
                       <MessageCircle className="h-3 w-3" />
                       {fmtFecha(ultimaNota.sessionDate)} ·{" "}
-                      {ultimaNota.conQuien ? CON_QUIEN_LABELS[ultimaNota.conQuien] : "—"}
+                      {ultimaNota.conQuien ? translate(locale, `conQuien.${ultimaNota.conQuien}` as never) : "—"}
                     </div>
-                    <p className="line-clamp-4">{ultimaNota.notas}</p>
+                    <p className="whitespace-pre-wrap">{ultimaNota.notas}</p>
                   </div>
                   <button
                     onClick={() => setSearch(selectedAlumno.nombre)}
@@ -496,39 +616,202 @@ export function CentroTutoriasClient({
 
               <div className="mt-4">
                 <h4 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Resumen de tutorías
+                  {translate(locale, "tutorias.resumenTutorias")}
                 </h4>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-lg bg-slate-50 p-2.5 text-center">
-                    <div className="text-lg font-bold text-[#0B1D4D]">{tutoriasAlumno.length}</div>
-                    <div className="text-[10px] text-slate-400">Total</div>
-                  </div>
-                  <div className="rounded-lg bg-slate-50 p-2.5 text-center">
-                    <div className="text-lg font-bold text-[#0B1D4D]">
+                <div className="rounded-lg bg-blue-50 p-2.5 text-center">
+                  <div className="text-xl font-bold text-[#0B1D4D]">{tutoriasAlumno.length}</div>
+                  <div className="text-[10px] font-medium text-slate-500">{translate(locale, "tutorias.totalTutorias")}</div>
+                </div>
+
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  <div className="rounded-lg bg-slate-50 p-2 text-center">
+                    <div className="text-base font-bold text-[#0B1D4D]">
                       {contarPorTipo(selectedAlumno.id, "FAMILIA")}
                     </div>
-                    <div className="text-[10px] text-slate-400">Con familia</div>
+                    <div className="text-[9px] leading-tight text-slate-400">{translate(locale, "tutorias.conFamiliaLabel")}</div>
                   </div>
-                  <div className="rounded-lg bg-slate-50 p-2.5 text-center">
-                    <div className="text-lg font-bold text-[#0B1D4D]">
+                  <div className="rounded-lg bg-slate-50 p-2 text-center">
+                    <div className="text-base font-bold text-[#0B1D4D]">
                       {contarPorTipo(selectedAlumno.id, "ALUMNO")}
                     </div>
-                    <div className="text-[10px] text-slate-400">Con alumno</div>
+                    <div className="text-[9px] leading-tight text-slate-400">{translate(locale, "tutorias.conAlumnoLabel")}</div>
                   </div>
-                  <div className="rounded-lg bg-slate-50 p-2.5 text-center">
-                    <div className="text-[13px] font-bold text-[#0B1D4D]">
-                      {proximoSeguimientoAlumno?.proximoSeguimiento
-                        ? fmtFecha(proximoSeguimientoAlumno.proximoSeguimiento)
-                        : "—"}
+                  <div className="rounded-lg bg-slate-50 p-2 text-center">
+                    <div className="text-base font-bold text-[#0B1D4D]">
+                      {contarPorTipo(selectedAlumno.id, "AMBOS")}
                     </div>
-                    <div className="text-[10px] text-slate-400">Próx. seguimiento</div>
+                    <div className="text-[9px] leading-tight text-slate-400">{translate(locale, "conQuien.AMBOS")}</div>
                   </div>
+                </div>
+
+                <div className="mt-2 rounded-lg bg-slate-50 p-2.5 text-center">
+                  <div className="text-[13px] font-bold text-[#0B1D4D]">
+                    {proximoSeguimientoAlumno?.proximoSeguimiento
+                      ? fmtFecha(proximoSeguimientoAlumno.proximoSeguimiento)
+                      : "—"}
+                  </div>
+                  <div className="text-[10px] text-slate-400">{translate(locale, "tutorias.proximoSeguimiento")}</div>
                 </div>
               </div>
             </>
           )}
         </div>
       </div>
+
+      {/* Modal: ver el resumen completo de una tutoría (solo lectura) */}
+      {viewingTutoria && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-1 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-[#0B1D4D]">
+                {translate(locale, "tutorias.tutoriaDe")} {viewingTutoria.studentName}
+              </h2>
+              <button
+                onClick={() => setViewingTutoria(null)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <span
+              className={`mb-4 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${TUTORIA_STATUS_COLORS[viewingTutoria.status]}`}
+            >
+              {translate(locale, `status.${viewingTutoria.status}` as never)}
+            </span>
+
+            <div className="space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs font-semibold text-slate-400">{translate(locale, "tutorias.colFecha")}</div>
+                  <div className="text-slate-700">
+                    {fmtFecha(viewingTutoria.sessionDate)} · {fmtHora(viewingTutoria.sessionDate)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-slate-400">{translate(locale, "tutorias.colProfesor")}</div>
+                  <div className="text-slate-700">{viewingTutoria.profesorName}</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs font-semibold text-slate-400">{translate(locale, "tutorias.conQuienLabel")}</div>
+                  <div className="text-slate-700">
+                    {viewingTutoria.conQuien ? translate(locale, `conQuien.${viewingTutoria.conQuien}` as never) : "—"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-slate-400">{translate(locale, "tutorias.proximoSeguimiento")}</div>
+                  <div className="text-slate-700">
+                    {viewingTutoria.proximoSeguimiento ? fmtFecha(viewingTutoria.proximoSeguimiento) : "—"}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div className="text-xs font-semibold text-slate-400">{translate(locale, "tutorias.colCausa")}</div>
+                <div className="text-slate-700">{viewingTutoria.causa || "—"}</div>
+              </div>
+
+              <div>
+                <div className="text-xs font-semibold text-slate-400">{translate(locale, "tutorias.resumenTutoriaLabel")}</div>
+                <p className="mt-1 whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-slate-700">
+                  {viewingTutoria.notas || translate(locale, "tutorias.tutoriaNoCerrada")}
+                </p>
+              </div>
+            </div>
+
+            {isSuperAdmin && (
+              <div className="mt-4 border-t border-slate-100 pt-4">
+                {adminError && (
+                  <div className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
+                    {adminError}
+                  </div>
+                )}
+
+                {cerrandoModo ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-slate-600">
+                        {translate(locale, "tutorias.resumenTutoriaLabel")}
+                      </label>
+                      <textarea
+                        value={cerrarNotas}
+                        onChange={(e) => setCerrarNotas(e.target.value)}
+                        rows={3}
+                        maxLength={1000}
+                        placeholder={translate(locale, "tutorias.resumenPlaceholder")}
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold text-slate-600">
+                        {translate(locale, "tutorias.proximoSeguimientoOpcional")}
+                      </label>
+                      <input
+                        type="date"
+                        value={cerrarFecha}
+                        min={new Date().toISOString().slice(0, 10)}
+                        onChange={(e) => setCerrarFecha(e.target.value)}
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => setCerrandoModo(false)}
+                        className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                      >
+                        {translate(locale, "common.cancelar")}
+                      </button>
+                      <button
+                        onClick={() => handleAdminCerrar(viewingTutoria.id)}
+                        disabled={adminPending}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        {adminPending ? translate(locale, "common.guardando") : translate(locale, "tutorias.guardarYCompletar")}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex justify-between">
+                    {viewingTutoria.status === "PENDIENTE" ? (
+                      <button
+                        onClick={() => setCerrandoModo(true)}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+                      >
+                        <ClipboardCheck className="h-3.5 w-3.5" /> {translate(locale, "tutorias.cerrarTutoria")}
+                      </button>
+                    ) : (
+                      <span className="text-xs text-slate-400">{translate(locale, "tutorias.tutoriaYaCompletada")}</span>
+                    )}
+                    <button
+                      onClick={() => handleAdminDeleteTutoria(viewingTutoria.id)}
+                      disabled={adminPending}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> {translate(locale, "tutorias.eliminarTutoria")}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="mt-5 flex justify-end">
+              <button
+                onClick={() => {
+                  setViewingTutoria(null);
+                  setCerrandoModo(false);
+                  setAdminError(null);
+                }}
+                className="rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
+              >
+                {translate(locale, "common.cerrar")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,15 +1,11 @@
 export const TUTORIA_STATUS_LABELS: Record<string, string> = {
-  NUEVA: "Nueva tutoría",
-  SEGUIMIENTO: "En seguimiento",
-  COMPLETADA: "Completada",
   PENDIENTE: "Pendiente",
+  COMPLETADA: "Completada",
 };
 
 export const TUTORIA_STATUS_COLORS: Record<string, string> = {
-  NUEVA: "bg-violet-50 text-violet-600",
-  SEGUIMIENTO: "bg-blue-50 text-[#2F6FED]",
+  PENDIENTE: "bg-amber-50 text-amber-600",
   COMPLETADA: "bg-emerald-50 text-emerald-600",
-  PENDIENTE: "bg-red-50 text-red-500",
 };
 
 export const GUARDIA_STATUS_LABELS: Record<string, string> = {

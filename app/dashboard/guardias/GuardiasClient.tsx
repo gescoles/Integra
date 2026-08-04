@@ -4,6 +4,8 @@ import { useMemo, useState, useTransition } from "react";
 import { Search } from "lucide-react";
 import { updateGuardiaStatus } from "./actions";
 import { GUARDIA_STATUS_LABELS, GUARDIA_STATUS_COLORS } from "../constants";
+import { useLocale } from "../SchoolContext";
+import { translate } from "../i18n";
 
 type Row = {
   id: string;
@@ -24,6 +26,7 @@ export function GuardiasClient({
   rows: Row[];
   profesores: ProfesorOption[];
 }) {
+  const { locale } = useLocale();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
   const [profesorFilter, setProfesorFilter] = useState("Todos");
@@ -58,7 +61,7 @@ export function GuardiasClient({
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por turno o ubicación..."
+            placeholder={translate(locale, "guardias.buscarPlaceholder")}
             className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#2F6FED]"
           />
         </div>
@@ -67,10 +70,10 @@ export function GuardiasClient({
           onChange={(e) => setStatusFilter(e.target.value)}
           className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
         >
-          <option value="Todos">Todos los estados</option>
-          {Object.entries(GUARDIA_STATUS_LABELS).map(([value, label]) => (
+          <option value="Todos">{translate(locale, "guardias.todosEstados")}</option>
+          {Object.keys(GUARDIA_STATUS_LABELS).map((value) => (
             <option key={value} value={value}>
-              {label}
+              {translate(locale, `status.${value}` as never)}
             </option>
           ))}
         </select>
@@ -79,7 +82,7 @@ export function GuardiasClient({
           onChange={(e) => setProfesorFilter(e.target.value)}
           className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
         >
-          <option value="Todos">Todos los profesores</option>
+          <option value="Todos">{translate(locale, "guardias.todosProfesores")}</option>
           {profesores.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -90,18 +93,18 @@ export function GuardiasClient({
 
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 py-16 text-center text-sm text-slate-400">
-          No hay guardias que coincidan con estos filtros.
+          {translate(locale, "guardias.sinResultados")}
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-xs">
             <thead>
               <tr className="border-b border-slate-100 text-slate-400">
-                <th className="pb-2 pr-3 font-medium">Turno</th>
-                <th className="pb-2 pr-3 font-medium">Profesor</th>
-                <th className="pb-2 pr-3 font-medium">Ubicación</th>
-                <th className="pb-2 pr-3 font-medium">Fecha</th>
-                <th className="pb-2 font-medium">Estado</th>
+                <th className="pb-2 pr-3 font-medium">{translate(locale, "guardias.colTurno")}</th>
+                <th className="pb-2 pr-3 font-medium">{translate(locale, "guardias.colProfesor")}</th>
+                <th className="pb-2 pr-3 font-medium">{translate(locale, "guardias.colUbicacion")}</th>
+                <th className="pb-2 pr-3 font-medium">{translate(locale, "guardias.colFecha")}</th>
+                <th className="pb-2 font-medium">{translate(locale, "guardias.colEstado")}</th>
               </tr>
             </thead>
             <tbody>
@@ -120,9 +123,9 @@ export function GuardiasClient({
                       onChange={(e) => handleStatusChange(r.id, e.target.value)}
                       className={`rounded-full border-0 px-2.5 py-1 text-[11px] font-semibold outline-none ${GUARDIA_STATUS_COLORS[r.status]}`}
                     >
-                      {Object.entries(GUARDIA_STATUS_LABELS).map(([value, label]) => (
+                      {Object.keys(GUARDIA_STATUS_LABELS).map((value) => (
                         <option key={value} value={value}>
-                          {label}
+                          {translate(locale, `status.${value}` as never)}
                         </option>
                       ))}
                     </select>

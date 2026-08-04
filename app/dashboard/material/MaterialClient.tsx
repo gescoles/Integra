@@ -5,6 +5,8 @@ import { Search, Trash2, ExternalLink } from "lucide-react";
 import { deleteMaterial } from "./actions";
 import { MaterialFormModal } from "./MaterialFormModal";
 import { MATERIAL_CATEGORIA_LABELS, MATERIAL_CATEGORIA_COLORS } from "../constants";
+import { useLocale } from "../SchoolContext";
+import { translate } from "../i18n";
 
 type MaterialRow = {
   id: string;
@@ -26,11 +28,14 @@ const eur = (n: number) => n.toLocaleString("es-ES", { style: "currency", curren
 export function MaterialClient({
   rows,
   currentUserId,
+  isSuperAdmin = false,
 }: {
   rows: MaterialRow[];
   currentUserId: string;
+  isSuperAdmin?: boolean;
 }) {
   const [search, setSearch] = useState("");
+  const { locale } = useLocale();
   const [cursoFilter, setCursoFilter] = useState("Todos");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +73,7 @@ export function MaterialClient({
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar material..."
+            placeholder={translate(locale, "material.buscarPlaceholder")}
             className="w-full rounded-lg border border-slate-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#2F6FED]"
           />
         </div>
@@ -77,7 +82,7 @@ export function MaterialClient({
           onChange={(e) => setCursoFilter(e.target.value)}
           className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
         >
-          <option value="Todos">Todos los cursos</option>
+          <option value="Todos">{translate(locale, "material.todosCursos")}</option>
           {cursos.map((c) => (
             <option key={c} value={c}>
               {c}
@@ -92,26 +97,26 @@ export function MaterialClient({
 
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 py-16 text-center text-sm text-slate-400">
-          {rows.length === 0 ? "Todavía no se ha pedido ningún material." : "Sin resultados con estos filtros."}
+          {rows.length === 0 ? translate(locale, "material.sinPeticiones") : translate(locale, "material.sinResultados")}
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-slate-100 text-slate-400">
-                <th className="pb-3 pr-4 font-medium">Material</th>
-                <th className="pb-3 pr-4 font-medium">Categoría</th>
-                <th className="pb-3 pr-4 font-medium">Cantidad</th>
-                <th className="pb-3 pr-4 font-medium">Precio</th>
-                <th className="pb-3 pr-4 font-medium">Proveedor / Enlace</th>
-                <th className="pb-3 pr-4 font-medium">Solicitado por</th>
-                <th className="pb-3 font-medium">Acciones</th>
+                <th className="pb-3 pr-4 font-medium">{translate(locale, "material.colMaterial")}</th>
+                <th className="pb-3 pr-4 font-medium">{translate(locale, "material.colCategoria")}</th>
+                <th className="pb-3 pr-4 font-medium">{translate(locale, "material.colCantidad")}</th>
+                <th className="pb-3 pr-4 font-medium">{translate(locale, "material.colPrecio")}</th>
+                <th className="pb-3 pr-4 font-medium">{translate(locale, "material.colProveedor")}</th>
+                <th className="pb-3 pr-4 font-medium">{translate(locale, "material.colSolicitadoPor")}</th>
+                <th className="pb-3 font-medium">{translate(locale, "material.colAcciones")}</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((r) => {
                 const total = r.precioUnidad * r.cantidad;
-                const isOwner = r.profesorId === currentUserId;
+                const isOwner = isSuperAdmin || r.profesorId === currentUserId;
                 return (
                   <tr key={r.id} className="border-b border-slate-50 last:border-0">
                     <td className="py-4 pr-4">
@@ -124,7 +129,7 @@ export function MaterialClient({
                       <span
                         className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${MATERIAL_CATEGORIA_COLORS[r.categoria]}`}
                       >
-                        {MATERIAL_CATEGORIA_LABELS[r.categoria]}
+                        {translate(locale, `categoria.${r.categoria}` as never)}
                       </span>
                     </td>
                     <td className="py-4 pr-4 text-slate-600">{r.cantidad}</td>

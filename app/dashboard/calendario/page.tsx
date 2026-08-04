@@ -2,8 +2,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "../components/DashboardHeader";
+import { translate } from "../i18n";
 import { CalendarioClient } from "./CalendarioClient";
 import { getWeekStart, addDays, isoDate, formatWeekRange } from "./weekUtils";
+import { SchoolPicker } from "../components/SchoolPicker";
+import Link from "next/link";
+import { Landmark, UserRound } from "lucide-react";
 
 const HOUR_START = 8;
 const HOUR_END = 18;
@@ -20,10 +24,62 @@ function minutesFromDate(date: Date) {
 export default async function CalendarioPage({
   searchParams,
 }: {
-  searchParams: { offset?: string };
+  searchParams: { offset?: string; school?: string; user?: string };
 }) {
   const session = await getServerSession(authOptions);
+  const locale = session?.user.locale ?? "ES";
   if (!session?.user.id) return null;
+
+  const isSuperAdmin = session.user.role === "SUPERADMIN";
+
+  // SuperAdmin: elige centro y usuario para ver su calendario (solo lectura)
+  if (isSuperAdmin) {
+    const schools = await prisma.school.findMany({
+      select: { id: true, name: true, logoUrl: true },
+      orderBy: { name: "asc" },
+    });
+
+    if (!searchParams.school) {
+      return (
+        <div>
+          <DashboardHeader title={translate(locale, "calendario.title")} subtitle={translate(locale, "calendario.subtitle")} userName={session.user.name ?? ""} role="SUPERADMIN" />
+          <SchoolPicker schools={schools} locale={locale} basePath="/dashboard/calendario" />
+        </div>
+      );
+    }
+
+    if (!searchParams.user) {
+      const usuarios = await prisma.user.findMany({
+        where: { schoolId: searchParams.school, role: { in: ["PROFESOR", "COORDINADOR", "ADMIN_CENTRO"] } },
+        select: { id: true, name: true, email: true },
+        orderBy: { name: "asc" },
+      });
+      return (
+        <div>
+          <DashboardHeader title={translate(locale, "calendario.title")} subtitle={translate(locale, "calendario.subtitle")} userName={session.user.name ?? ""} role="SUPERADMIN" />
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
+            <UserRound className="mx-auto mb-3 h-8 w-8 text-slate-300" />
+            <h3 className="mb-1 text-sm font-bold text-[#0B1D4D]">Elige un usuario</h3>
+            <p className="mb-5 text-xs text-slate-400">Verás su calendario en modo lectura.</p>
+            <div className="mx-auto flex max-w-2xl flex-wrap justify-center gap-2">
+              {usuarios.map((u) => (
+                <Link
+                  key={u.id}
+                  href={`/dashboard/calendario?school=${searchParams.school}&user=${u.id}`}
+                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:border-[#2F6FED] hover:text-[#2F6FED]"
+                >
+                  {u.name ?? u.email}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+  }
+
+  const targetUserId = isSuperAdmin ? searchParams.user! : session.user.id;
+  const targetSchoolId = isSuperAdmin ? searchParams.school : session.user.schoolId;
 
   const offset = Number(searchParams.offset ?? 0) || 0;
   const monday = getWeekStart(offset);
@@ -31,26 +87,26 @@ export default async function CalendarioPage({
   const sundayEnd = new Date(sunday);
   sundayEnd.setHours(23, 59, 59, 999);
 
-  const school = session.user.schoolId
-    ? await prisma.school.findUnique({ where: { id: session.user.schoolId }, select: { modules: true } })
+  const school = targetSchoolId
+    ? await prisma.school.findUnique({ where: { id: targetSchoolId }, select: { modules: true, name: true } })
     : null;
   const modules = school?.modules ?? [];
   const hasTutorias = modules.includes("tutorias");
   const hasGuardias = modules.includes("guardias");
 
   const [horarioBloques, eventos, tutorias, guardias] = await Promise.all([
-    prisma.horarioBloque.findMany({ where: { profesorId: session.user.id } }),
+    prisma.horarioBloque.findMany({ where: { profesorId: targetUserId } }),
     prisma.calendarEvento.findMany({
-      where: { userId: session.user.id, fecha: { gte: monday, lte: sundayEnd } },
+      where: { userId: targetUserId, fecha: { gte: monday, lte: sundayEnd } },
     }),
     hasTutorias
       ? prisma.tutoria.findMany({
-          where: { profesorId: session.user.id, sessionDate: { gte: monday, lte: sundayEnd } },
+          where: { profesorId: targetUserId, sessionDate: { gte: monday, lte: sundayEnd } },
         })
       : Promise.resolve([]),
     hasGuardias
       ? prisma.guardia.findMany({
-          where: { profesorId: session.user.id, fecha: { gte: monday, lte: sundayEnd } },
+          where: { profesorId: targetUserId, fecha: { gte: monday, lte: sundayEnd } },
         })
       : Promise.resolve([]),
   ]);
@@ -87,7 +143,7 @@ export default async function CalendarioPage({
           duration: 45,
           color: "#F59E0B",
           tipo: "tutoria" as const,
-          editable: true,
+          editable: !isSuperAdmin,
           realId: t.id,
         })),
       // Guardias reales del día
@@ -115,7 +171,7 @@ export default async function CalendarioPage({
           duration: minutesFromHourStart(e.horaFin) - minutesFromHourStart(e.horaInicio),
           color: e.color,
           tipo: "evento" as const,
-          editable: true,
+          editable: !isSuperAdmin,
           realId: e.id,
         })),
     ];
@@ -131,16 +187,33 @@ export default async function CalendarioPage({
   return (
     <div>
       <DashboardHeader
-        title="Calendario"
-        subtitle="Tu horario semanal, tutorías y guardias se reflejan aquí. Añade tus propios eventos cuando quieras."
+        title={translate(locale, "calendario.title")}
+        subtitle={
+          isSuperAdmin
+            ? `${translate(locale, "calendario.viendoCalendarioUsuario")} (${school?.name ?? ""}) ${translate(locale, "soloLectura")}`
+            : translate(locale, "calendario.tuHorarioReflejado")
+        }
         notificationCount={0}
       />
+      {isSuperAdmin && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50/50 p-3">
+          <Landmark className="h-4 w-4 text-[#2F6FED]" />
+          <span className="text-xs font-semibold text-slate-500">{translate(locale, "modoSupervision")}</span>
+          <Link
+            href="/dashboard/calendario"
+            className="ml-auto text-xs font-semibold text-[#2F6FED] hover:underline"
+          >
+            {translate(locale, "cambiarCentroUsuario")}
+          </Link>
+        </div>
+      )}
       <CalendarioClient
         dias={dias}
         weekRangeLabel={formatWeekRange(monday)}
         offset={offset}
         hourStart={HOUR_START}
         hourEnd={HOUR_END}
+        readOnly={isSuperAdmin}
       />
     </div>
   );

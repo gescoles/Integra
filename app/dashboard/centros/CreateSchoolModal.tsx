@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { X, Plus } from "lucide-react";
 import { createSchool } from "./actions";
 import { MODULES, PLAN_LABELS, TYPE_LABELS } from "./constants";
+import { ButtonSpinner } from "../components/ButtonSpinner";
 
 export function CreateSchoolModal() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,6 +21,7 @@ export function CreateSchoolModal() {
       await createSchool(formData);
       setOpen(false);
       formRef.current?.reset();
+      router.refresh();
     } catch (e) {
       setError(
         e instanceof Error
@@ -159,8 +163,9 @@ export function CreateSchoolModal() {
                 <button
                   type="submit"
                   disabled={pending}
-                  className="rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
                 >
+                  {pending && <ButtonSpinner />}
                   {pending ? "Creando..." : "Crear centro"}
                 </button>
               </div>
