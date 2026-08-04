@@ -195,7 +195,7 @@ export default async function TutoriasPage({
       <div>
         <DashboardHeader title={translate(locale, "tutorias.title")} subtitle={translate(locale, "tutorias.subtitle.superadmin")} userName={userName} role={role} />
         <SchoolSwitcher schools={schools} currentSchoolId={searchParams.school} locale={locale} basePath="/dashboard/tutorias" />
-        <CentroTutoriasClient tutorias={tutorias} alumnos={alumnos} profesores={profesores} stats={stats} isSuperAdmin />
+        <CentroTutoriasClient tutorias={tutorias} alumnos={alumnos} profesores={profesores} stats={stats} schoolId={searchParams.school} isSuperAdmin />
       </div>
     );
   }
@@ -268,7 +268,7 @@ export default async function TutoriasPage({
     } else {
       const { tutorias, alumnos, profesores, stats } = await getCentroData(schoolId);
       content = (
-        <CentroTutoriasClient tutorias={tutorias} alumnos={alumnos} profesores={profesores} stats={stats} />
+        <CentroTutoriasClient tutorias={tutorias} alumnos={alumnos} profesores={profesores} stats={stats} schoolId={schoolId} />
       );
     }
 

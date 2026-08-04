@@ -14,10 +14,11 @@ import {
   MessageCircle,
   GraduationCap,
   Eye,
-  EyeOff,
   Trash2,
   ClipboardCheck,
+  ClipboardList,
   CheckCircle2,
+  FileSpreadsheet,
 } from "lucide-react";
 import {
   TUTORIA_STATUS_LABELS,
@@ -86,12 +87,14 @@ export function CentroTutoriasClient({
   alumnos,
   profesores,
   stats,
+  schoolId,
   isSuperAdmin = false,
 }: {
   tutorias: TutoriaRow[];
   alumnos: AlumnoRow[];
   profesores: Profesor[];
   stats: Stats;
+  schoolId: string;
   isSuperAdmin?: boolean;
 }) {
   const { locale } = useLocale();
@@ -140,8 +143,8 @@ export function CentroTutoriasClient({
       }
     });
   }
-  const [blurNames, setBlurNames] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [vistaResumen, setVistaResumen] = useState(false);
 
   const profesorActual = profesores.find((p) => p.id === profesorFilter) ?? null;
 
@@ -164,6 +167,39 @@ export function CentroTutoriasClient({
   function contarPorTipo(alumnoId: string, tipo: "FAMILIA" | "ALUMNO" | "AMBOS") {
     return tutorias.filter((t) => t.alumnoId === alumnoId && t.conQuien === tipo).length;
   }
+
+  // Resumen por alumno (solo Coordinación/Dirección/SuperAdmin, cuando hay un
+  // profesor seleccionado): un alumno por fila, con sus totales de tutorías.
+  const resumenAlumnos = useMemo(() => {
+    if (!profesorActual) return [];
+    return alumnosDelProfesor
+      .map((a) => {
+        const tutoriasAlumnoResumen = tutorias.filter((t) => t.alumnoId === a.id);
+        const conFamilia = tutoriasAlumnoResumen.filter((t) => t.conQuien === "FAMILIA").length;
+        const conAlumno = tutoriasAlumnoResumen.filter((t) => t.conQuien === "ALUMNO").length;
+        const conAmbos = tutoriasAlumnoResumen.filter((t) => t.conQuien === "AMBOS").length;
+        const ultima = tutoriasAlumnoResumen.sort(
+          (x, y) => new Date(y.sessionDate).getTime() - new Date(x.sessionDate).getTime()
+        )[0];
+        return {
+          alumno: a,
+          conFamilia,
+          conAlumno,
+          conAmbos,
+          total: tutoriasAlumnoResumen.length,
+          ultima: ultima ? ultima.sessionDate : null,
+        };
+      })
+      .sort((a, b) => a.alumno.nombre.localeCompare(b.alumno.nombre));
+  }, [alumnosDelProfesor, tutorias, profesorActual]);
+
+  const resumenStats = useMemo(() => {
+    const conFamilia = resumenAlumnos.reduce((sum, r) => sum + r.conFamilia, 0);
+    const conAlumno = resumenAlumnos.reduce((sum, r) => sum + r.conAlumno, 0);
+    const conAmbos = resumenAlumnos.reduce((sum, r) => sum + r.conAmbos, 0);
+    const total = resumenAlumnos.reduce((sum, r) => sum + r.total, 0);
+    return { alumnosAsignados: resumenAlumnos.length, conFamilia, conAlumno, conAmbos, total };
+  }, [resumenAlumnos]);
 
   const tutoriasFiltradas = useMemo(() => {
     const q = search.toLowerCase();
@@ -202,6 +238,7 @@ export function CentroTutoriasClient({
     setEstadoFilter("Todos");
     setCursoFilter("Todos");
     setVisibleCount(PAGE_SIZE);
+    setVistaResumen(false);
   }
 
   return (
@@ -313,21 +350,30 @@ export function CentroTutoriasClient({
           <RefreshCw className="h-3.5 w-3.5" /> {translate(locale, "tutorias.limpiarFiltros")}
         </button>
 
-        <button
-          onClick={() => setBlurNames((v) => !v)}
-          title="Difuminar nombres (útil al compartir pantalla)"
-          className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold ${
-            blurNames
-              ? "border-[#2F6FED] bg-blue-50 text-[#2F6FED]"
-              : "border-slate-200 text-slate-500 hover:bg-slate-50"
-          }`}
+        <a
+          href={`/api/tutorias/export?school=${schoolId}`}
+          className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
         >
-          {blurNames ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-          {blurNames ? translate(locale, "tutorias.nombresOcultos") : translate(locale, "tutorias.ocultarNombres")}
-        </button>
+          <FileSpreadsheet className="h-4 w-4" /> {translate(locale, "tutorias.descargarExcel")}
+        </a>
+
+        {profesorActual && (
+          <button
+            onClick={() => setVistaResumen((v) => !v)}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold ${
+              vistaResumen
+                ? "border-[#2F6FED] bg-blue-50 text-[#2F6FED]"
+                : "border-slate-200 text-slate-500 hover:bg-slate-50"
+            }`}
+          >
+            <ClipboardList className="h-3.5 w-3.5" />
+            {vistaResumen ? translate(locale, "tutorias.verDetalle") : translate(locale, "tutorias.verResumenPorAlumno")}
+          </button>
+        )}
       </div>
 
       {/* 3 columnas: alumnos | tutorías | detalle */}
+      {!(vistaResumen && profesorActual) && (
       <div className="grid gap-4 lg:grid-cols-[240px_1fr_280px]">
         {/* Columna 1: alumnos del profesor */}
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -359,7 +405,7 @@ export function CentroTutoriasClient({
                     </div>
                     <div className="min-w-0 flex-1">
                       <div
-                        className={`truncate text-sm font-semibold text-slate-700 ${blurNames ? "blur-sm select-none" : ""}`}
+                        className="truncate text-sm font-semibold text-slate-700"
                       >
                         {a.nombre}
                       </div>
@@ -420,12 +466,12 @@ export function CentroTutoriasClient({
                         <div className="text-[11px] text-slate-400">{fmtHora(t.sessionDate)}</div>
                       </td>
                       <td className="py-3 pr-3">
-                        <div className={`font-semibold text-slate-700 ${blurNames ? "blur-sm select-none" : ""}`}>
+                        <div className="font-semibold text-slate-700">
                           {t.studentName}
                         </div>
                         <div className="text-[11px] text-slate-400">{t.cicloModulo}</div>
                       </td>
-                      <td className={`py-3 pr-3 text-slate-500 ${blurNames ? "blur-sm select-none" : ""}`}>
+                      <td className="py-3 pr-3 text-slate-500">
                         {t.profesorName}
                       </td>
                       <td className="py-3 pr-3">
@@ -543,7 +589,7 @@ export function CentroTutoriasClient({
                 </div>
                 <div className="min-w-0">
                   <div
-                    className={`truncate text-sm font-bold text-[#0B1D4D] ${blurNames ? "blur-sm select-none" : ""}`}
+                    className="truncate text-sm font-bold text-[#0B1D4D]"
                   >
                     {selectedAlumno.nombre}
                   </div>
@@ -657,6 +703,133 @@ export function CentroTutoriasClient({
           )}
         </div>
       </div>
+      )}
+
+      {/* Vista resumen por alumno: solo Coordinación/Dirección/SuperAdmin,
+          cuando hay un profesor seleccionado. No sustituye nada de lo de
+          arriba, es una vista alternativa que se activa con el botón. */}
+      {vistaResumen && profesorActual && (
+        <div>
+          <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50">
+                <Users className="h-5 w-5 text-[#2F6FED]" />
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-slate-500">{translate(locale, "tutorias.alumnosAsignados")}</div>
+                <div className="text-2xl font-bold text-[#0B1D4D]">{resumenStats.alumnosAsignados}</div>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50">
+                <Users className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-slate-500">{translate(locale, "tutorias.tutoriasConFamilias")}</div>
+                <div className="text-2xl font-bold text-[#0B1D4D]">{resumenStats.conFamilia}</div>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50">
+                <Users className="h-5 w-5 text-[#2F6FED]" />
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-slate-500">{translate(locale, "tutorias.tutoriasConAlumnos")}</div>
+                <div className="text-2xl font-bold text-[#0B1D4D]">{resumenStats.conAlumno}</div>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-50">
+                <Users className="h-5 w-5 text-violet-600" />
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-slate-500">{translate(locale, "tutorias.tutoriasConAmbosStat")}</div>
+                <div className="text-2xl font-bold text-[#0B1D4D]">{resumenStats.conAmbos}</div>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50">
+                <ClipboardList className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-slate-500">{translate(locale, "tutorias.totalTutorias")}</div>
+                <div className="text-2xl font-bold text-[#0B1D4D]">{resumenStats.total}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            {resumenAlumnos.length === 0 ? (
+              <p className="py-16 text-center text-sm text-slate-400">
+                {translate(locale, "tutorias.sinAlumnosFiltros")}
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-100 text-slate-400">
+                      <th className="pb-2 pr-3 font-medium">{translate(locale, "tutorias.colAlumno")}</th>
+                      <th className="pb-2 pr-3 font-medium">{translate(locale, "tutorias.cursoGrupo")}</th>
+                      <th className="pb-2 pr-3 font-medium">{translate(locale, "tutorias.colProfesor")}</th>
+                      <th className="pb-2 pr-3 font-medium">{translate(locale, "tutorias.tutoriasConFamilia")}</th>
+                      <th className="pb-2 pr-3 font-medium">{translate(locale, "tutorias.tutoriasConAlumno")}</th>
+                      <th className="pb-2 pr-3 font-medium">{translate(locale, "tutorias.tutoriasConAmbos")}</th>
+                      <th className="pb-2 pr-3 font-medium">{translate(locale, "tutorias.totalTutorias")}</th>
+                      <th className="pb-2 pr-3 font-medium">{translate(locale, "tutorias.ultimaTutoria")}</th>
+                      <th className="pb-2 font-medium" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {resumenAlumnos.map((r) => (
+                      <tr
+                        key={r.alumno.id}
+                        onClick={() => {
+                          setSelectedAlumnoId(r.alumno.id);
+                          setVistaResumen(false);
+                        }}
+                        className="cursor-pointer border-b border-slate-50 last:border-0 hover:bg-slate-50"
+                      >
+                        <td className="py-3 pr-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-slate-100">
+                              {r.alumno.avatarUrl && (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={r.alumno.avatarUrl}
+                                  alt={r.alumno.nombre}
+                                  className="h-full w-full object-cover"
+                                />
+                              )}
+                            </div>
+                            <span
+                              className="font-semibold text-slate-700"
+                            >
+                              {r.alumno.nombre}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3 pr-3 text-slate-500">{r.alumno.curso}</td>
+                        <td className="py-3 pr-3 text-slate-500">{r.alumno.profesorName}</td>
+                        <td className="py-3 pr-3 font-semibold text-[#2F6FED]">{r.conFamilia}</td>
+                        <td className="py-3 pr-3 font-semibold text-emerald-600">{r.conAlumno}</td>
+                        <td className="py-3 pr-3 font-semibold text-violet-600">{r.conAmbos}</td>
+                        <td className="py-3 pr-3 font-bold text-[#0B1D4D]">{r.total}</td>
+                        <td className="py-3 pr-3 text-slate-400">{r.ultima ? fmtFecha(r.ultima) : "—"}</td>
+                        <td className="py-3 text-right text-slate-300">›</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="mt-3 text-xs text-slate-400">
+                  {translate(locale, "tutorias.mostrandoAlumnosAsignados")
+                    .replace("{count}", String(resumenAlumnos.length))
+                    .replace("{nombre}", profesorActual.name)}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Modal: ver el resumen completo de una tutoría (solo lectura) */}
       {viewingTutoria && (

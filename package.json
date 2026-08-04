@@ -22,7 +22,8 @@
     "bcryptjs": "^2.4.3",
     "recharts": "^2.12.7",
     "nodemailer": "^7.0.7",
-    "@supabase/supabase-js": "^2.45.4"
+    "@supabase/supabase-js": "^2.45.4",
+    "exceljs": "^4.4.0"
   },
   "devDependencies": {
     "typescript": "^5",

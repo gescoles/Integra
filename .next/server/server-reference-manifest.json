@@ -1,49 +1,5 @@
 {
   "node": {
-    "106ac1bb77e63c3471e40040b05dc9ce0c7cbc18": {
-      "workers": {
-        "app/dashboard/usuarios/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Cjass%5C%5CDesktop%5C%5CIntegra%5C%5CIntegra%5C%5Capp%5C%5Cdashboard%5C%5Cusuarios%5C%5Cactions.ts%22%2C%5B%22getUserDeleteImpact%22%2C%22createUser%22%2C%22updateUser%22%2C%22deleteUser%22%5D%5D%2C%5B%22C%3A%5C%5CUsers%5C%5Cjass%5C%5CDesktop%5C%5CIntegra%5C%5CIntegra%5C%5Capp%5C%5Cdashboard%5C%5ClocaleActions.ts%22%2C%5B%22updateMyLocale%22%5D%5D%5D&__client_imported__=true!"
-      },
-      "layer": {
-        "app/dashboard/usuarios/page": "action-browser"
-      }
-    },
-    "627836f6ac91b561a7e86691dd1f13d56ec884c2": {
-      "workers": {
-        "app/dashboard/usuarios/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Cjass%5C%5CDesktop%5C%5CIntegra%5C%5CIntegra%5C%5Capp%5C%5Cdashboard%5C%5Cusuarios%5C%5Cactions.ts%22%2C%5B%22getUserDeleteImpact%22%2C%22createUser%22%2C%22updateUser%22%2C%22deleteUser%22%5D%5D%2C%5B%22C%3A%5C%5CUsers%5C%5Cjass%5C%5CDesktop%5C%5CIntegra%5C%5CIntegra%5C%5Capp%5C%5Cdashboard%5C%5ClocaleActions.ts%22%2C%5B%22updateMyLocale%22%5D%5D%5D&__client_imported__=true!"
-      },
-      "layer": {
-        "app/dashboard/usuarios/page": "action-browser"
-      }
-    },
-    "70732710c9444688aa9292e6766f529416b582dc": {
-      "workers": {
-        "app/dashboard/usuarios/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Cjass%5C%5CDesktop%5C%5CIntegra%5C%5CIntegra%5C%5Capp%5C%5Cdashboard%5C%5Cusuarios%5C%5Cactions.ts%22%2C%5B%22getUserDeleteImpact%22%2C%22createUser%22%2C%22updateUser%22%2C%22deleteUser%22%5D%5D%2C%5B%22C%3A%5C%5CUsers%5C%5Cjass%5C%5CDesktop%5C%5CIntegra%5C%5CIntegra%5C%5Capp%5C%5Cdashboard%5C%5ClocaleActions.ts%22%2C%5B%22updateMyLocale%22%5D%5D%5D&__client_imported__=true!"
-      },
-      "layer": {
-        "app/dashboard/usuarios/page": "action-browser"
-      }
-    },
-    "96b8739cc3d26633853a1549f3d22a3df0543beb": {
-      "workers": {
-        "app/dashboard/usuarios/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Cjass%5C%5CDesktop%5C%5CIntegra%5C%5CIntegra%5C%5Capp%5C%5Cdashboard%5C%5Cusuarios%5C%5Cactions.ts%22%2C%5B%22getUserDeleteImpact%22%2C%22createUser%22%2C%22updateUser%22%2C%22deleteUser%22%5D%5D%2C%5B%22C%3A%5C%5CUsers%5C%5Cjass%5C%5CDesktop%5C%5CIntegra%5C%5CIntegra%5C%5Capp%5C%5Cdashboard%5C%5ClocaleActions.ts%22%2C%5B%22updateMyLocale%22%5D%5D%5D&__client_imported__=true!"
-      },
-      "layer": {
-        "app/dashboard/usuarios/page": "action-browser"
-      }
-    },
-    "2b6d82c14cfb3c997fed0e1b1644fe1ed0283851": {
-      "workers": {
-        "app/dashboard/usuarios/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Cjass%5C%5CDesktop%5C%5CIntegra%5C%5CIntegra%5C%5Capp%5C%5Cdashboard%5C%5Cusuarios%5C%5Cactions.ts%22%2C%5B%22getUserDeleteImpact%22%2C%22createUser%22%2C%22updateUser%22%2C%22deleteUser%22%5D%5D%2C%5B%22C%3A%5C%5CUsers%5C%5Cjass%5C%5CDesktop%5C%5CIntegra%5C%5CIntegra%5C%5Capp%5C%5Cdashboard%5C%5ClocaleActions.ts%22%2C%5B%22updateMyLocale%22%5D%5D%5D&__client_imported__=true!",
-        "app/dashboard/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Cjass%5C%5CDesktop%5C%5CIntegra%5C%5CIntegra%5C%5Capp%5C%5Cdashboard%5C%5Ccomponents%5C%5CavisosActions.ts%22%2C%5B%22deleteAviso%22%2C%22createAviso%22%5D%5D%2C%5B%22C%3A%5C%5CUsers%5C%5Cjass%5C%5CDesktop%5C%5CIntegra%5C%5CIntegra%5C%5Capp%5C%5Cdashboard%5C%5ClocaleActions.ts%22%2C%5B%22updateMyLocale%22%5D%5D%5D&__client_imported__=true!",
-        "app/dashboard/tutorias/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Cjass%5C%5CDesktop%5C%5CIntegra%5C%5CIntegra%5C%5Capp%5C%5Cdashboard%5C%5Ctutorias%5C%5CalumnoActions.ts%22%2C%5B%22deleteAlumno%22%2C%22createAlumno%22%2C%22updateTutoriaAlumno%22%2C%22updateAlumnoFicha%22%2C%22cerrarTutoria%22%2C%22createTutoriaAlumno%22%2C%22deleteTutoriaAlumno%22%5D%5D%2C%5B%22C%3A%5C%5CUsers%5C%5Cjass%5C%5CDesktop%5C%5CIntegra%5C%5CIntegra%5C%5Capp%5C%5Cdashboard%5C%5ClocaleActions.ts%22%2C%5B%22updateMyLocale%22%5D%5D%5D&__client_imported__=true!"
-      },
-      "layer": {
-        "app/dashboard/usuarios/page": "action-browser",
-        "app/dashboard/page": "action-browser",
-        "app/dashboard/tutorias/page": "action-browser"
-      }
-    },
     "e4f8ef4d40f4fcb29a8dae569dcee07de415284c": {
       "workers": {
         "app/dashboard/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Cjass%5C%5CDesktop%5C%5CIntegra%5C%5CIntegra%5C%5Capp%5C%5Cdashboard%5C%5Ccomponents%5C%5CavisosActions.ts%22%2C%5B%22deleteAviso%22%2C%22createAviso%22%5D%5D%2C%5B%22C%3A%5C%5CUsers%5C%5Cjass%5C%5CDesktop%5C%5CIntegra%5C%5CIntegra%5C%5Capp%5C%5Cdashboard%5C%5ClocaleActions.ts%22%2C%5B%22updateMyLocale%22%5D%5D%5D&__client_imported__=true!"
@@ -58,6 +14,16 @@
       },
       "layer": {
         "app/dashboard/page": "action-browser"
+      }
+    },
+    "2b6d82c14cfb3c997fed0e1b1644fe1ed0283851": {
+      "workers": {
+        "app/dashboard/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Cjass%5C%5CDesktop%5C%5CIntegra%5C%5CIntegra%5C%5Capp%5C%5Cdashboard%5C%5Ccomponents%5C%5CavisosActions.ts%22%2C%5B%22deleteAviso%22%2C%22createAviso%22%5D%5D%2C%5B%22C%3A%5C%5CUsers%5C%5Cjass%5C%5CDesktop%5C%5CIntegra%5C%5CIntegra%5C%5Capp%5C%5Cdashboard%5C%5ClocaleActions.ts%22%2C%5B%22updateMyLocale%22%5D%5D%5D&__client_imported__=true!",
+        "app/dashboard/tutorias/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22C%3A%5C%5CUsers%5C%5Cjass%5C%5CDesktop%5C%5CIntegra%5C%5CIntegra%5C%5Capp%5C%5Cdashboard%5C%5Ctutorias%5C%5CalumnoActions.ts%22%2C%5B%22deleteAlumno%22%2C%22createAlumno%22%2C%22updateTutoriaAlumno%22%2C%22updateAlumnoFicha%22%2C%22cerrarTutoria%22%2C%22createTutoriaAlumno%22%2C%22deleteTutoriaAlumno%22%5D%5D%2C%5B%22C%3A%5C%5CUsers%5C%5Cjass%5C%5CDesktop%5C%5CIntegra%5C%5CIntegra%5C%5Capp%5C%5Cdashboard%5C%5ClocaleActions.ts%22%2C%5B%22updateMyLocale%22%5D%5D%5D&__client_imported__=true!"
+      },
+      "layer": {
+        "app/dashboard/page": "action-browser",
+        "app/dashboard/tutorias/page": "action-browser"
       }
     },
     "019ec6654a39f19236b1b17d5782c4a3c3355051": {
@@ -118,5 +84,5 @@
     }
   },
   "edge": {},
-  "encryptionKey": "Hg74X7FzBj/RFm/IAaiBlODWZH3+zCca5mZpi1Ht1Ps="
+  "encryptionKey": "b5PS5j8EEmswxqhA7Bc39jtoQ3rTUGSCiCa8XUTiZKk="
 }
