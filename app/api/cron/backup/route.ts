@@ -22,7 +22,9 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const fecha = new Date().toISOString().slice(0, 10);
+  // Usamos la fecha de España (no la de UTC), para que la carpeta del día
+  // no se quede "un día atrás" durante la madrugada por la diferencia horaria.
+  const fecha = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid" }).format(new Date());
   const schools = await prisma.school.findMany({
     select: { id: true, name: true, modules: true },
   });
