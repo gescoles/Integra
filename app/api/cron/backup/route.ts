@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
         const tutoriasFolderId = await ensureSubfolder(schoolFolderId, "Tutorias");
         const dateFolderId = await ensureSubfolder(tutoriasFolderId, fecha);
         const { workbook } = await buildTutoriasWorkbook(school.id);
-        const buffer = (await workbook.xlsx.writeBuffer()) as Buffer;
+        const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
         await uploadXlsxToDrive(dateFolderId, `Tutorias_${fecha}.xlsx`, buffer);
       }
 
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
         const materialFolderId = await ensureSubfolder(schoolFolderId, "Material");
         const dateFolderId = await ensureSubfolder(materialFolderId, fecha);
         const { workbook } = await buildMaterialWorkbook(school.id);
-        const buffer = (await workbook.xlsx.writeBuffer()) as Buffer;
+        const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
         await uploadXlsxToDrive(dateFolderId, `Material_${fecha}.xlsx`, buffer);
       }
 
