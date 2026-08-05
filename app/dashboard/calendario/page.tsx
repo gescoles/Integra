@@ -6,6 +6,7 @@ import { translate } from "../i18n";
 import { CalendarioClient } from "./CalendarioClient";
 import { getWeekStart, addDays, isoDate, formatWeekRange } from "./weekUtils";
 import { SchoolPicker } from "../components/SchoolPicker";
+import { ModuleLocked } from "../components/ModuleLocked";
 import Link from "next/link";
 import { Landmark, UserRound } from "lucide-react";
 
@@ -93,6 +94,20 @@ export default async function CalendarioPage({
   const modules = school?.modules ?? [];
   const hasTutorias = modules.includes("tutorias");
   const hasGuardias = modules.includes("guardias");
+
+  if (!isSuperAdmin && !modules.includes("utilidades")) {
+    return (
+      <div>
+        <DashboardHeader
+          title={translate(locale, "calendario.title")}
+          subtitle={translate(locale, "calendario.subtitle")}
+          userName={session.user.name ?? ""}
+          role={session.user.role}
+        />
+        <ModuleLocked moduleName={translate(locale, "nav.utilidades")} />
+      </div>
+    );
+  }
 
   const [horarioBloques, eventos, tutorias, guardias] = await Promise.all([
     prisma.horarioBloque.findMany({ where: { profesorId: targetUserId } }),

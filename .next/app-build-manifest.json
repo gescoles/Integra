@@ -31,10 +31,20 @@
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/loading.js"
     ],
-    "/dashboard/tutorias/page": [
+    "/dashboard/usuarios/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/tutorias/page.js"
+      "static/chunks/app/dashboard/usuarios/page.js"
+    ],
+    "/dashboard/material/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/material/page.js"
+    ],
+    "/dashboard/guardias/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/guardias/page.js"
     ]
   }
 }

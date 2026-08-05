@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "../components/DashboardHeader";
+import { ModuleLocked } from "../components/ModuleLocked";
 import { translate } from "../i18n";
 import { HorarioClient } from "./HorarioClient";
 import { SchoolPicker } from "../components/SchoolPicker";
@@ -82,6 +83,23 @@ export default async function HorarioPage({
           </Link>
         </div>
         <HorarioClient bloques={bloques} readOnly />
+      </div>
+    );
+  }
+
+  const school = session.user.schoolId
+    ? await prisma.school.findUnique({ where: { id: session.user.schoolId }, select: { modules: true } })
+    : null;
+
+  if (!school?.modules.includes("utilidades")) {
+    return (
+      <div>
+        <DashboardHeader
+          title={translate(locale, "horario.title")}
+          subtitle={translate(locale, "horario.subtitle")}
+          notificationCount={0}
+        />
+        <ModuleLocked moduleName={translate(locale, "nav.utilidades")} />
       </div>
     );
   }

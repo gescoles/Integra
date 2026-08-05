@@ -4,6 +4,7 @@ import {
   ShieldCheck,
   FolderOpen,
   MessageSquare,
+  CalendarClock,
 } from "lucide-react";
 
 export const MODULES = [
@@ -12,6 +13,7 @@ export const MODULES = [
   { key: "guardias", label: "Guardias", icon: ShieldCheck, color: "bg-violet-50 text-violet-600 border-violet-200" },
   { key: "material", label: "Material", icon: FolderOpen, color: "bg-blue-50 text-[#2F6FED] border-blue-200" },
   { key: "comunicacion", label: "Comunicación", icon: MessageSquare, color: "bg-sky-50 text-sky-600 border-sky-200" },
+  { key: "utilidades", label: "Utilidades (Calendario y Horario)", icon: CalendarClock, color: "bg-rose-50 text-rose-600 border-rose-200" },
 ] as const;
 
 export const PLAN_LABELS: Record<string, string> = {

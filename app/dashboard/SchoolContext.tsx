@@ -14,6 +14,7 @@ type SchoolInfo = {
 type DashboardMeta = {
   school: SchoolInfo;
   avatarUrl: string | null;
+  setAvatarUrl: (url: string) => void;
   locale: AppLocale;
   setLocale: (locale: AppLocale) => void;
 };
@@ -21,13 +22,14 @@ type DashboardMeta = {
 const DashboardMetaContext = createContext<DashboardMeta>({
   school: null,
   avatarUrl: null,
+  setAvatarUrl: () => {},
   locale: "ES",
   setLocale: () => {},
 });
 
 export function SchoolProvider({
   school,
-  avatarUrl,
+  avatarUrl: initialAvatarUrl,
   locale: initialLocale,
   children,
 }: {
@@ -37,6 +39,7 @@ export function SchoolProvider({
   children: React.ReactNode;
 }) {
   const [locale, setLocaleState] = useState<AppLocale>(initialLocale);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl);
   const router = useRouter();
 
   function setLocale(next: AppLocale) {
@@ -58,7 +61,7 @@ export function SchoolProvider({
   }
 
   return (
-    <DashboardMetaContext.Provider value={{ school, avatarUrl, locale, setLocale }}>
+    <DashboardMetaContext.Provider value={{ school, avatarUrl, setAvatarUrl, locale, setLocale }}>
       {children}
     </DashboardMetaContext.Provider>
   );
@@ -69,7 +72,8 @@ export function useSchoolInfo() {
 }
 
 export function useUserAvatar() {
-  return useContext(DashboardMetaContext).avatarUrl;
+  const { avatarUrl, setAvatarUrl } = useContext(DashboardMetaContext);
+  return { avatarUrl, setAvatarUrl };
 }
 
 export function useLocale() {

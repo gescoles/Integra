@@ -55,7 +55,11 @@ export async function updateMaterial(formData: FormData) {
 
   const id = formData.get("id") as string;
   const material = await prisma.materialRequest.findUnique({ where: { id } });
-  if (!material || (material.profesorId !== session.user.id && session.user.role !== "SUPERADMIN")) {
+  const canManageAll =
+    session.user.role === "SUPERADMIN" ||
+    ((session.user.role === "COORDINADOR" || session.user.role === "ADMIN_CENTRO") &&
+      material?.schoolId === session.user.schoolId);
+  if (!material || (material.profesorId !== session.user.id && !canManageAll)) {
     throw new Error("No puedes editar un material que no has pedido tú.");
   }
 
@@ -102,7 +106,11 @@ export async function deleteMaterial(id: string) {
   if (!session?.user.id) throw new Error("No autorizado.");
 
   const material = await prisma.materialRequest.findUnique({ where: { id } });
-  if (!material || (material.profesorId !== session.user.id && session.user.role !== "SUPERADMIN")) {
+  const canManageAll =
+    session.user.role === "SUPERADMIN" ||
+    ((session.user.role === "COORDINADOR" || session.user.role === "ADMIN_CENTRO") &&
+      material?.schoolId === session.user.schoolId);
+  if (!material || (material.profesorId !== session.user.id && !canManageAll)) {
     throw new Error("No puedes eliminar un material que no es tuyo.");
   }
 

@@ -8,6 +8,30 @@ import { MaterialClient } from "./MaterialClient";
 import { MaterialFormModal } from "./MaterialFormModal";
 import { SchoolPicker, SchoolSwitcher } from "../components/SchoolPicker";
 
+async function getMaterialForSchool(schoolId: string) {
+  const materialRaw = await prisma.materialRequest.findMany({
+    where: { schoolId },
+    include: { profesor: { select: { id: true, name: true, email: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return materialRaw.map((m) => ({
+    id: m.id,
+    nombre: m.nombre,
+    curso: m.curso,
+    asignatura: m.asignatura,
+    cantidad: m.cantidad,
+    precioUnidad: m.precioUnidad,
+    proveedor: m.proveedor,
+    enlace: m.enlace,
+    categoria: m.categoria,
+    estado: m.estado,
+    justificacion: m.justificacion,
+    profesorId: m.profesorId,
+    profesorName: m.profesor?.name ?? m.profesor?.email ?? "—",
+  }));
+}
+
 export default async function MaterialPage({
   searchParams,
 }: {
@@ -18,9 +42,13 @@ export default async function MaterialPage({
   const userName =
     session?.user.name || session?.user.email.split("@")[0] || "Usuario";
   const role = session?.user.role ?? "COORDINADOR";
+  const isSuperAdmin = role === "SUPERADMIN";
+  const isCoordinacion = role === "COORDINADOR" || role === "ADMIN_CENTRO";
 
-  // SuperAdmin: elige cualquier centro y ve/gestiona TODO su material
-  if (role === "SUPERADMIN") {
+  // SuperAdmin: elige cualquier centro y ve/gestiona TODO su material.
+  // Coordinación/Dirección: ve TODO el material de su propio centro (de
+  // todos los profesores), con filtros por curso/ciclo y por profesor.
+  if (isSuperAdmin) {
     const schools = await prisma.school.findMany({
       where: { modules: { has: "material" } },
       select: { id: true, name: true, logoUrl: true },
@@ -33,7 +61,7 @@ export default async function MaterialPage({
           <DashboardHeader title={translate(locale, "material.title")} subtitle={translate(locale, "material.subtitle.superadmin")} userName={userName} role={role} />
           {schools.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-24 text-center text-sm text-slate-400">
-              Ningún centro tiene el módulo de Material contratado todavía.
+              {translate(locale, "material.ningunCentro")}
             </div>
           ) : (
             <SchoolPicker schools={schools} locale={locale} basePath="/dashboard/material" />
@@ -42,33 +70,13 @@ export default async function MaterialPage({
       );
     }
 
-    const materialRaw = await prisma.materialRequest.findMany({
-      where: { schoolId: searchParams.school },
-      include: { profesor: { select: { id: true, name: true, email: true } } },
-      orderBy: { createdAt: "desc" },
-    });
-
-    const rows = materialRaw.map((m) => ({
-      id: m.id,
-      nombre: m.nombre,
-      curso: m.curso,
-      asignatura: m.asignatura,
-      cantidad: m.cantidad,
-      precioUnidad: m.precioUnidad,
-      proveedor: m.proveedor,
-      enlace: m.enlace,
-      categoria: m.categoria,
-      estado: m.estado,
-      justificacion: m.justificacion,
-      profesorId: m.profesorId,
-      profesorName: m.profesor?.name ?? m.profesor?.email ?? "—",
-    }));
+    const rows = await getMaterialForSchool(searchParams.school);
 
     return (
       <div>
         <DashboardHeader title={translate(locale, "material.title")} subtitle={translate(locale, "material.subtitle.superadmin")} userName={userName} role={role} />
         <SchoolSwitcher schools={schools} currentSchoolId={searchParams.school} locale={locale} basePath="/dashboard/material" />
-        <MaterialClient rows={rows} currentUserId={session!.user.id} isSuperAdmin />
+        <MaterialClient rows={rows} currentUserId={session!.user.id} canManageAll schoolId={searchParams.school} showFilters />
       </div>
     );
   }
@@ -86,7 +94,7 @@ export default async function MaterialPage({
           role={role}
         />
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-24 text-center text-sm text-slate-400">
-          Tu usuario no tiene un centro asignado todavía.
+          {translate(locale, "usuarios.sinCentroPropio")}
         </div>
       </div>
     );
@@ -106,34 +114,17 @@ export default async function MaterialPage({
           userName={userName}
           role={role}
         />
-        <ModuleLocked moduleName="Material" />
+        <ModuleLocked moduleName={translate(locale, "material.title")} />
       </div>
     );
   }
 
   if (!userId) return null;
 
-  const materialRaw = await prisma.materialRequest.findMany({
-    where: { profesorId: userId },
-    include: { profesor: { select: { id: true, name: true, email: true } } },
-    orderBy: { createdAt: "desc" },
-  });
-
-  const rows = materialRaw.map((m) => ({
-    id: m.id,
-    nombre: m.nombre,
-    curso: m.curso,
-    asignatura: m.asignatura,
-    cantidad: m.cantidad,
-    precioUnidad: m.precioUnidad,
-    proveedor: m.proveedor,
-    enlace: m.enlace,
-    categoria: m.categoria,
-    estado: m.estado,
-    justificacion: m.justificacion,
-    profesorId: m.profesorId,
-    profesorName: m.profesor?.name ?? m.profesor?.email ?? "—",
-  }));
+  // Coordinación/Dirección ven todo el material del centro; el resto
+  // (Profesor) solo ve y gestiona lo que ha pedido él mismo.
+  const allRows = await getMaterialForSchool(schoolId);
+  const rows = isCoordinacion ? allRows : allRows.filter((m) => m.profesorId === userId);
 
   return (
     <div>
@@ -147,7 +138,13 @@ export default async function MaterialPage({
       <div className="mb-5 flex justify-end">
         <MaterialFormModal userName={userName} />
       </div>
-      <MaterialClient rows={rows} currentUserId={userId} />
+      <MaterialClient
+        rows={rows}
+        currentUserId={userId}
+        canManageAll={isCoordinacion}
+        schoolId={schoolId}
+        showFilters={isCoordinacion}
+      />
     </div>
   );
 }

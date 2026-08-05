@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Search, Trash2, ExternalLink } from "lucide-react";
+import { Search, Trash2, ExternalLink, FileSpreadsheet } from "lucide-react";
 import { deleteMaterial } from "./actions";
 import { MaterialFormModal } from "./MaterialFormModal";
 import { MATERIAL_CATEGORIA_LABELS, MATERIAL_CATEGORIA_COLORS } from "../constants";
@@ -28,15 +28,20 @@ const eur = (n: number) => n.toLocaleString("es-ES", { style: "currency", curren
 export function MaterialClient({
   rows,
   currentUserId,
-  isSuperAdmin = false,
+  canManageAll = false,
+  schoolId,
+  showFilters = false,
 }: {
   rows: MaterialRow[];
   currentUserId: string;
-  isSuperAdmin?: boolean;
+  canManageAll?: boolean;
+  schoolId?: string;
+  showFilters?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const { locale } = useLocale();
   const [cursoFilter, setCursoFilter] = useState("Todos");
+  const [profesorFilter, setProfesorFilter] = useState("Todos");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -45,14 +50,23 @@ export function MaterialClient({
     [rows]
   );
 
+  const profesores = useMemo(() => {
+    const map = new Map<string, string>();
+    rows.forEach((r) => map.set(r.profesorId, r.profesorName));
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [rows]);
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return rows.filter((r) => {
       if (q && !r.nombre.toLowerCase().includes(q)) return false;
       if (cursoFilter !== "Todos" && r.curso !== cursoFilter) return false;
+      if (profesorFilter !== "Todos" && r.profesorId !== profesorFilter) return false;
       return true;
     });
-  }, [rows, search, cursoFilter]);
+  }, [rows, search, cursoFilter, profesorFilter]);
 
   function handleDelete(id: string, nombre: string) {
     if (!confirm(`¿Eliminar "${nombre}"? No se puede deshacer.`)) return;
@@ -89,6 +103,32 @@ export function MaterialClient({
             </option>
           ))}
         </select>
+
+        {showFilters && (
+          <select
+            value={profesorFilter}
+            onChange={(e) => setProfesorFilter(e.target.value)}
+            className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+          >
+            <option value="Todos">{translate(locale, "material.todosProfesores")}</option>
+            {profesores.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {showFilters && schoolId && (
+          <a
+            href={`/api/material/export?school=${schoolId}${
+              profesorFilter !== "Todos" ? `&profesor=${profesorFilter}` : ""
+            }`}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+          >
+            <FileSpreadsheet className="h-4 w-4" /> {translate(locale, "material.descargarExcel")}
+          </a>
+        )}
       </div>
 
       {error && (
@@ -116,7 +156,7 @@ export function MaterialClient({
             <tbody>
               {filtered.map((r) => {
                 const total = r.precioUnidad * r.cantidad;
-                const isOwner = isSuperAdmin || r.profesorId === currentUserId;
+                const isOwner = canManageAll || r.profesorId === currentUserId;
                 return (
                   <tr key={r.id} className="border-b border-slate-50 last:border-0">
                     <td className="py-4 pr-4">
