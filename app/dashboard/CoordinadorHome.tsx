@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "./components/DashboardHeader";
 import { translate, AppLocale } from "./i18n";
 import { HistoriasBar } from "./components/HistoriasBar";
-import { AvisosSection } from "./components/AvisosSection";
 import { BienvenidaCard } from "./components/BienvenidaCard";
 import { AgendaTimeline, type AgendaItem } from "./components/AgendaTimeline";
 import { ComunidadPanel } from "./components/ComunidadPanel";
@@ -351,11 +350,6 @@ export async function CoordinadorHome({
             </div>
           )}
         </div>
-      </div>
-
-      {/* Avisos del centro — Coordinación SÍ puede publicar (Profesor no) */}
-      <div className="mt-5">
-        <AvisosSection schoolId={schoolId} canCreate />
       </div>
 
       {/*
