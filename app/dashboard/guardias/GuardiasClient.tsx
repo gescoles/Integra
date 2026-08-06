@@ -11,6 +11,8 @@ type Row = {
   id: string;
   turno: string;
   ubicacion: string | null;
+  grupo: string | null;
+  tarea: string | null;
   status: string;
   fecha: string;
   profesorId: string;
@@ -102,6 +104,7 @@ export function GuardiasClient({
               <tr className="border-b border-slate-100 text-slate-400">
                 <th className="pb-2 pr-3 font-medium">{translate(locale, "guardias.colTurno")}</th>
                 <th className="pb-2 pr-3 font-medium">{translate(locale, "guardias.colProfesor")}</th>
+                <th className="pb-2 pr-3 font-medium">{translate(locale, "guardias.colGrupo")}</th>
                 <th className="pb-2 pr-3 font-medium">{translate(locale, "guardias.colUbicacion")}</th>
                 <th className="pb-2 pr-3 font-medium">{translate(locale, "guardias.colFecha")}</th>
                 <th className="pb-2 font-medium">{translate(locale, "guardias.colEstado")}</th>
@@ -110,8 +113,12 @@ export function GuardiasClient({
             <tbody>
               {filtered.map((r) => (
                 <tr key={r.id} className="border-b border-slate-50 last:border-0">
-                  <td className="py-3 pr-3 font-semibold text-slate-700">{r.turno}</td>
+                  <td className="py-3 pr-3 font-semibold text-slate-700" title={r.tarea ?? undefined}>
+                    {r.turno}
+                    {r.tarea && <div className="mt-0.5 max-w-[220px] truncate text-[10px] font-normal text-slate-400">{r.tarea}</div>}
+                  </td>
                   <td className="py-3 pr-3 text-slate-500">{r.profesorName}</td>
+                  <td className="py-3 pr-3 text-slate-500">{r.grupo ?? "—"}</td>
                   <td className="py-3 pr-3 text-slate-500">{r.ubicacion ?? "—"}</td>
                   <td className="py-3 pr-3 text-slate-400">
                     {new Date(r.fecha).toLocaleDateString("es-ES")}

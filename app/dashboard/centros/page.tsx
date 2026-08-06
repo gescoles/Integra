@@ -48,7 +48,7 @@ export default async function CentrosPage() {
         subtitle={translate(locale, "centros.subtitle")}
         userName={userName}
         role={role}
-        notificationCount={3}
+        notificationCount={0}
       />
 
       {/* Acciones principales */}

@@ -208,6 +208,98 @@ export async function buildMaterialWorkbook(schoolId: string, profesorId?: strin
   return { workbook, profesorNombre: profesorId && first ? first.profesor?.name ?? first.profesor?.email ?? null : null };
 }
 
+const SALIDA_ESTADO_LABELS_EXPORT: Record<string, string> = {
+  PENDIENTE: "Pendiente",
+  APROBADA: "Aprobada",
+  RECHAZADA: "Rechazada",
+};
+
+/**
+ * Genera el Excel de Salidas de un centro: una pestaña por ciclo/curso, con
+ * todas las salidas de ese curso (o solo las de un profesor concreto).
+ */
+export async function buildSalidasWorkbook(schoolId: string, responsableId?: string | null) {
+  const salidasRaw = await prisma.salida.findMany({
+    where: { schoolId, ...(responsableId ? { responsableId } : {}) },
+    include: {
+      responsable: { select: { name: true, email: true } },
+      creadoPor: { select: { name: true, email: true } },
+    },
+    orderBy: [{ curso: "asc" }, { fecha: "desc" }],
+  });
+
+  // Para poder listar los nombres de los profesores que acompañan (guardados
+  // como una simple lista de ids, no una relación de Prisma).
+  const todosLosIds = Array.from(new Set(salidasRaw.flatMap((s) => s.profesoresIds)));
+  const profesoresAcompanantes = todosLosIds.length
+    ? await prisma.user.findMany({ where: { id: { in: todosLosIds } }, select: { id: true, name: true, email: true } })
+    : [];
+  const nombrePorId = new Map(profesoresAcompanantes.map((p) => [p.id, p.name ?? p.email]));
+
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "Integra";
+  workbook.created = new Date();
+
+  const ciclos = Array.from(new Set(salidasRaw.map((s) => s.curso))).sort();
+  const usedNames = new Set<string>();
+
+  for (const ciclo of ciclos) {
+    const items = salidasRaw.filter((s) => s.curso === ciclo);
+    const sheet = workbook.addWorksheet(sheetName(ciclo, usedNames));
+
+    sheet.columns = [
+      { header: "Actividad", key: "actividad", width: 26 },
+      { header: "Tipo", key: "tipo", width: 16 },
+      { header: "Fecha", key: "fecha", width: 14 },
+      { header: "Hora salida", key: "horaSalida", width: 12 },
+      { header: "Hora vuelta", key: "horaVuelta", width: 16 },
+      { header: "Responsable", key: "responsable", width: 22 },
+      { header: "Acompañantes", key: "acompanantes", width: 26 },
+      { header: "Nº alumnos", key: "numAlumnos", width: 12 },
+      { header: "Coste", key: "costo", width: 12 },
+      { header: "Observaciones", key: "observaciones", width: 30 },
+      { header: "Estado", key: "estado", width: 14 },
+      { header: "Creada por", key: "creadoPor", width: 22 },
+    ];
+
+    styleHeaderRow(sheet.getRow(1));
+
+    items.forEach((s) => {
+      const row = sheet.addRow({
+        actividad: s.actividad,
+        tipo: s.tipo,
+        fecha: s.fecha.toLocaleDateString("es-ES"),
+        horaSalida: s.horaSalida,
+        horaVuelta: s.vueltaDirectaCasa ? "Vuelven directo a casa" : s.horaVuelta ?? "—",
+        responsable: s.responsable?.name ?? s.responsable?.email ?? "—",
+        acompanantes: s.profesoresIds.map((id) => nombrePorId.get(id) ?? "—").join(", ") || "—",
+        numAlumnos: s.numAlumnos,
+        costo: s.costo,
+        observaciones: s.observaciones ?? "—",
+        estado: SALIDA_ESTADO_LABELS_EXPORT[s.estado] ?? s.estado,
+        creadoPor: s.creadoPor?.name ?? s.creadoPor?.email ?? "—",
+      });
+      row.getCell("costo").numFmt = `#,##0.00 "${s.moneda}"`;
+      row.alignment = { vertical: "middle", wrapText: true };
+    });
+
+    zebraStripe(sheet);
+    sheet.views = [{ state: "frozen", ySplit: 1 }];
+    sheet.autoFilter = { from: "A1", to: "L1" };
+  }
+
+  if (workbook.worksheets.length === 0) {
+    const sheet = workbook.addWorksheet("Salidas");
+    sheet.addRow(["Todavía no se ha creado ninguna salida en este centro."]);
+  }
+
+  const first = salidasRaw[0];
+  return {
+    workbook,
+    profesorNombre: responsableId && first ? first.responsable?.name ?? first.responsable?.email ?? null : null,
+  };
+}
+
 export function safeFileName(name: string) {
   return name.replace(/[^a-z0-9áéíóúñ]+/gi, "_");
 }

@@ -44,3 +44,167 @@ export async function sendPasswordEmail(to: string, name: string, password: stri
     `,
   });
 }
+
+export async function sendGuardiaEmail(params: {
+  to: string;
+  profesorName: string;
+  turno: string;
+  ubicacion: string | null;
+  grupo: string | null;
+  tarea: string | null;
+  fecha: Date;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  await transporter.sendMail({
+    from: `Integra <${from}>`,
+    to: params.to,
+    subject: `Nueva guardia asignada: ${params.turno}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Tienes una guardia nueva, ${params.profesorName}</h2>
+        <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
+          <p style="margin:0;"><strong>Cuándo:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0;"><strong>Turno:</strong> ${params.turno}</p>
+          ${params.ubicacion ? `<p style="margin:8px 0 0;"><strong>Aula / ubicación:</strong> ${params.ubicacion}</p>` : ""}
+          ${params.grupo ? `<p style="margin:8px 0 0;"><strong>Grupo:</strong> ${params.grupo}</p>` : ""}
+          ${params.tarea ? `<p style="margin:8px 0 0;"><strong>Qué tienes que hacer:</strong> ${params.tarea}</p>` : ""}
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Este aviso se ha añadido automáticamente a tu calendario de Teams. También puedes consultar
+          todas tus guardias desde Integra, en el apartado "Guardias".
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendSalidaCreadaEmail(params: {
+  to: string[];
+  creadorNombre: string;
+  curso: string;
+  tipo: string;
+  actividad: string;
+  fecha: Date;
+  horaSalida: string;
+  horaVuelta: string | null;
+  vueltaDirectaCasa?: boolean;
+  numAlumnos: number;
+}) {
+  if (params.to.length === 0) return;
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  await transporter.sendMail({
+    from: `Integra <${from}>`,
+    to: params.to.join(", "),
+    subject: `Nueva salida pendiente de aprobar: ${params.actividad}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">${params.creadorNombre} ha propuesto una salida</h2>
+        <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
+          <p style="margin:0;"><strong>Actividad:</strong> ${params.actividad}</p>
+          <p style="margin:8px 0 0;"><strong>Tipo:</strong> ${params.tipo}</p>
+          <p style="margin:8px 0 0;"><strong>Curso / Grupo:</strong> ${params.curso}</p>
+          <p style="margin:8px 0 0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0;"><strong>Horario:</strong> ${params.horaSalida} — ${
+      params.vueltaDirectaCasa ? "vuelven directamente a casa" : params.horaVuelta
+    }</p>
+          <p style="margin:8px 0 0;"><strong>Nº de alumnos:</strong> ${params.numAlumnos}</p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Está pendiente de aprobación. Puedes revisarla y aceptarla o rechazarla desde
+          Integra, en Salidas → Aprobaciones.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendSalidaAprobadaEmail(params: {
+  to: string;
+  profesorNombre: string;
+  actividad: string;
+  fecha: Date;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  await transporter.sendMail({
+    from: `Integra <${from}>`,
+    to: params.to,
+    subject: `Salida aprobada: ${params.actividad}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">¡Tu salida ha sido aprobada, ${params.profesorNombre}!</h2>
+        <div style="background:#ECFDF5; border-radius:8px; padding:16px; margin:16px 0; border:1px solid #A7F3D0;">
+          <p style="margin:0;"><strong>Actividad:</strong> ${params.actividad}</p>
+          <p style="margin:8px 0 0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0; color:#059669;"><strong>Estado: Aprobada ✓</strong></p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Ya puedes consultarla desde Integra, en el apartado "Salidas".
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendSalidaRechazadaEmail(params: {
+  to: string;
+  profesorNombre: string;
+  actividad: string;
+  fecha: Date;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  await transporter.sendMail({
+    from: `Integra <${from}>`,
+    to: params.to,
+    subject: `Salida rechazada: ${params.actividad}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.profesorNombre},</h2>
+        <div style="background:#FEF2F2; border-radius:8px; padding:16px; margin:16px 0; border:1px solid #FECACA;">
+          <p style="margin:0;"><strong>Actividad:</strong> ${params.actividad}</p>
+          <p style="margin:8px 0 0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0; color:#DC2626;"><strong>Estado: Rechazada</strong></p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Habla con el equipo directivo de tu centro si necesitas más información.
+        </p>
+      </div>
+    `,
+  });
+}

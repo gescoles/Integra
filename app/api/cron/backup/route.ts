@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { buildTutoriasWorkbook, buildMaterialWorkbook, safeFileName } from "@/lib/exportWorkbooks";
+import { buildTutoriasWorkbook, buildMaterialWorkbook, buildSalidasWorkbook, safeFileName } from "@/lib/exportWorkbooks";
 import { ensureSubfolder, uploadXlsxToDrive } from "@/lib/googleDrive";
 
 export const maxDuration = 300; // 5 minutos: puede haber muchos centros que respaldar
@@ -49,6 +49,14 @@ export async function GET(req: NextRequest) {
         const { workbook } = await buildMaterialWorkbook(school.id);
         const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
         await uploadXlsxToDrive(dateFolderId, `Material_${fecha}.xlsx`, buffer);
+      }
+
+      if (school.modules.includes("salidas")) {
+        const salidasFolderId = await ensureSubfolder(schoolFolderId, "Salidas");
+        const dateFolderId = await ensureSubfolder(salidasFolderId, fecha);
+        const { workbook } = await buildSalidasWorkbook(school.id);
+        const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
+        await uploadXlsxToDrive(dateFolderId, `Salidas_${fecha}.xlsx`, buffer);
       }
 
       resultados.push({ centro: school.name, ok: true });

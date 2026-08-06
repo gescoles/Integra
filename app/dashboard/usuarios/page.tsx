@@ -75,7 +75,7 @@ export default async function UsuariosPage({
           subtitle={translate(locale, "usuarios.subtitle.elegirCentro")}
           userName={userName}
           role={role}
-          notificationCount={3}
+          notificationCount={0}
         />
         <nav className="mb-5 flex items-center gap-2 text-xs text-slate-400">
           <Link href="/dashboard" className="hover:text-[#2F6FED]">
@@ -143,7 +143,7 @@ export default async function UsuariosPage({
         subtitle={translate(locale, "usuarios.subtitle.centro")}
         userName={userName}
         role={role}
-        notificationCount={3}
+        notificationCount={0}
       />
 
       <nav className="mb-5 flex items-center gap-2 text-xs text-slate-400">

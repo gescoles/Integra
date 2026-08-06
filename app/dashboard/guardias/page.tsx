@@ -5,6 +5,7 @@ import { DashboardHeader } from "../components/DashboardHeader";
 import { translate } from "../i18n";
 import { ModuleLocked } from "../components/ModuleLocked";
 import { GuardiasClient } from "./GuardiasClient";
+import { GuardiaFormModal } from "./GuardiaFormModal";
 import { SchoolPicker, SchoolSwitcher } from "../components/SchoolPicker";
 
 async function getGuardiasCentro(schoolId: string) {
@@ -25,6 +26,8 @@ async function getGuardiasCentro(schoolId: string) {
     id: g.id,
     turno: g.turno,
     ubicacion: g.ubicacion,
+    grupo: g.grupo,
+    tarea: g.tarea,
     status: g.status,
     fecha: g.fecha.toISOString(),
     profesorId: g.profesorId,
@@ -74,6 +77,9 @@ export default async function GuardiasPage({
       <div>
         <DashboardHeader title={translate(locale, "guardias.title")} subtitle={translate(locale, "guardias.subtitle.superadmin")} userName={userName} role={role} />
         <SchoolSwitcher schools={schools} currentSchoolId={searchParams.school} locale={locale} basePath="/dashboard/guardias" />
+        <div className="mb-5 flex justify-end">
+          <GuardiaFormModal schoolId={searchParams.school} profesores={profesores} />
+        </div>
         <GuardiasClient rows={rows} profesores={profesores} />
       </div>
     );
@@ -139,6 +145,8 @@ export default async function GuardiasPage({
     id: g.id,
     turno: g.turno,
     ubicacion: g.ubicacion,
+    grupo: g.grupo,
+    tarea: g.tarea,
     status: g.status,
     fecha: g.fecha.toISOString(),
     profesorId: g.profesorId,
@@ -159,6 +167,11 @@ export default async function GuardiasPage({
         role={role}
         notificationCount={0}
       />
+      {!isProfesor && (
+        <div className="mb-5 flex justify-end">
+          <GuardiaFormModal schoolId={schoolId} profesores={profesores} />
+        </div>
+      )}
       <GuardiasClient rows={rows} profesores={profesores} />
     </div>
   );

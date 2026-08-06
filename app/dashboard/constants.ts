@@ -58,3 +58,15 @@ export const ROLE_LABELS_FULL: Record<string, string> = {
   COORDINADOR: "Coordinación / Dirección",
   PROFESOR: "Profesor",
 };
+
+export const SALIDA_ESTADO_LABELS: Record<string, string> = {
+  PENDIENTE: "Pendiente",
+  APROBADA: "Aprobada",
+  RECHAZADA: "Rechazada",
+};
+
+export const SALIDA_ESTADO_COLORS: Record<string, string> = {
+  PENDIENTE: "bg-amber-50 text-amber-600",
+  APROBADA: "bg-emerald-50 text-emerald-600",
+  RECHAZADA: "bg-red-50 text-red-600",
+};
