@@ -315,6 +315,7 @@ export async function buildPracticasWorkbook(schoolId: string) {
       convenios: {
         include: {
           tutoriasSeguimiento: true,
+          prorrogas: true,
           cerradoPor: { select: { name: true, email: true } },
         },
         orderBy: { createdAt: "asc" },
