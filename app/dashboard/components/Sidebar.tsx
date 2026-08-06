@@ -21,6 +21,7 @@ import {
   CalendarDays,
   Bus,
   CheckSquare,
+  Bot,
 } from "lucide-react";
 import { HexLogo } from "@/app/components/Logo";
 import { ROLE_LABELS_FULL } from "../constants";
@@ -44,6 +45,7 @@ const superadminNav: { href: string; labelKey: TranslationKey; icon: typeof Home
   { href: "/dashboard/roles", labelKey: "nav.roles", icon: ShieldCheck },
   { href: "/dashboard/planes", labelKey: "nav.planes", icon: CreditCard },
   { href: "/dashboard/auditoria", labelKey: "nav.auditoria", icon: Clock },
+  { href: "/dashboard/chatbot-admin", labelKey: "nav.chatbotAdmin", icon: Bot },
   { href: "/dashboard/configuracion", labelKey: "nav.configuracion", icon: Settings },
 ];
 

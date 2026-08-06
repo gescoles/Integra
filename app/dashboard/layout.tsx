@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Sidebar } from "./components/Sidebar";
+import { ChatWidget } from "./components/ChatWidget";
 import { SchoolProvider } from "./SchoolContext";
 
 export default async function DashboardLayout({
@@ -55,6 +56,7 @@ export default async function DashboardLayout({
         <div className="lg:pl-64">
           <div className="mx-auto max-w-7xl px-6 py-8 lg:px-10">{children}</div>
         </div>
+        <ChatWidget userName={userName} />
       </div>
     </SchoolProvider>
   );

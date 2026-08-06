@@ -169,6 +169,22 @@ enum GuardiaStatus {
   PENDIENTE
 }
 
+model ChatbotEntry {
+  id           String   @id @default(cuid())
+  pregunta     String
+  palabrasClave String[] @default([])
+  respuesta    String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+}
+
+model ChatbotPreguntaSinResponder {
+  id        String   @id @default(cuid())
+  texto     String
+  vista     Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
 model Notificacion {
   id        String   @id @default(cuid())
   userId    String
