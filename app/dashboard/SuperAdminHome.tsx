@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "./components/DashboardHeader";
 import { ActivityChart } from "./components/ActivityChart";
 import { PlansDonut } from "./components/PlansDonut";
+import { HistoriasBar } from "./components/HistoriasBar";
 import { translate, AppLocale } from "./i18n";
 import {
   Landmark,
@@ -83,10 +84,12 @@ function dayLabel(d: Date) {
 }
 
 export async function SuperAdminHome({
+  userId,
   userName,
   role,
   locale = "ES",
 }: {
+  userId: string;
   userName: string;
   role: string;
   locale?: AppLocale;
@@ -225,6 +228,8 @@ export async function SuperAdminHome({
         role={role}
         notificationCount={recentActivity.length}
       />
+
+      <HistoriasBar puedeSubir={false} currentUserId={userId} currentUserRole={role} currentUserSchoolId={null} />
 
       {salidasPendientes > 0 && (
         <Link

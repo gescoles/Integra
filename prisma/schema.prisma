@@ -57,6 +57,7 @@ model School {
   userLimit Int          @default(50)
   modules   String[]     @default([])
   logoUrl   String?
+  cursoAcademico String?
   createdAt DateTime     @default(now())
   updatedAt DateTime     @default(now()) @updatedAt
   users     User[]
@@ -67,6 +68,42 @@ model School {
   avisos    Aviso[]
   salidas   Salida[]
   practicas PracticaAlumno[]
+  historias Historia[]
+}
+
+// Una "historia" (como en Instagram) que un centro publica; la ven todos
+// los usuarios de todos los centros registrados en Integra, y desaparece
+// pasadas 24 horas.
+enum TipoHistoria {
+  IMAGEN
+  VIDEO
+}
+
+model Historia {
+  id           String       @id @default(cuid())
+  schoolId     String
+  school       School       @relation(fields: [schoolId], references: [id])
+  autorId      String
+  autor        User         @relation(fields: [autorId], references: [id])
+  tipo         TipoHistoria @default(IMAGEN)
+  imagenUrl    String
+  texto        String?
+  createdAt    DateTime     @default(now())
+  expiraEn     DateTime
+  vistas       HistoriaVista[]
+}
+
+// Registro de quién ha visto cada historia (para el "quién ha visto mi
+// historia").
+model HistoriaVista {
+  id         String   @id @default(cuid())
+  historiaId String
+  historia   Historia @relation(fields: [historiaId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  vistoEn    DateTime @default(now())
+
+  @@unique([historiaId, userId])
 }
 
 model User {
@@ -95,6 +132,8 @@ model User {
   practicasComoTutor PracticaAlumno[] @relation("PracticaTutorIMES")
   conveniosCerrados  Convenio[] @relation("ConvenioCerradoPor")
   tutoriasSeguimientoCreadas TutoriaSeguimiento[] @relation("TutoriaSeguimientoCreador")
+  historias         Historia[]
+  historiasVistas   HistoriaVista[]
   notificaciones     Notificacion[]
 }
 

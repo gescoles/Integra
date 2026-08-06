@@ -2,7 +2,11 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "./components/DashboardHeader";
 import { translate, AppLocale } from "./i18n";
+import { HistoriasBar } from "./components/HistoriasBar";
 import { AvisosSection } from "./components/AvisosSection";
+import { BienvenidaCard } from "./components/BienvenidaCard";
+import { AgendaTimeline, type AgendaItem } from "./components/AgendaTimeline";
+import { ComunidadPanel } from "./components/ComunidadPanel";
 import {
   ShieldCheck,
   BookOpen,
@@ -64,12 +68,31 @@ export async function CoordinadorHome({
 
   const school = await prisma.school.findUnique({
     where: { id: schoolId },
-    select: { modules: true },
+    select: { name: true, logoUrl: true, cursoAcademico: true, city: true, modules: true },
   });
   const modules = school?.modules ?? [];
   const hasTutorias = modules.includes("tutorias");
   const hasGuardias = modules.includes("guardias");
   const hasSalidas = modules.includes("salidas");
+
+  const [numAlumnos, numDocentes, avisosRaw] = await Promise.all([
+    prisma.alumno.count({ where: { schoolId } }),
+    prisma.user.count({ where: { schoolId, role: { in: ["PROFESOR", "COORDINADOR", "ADMIN_CENTRO"] } } }),
+    prisma.aviso.findMany({
+      where: {},
+      include: { school: { select: { name: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+    }),
+  ]);
+  const avisos = avisosRaw.map((a) => ({
+    id: a.id,
+    titulo: a.titulo,
+    cuerpo: a.cuerpo,
+    categoria: a.categoria,
+    createdAt: a.createdAt.toISOString(),
+    schoolName: a.school.name,
+  }));
 
   const salidasPendientes = hasSalidas
     ? await prisma.salida.count({ where: { schoolId, estado: "PENDIENTE" } })
@@ -157,6 +180,52 @@ export async function CoordinadorHome({
 
   const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
 
+  const agendaItems: AgendaItem[] = [
+    {
+      key: "tutoria",
+      label: "Próxima tutoría",
+      time: nextTutoria ? nextTutoria.sessionDate : null,
+      detailLinea1: nextTutoria?.cicloModulo ?? "Tutoría individual",
+      detailLinea2: nextTutoria?.studentName,
+      href: "/dashboard/tutorias",
+      colorClase: "bg-violet-500",
+      icon: MessageCircle,
+      disponible: hasTutorias,
+    },
+    {
+      key: "guardia",
+      label: "Próxima guardia",
+      time: nextGuardia ? nextGuardia.fecha : null,
+      detailLinea1: nextGuardia?.turno ?? "",
+      detailLinea2: nextGuardia?.ubicacion ?? undefined,
+      href: "/dashboard/guardias",
+      colorClase: "bg-emerald-500",
+      icon: ShieldCheck,
+      disponible: hasGuardias,
+    },
+    {
+      key: "clase",
+      label: "Próxima clase",
+      time: nextClase ? combineTodayTime(nextClase.horaInicio) : null,
+      detailLinea1: nextClase?.asignatura ?? "",
+      detailLinea2: nextClase?.grupo ?? undefined,
+      href: "/dashboard/horario",
+      colorClase: "bg-amber-500",
+      icon: BookOpen,
+      disponible: true,
+    },
+    {
+      key: "evento",
+      label: "Próximo evento",
+      time: nextEvento ? combineTodayTime(nextEvento.horaInicio) : null,
+      detailLinea1: nextEvento?.title ?? "",
+      href: "/dashboard/calendario",
+      colorClase: "bg-pink-500",
+      icon: Users,
+      disponible: true,
+    },
+  ];
+
   return (
     <div>
       <DashboardHeader
@@ -164,6 +233,17 @@ export async function CoordinadorHome({
         subtitle={translate(locale, "home.subtitle.centro")}
         notificationCount={agenda.length}
       />
+
+      <div className="mb-5">
+        <BienvenidaCard
+          userName={userName}
+          logoUrl={school?.logoUrl}
+          numAlumnos={numAlumnos}
+          numDocentes={numDocentes}
+          city={school?.city}
+          cursoAcademico={school?.cursoAcademico}
+        />
+      </div>
 
       {salidasPendientes > 0 && (
         <Link
@@ -184,126 +264,19 @@ export async function CoordinadorHome({
         </Link>
       )}
 
-      {/* ¿Qué tengo hoy? */}
-      <div className="mb-2">
-        <h2 className="text-sm font-bold text-[#0B1D4D]">¿Qué tengo hoy?</h2>
-        <p className="text-xs text-slate-500">Aquí tienes tu próxima actividad en cada área clave.</p>
+      <div className="mb-5">
+        <AgendaTimeline
+          titulo="Agenda y prioridades de hoy"
+          verMasHref="/dashboard/calendario"
+          items={agendaItems}
+        />
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Próxima tutoría */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50">
-              <MessageCircle className="h-4 w-4 text-[#2F6FED]" />
-            </div>
-            <span className="text-xs font-semibold text-slate-500">Próxima tutoría</span>
-          </div>
-          {!hasTutorias ? (
-            <p className="mt-2 text-xs text-slate-400">Módulo no contratado por tu centro.</p>
-          ) : nextTutoria ? (
-            <>
-              <div className="mt-2 text-xl font-bold text-[#0B1D4D]">
-                {nextTutoria.sessionDate.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
-              </div>
-              <p className="text-xs text-slate-500">
-                {nextTutoria.cicloModulo ?? ""} · Tutoría individual
-                <br />
-                {nextTutoria.studentName}
-              </p>
-              <Link
-                href="/dashboard/tutorias"
-                className="mt-2 inline-flex items-center justify-center rounded-lg bg-[#2F6FED] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#255ed1]"
-              >
-                Abrir tutoría
-              </Link>
-            </>
-          ) : (
-            <p className="mt-2 text-xs text-slate-400">Sin tutorías para hoy.</p>
-          )}
-        </div>
 
-        {/* Próxima guardia */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50">
-              <ShieldCheck className="h-4 w-4 text-emerald-600" />
-            </div>
-            <span className="text-xs font-semibold text-slate-500">Próxima guardia</span>
-          </div>
-          {!hasGuardias ? (
-            <p className="mt-2 text-xs text-slate-400">Módulo no contratado por tu centro.</p>
-          ) : nextGuardia ? (
-            <>
-              <div className="mt-2 text-xl font-bold text-[#0B1D4D]">
-                {nextGuardia.fecha.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
-              </div>
-              <p className="text-xs text-slate-500">
-                {nextGuardia.ubicacion ?? ""}
-                <br />
-                {nextGuardia.turno}
-              </p>
-              <Link
-                href="/dashboard/guardias"
-                className="mt-2 inline-flex items-center justify-center rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50"
-              >
-                Ver mis guardias
-              </Link>
-            </>
-          ) : (
-            <p className="mt-2 text-xs text-slate-400">Sin guardias para hoy.</p>
-          )}
-        </div>
-
-        {/* Próximo evento */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-50">
-              <Users className="h-4 w-4 text-pink-600" />
-            </div>
-            <span className="text-xs font-semibold text-slate-500">Próximo evento</span>
-          </div>
-          {nextEvento ? (
-            <>
-              <div className="mt-2 text-xl font-bold text-[#0B1D4D]">{nextEvento.horaInicio}</div>
-              <p className="text-xs text-slate-500">{nextEvento.title}</p>
-              <Link
-                href="/dashboard/calendario"
-                className="mt-2 inline-flex items-center justify-center rounded-lg border border-pink-200 px-3 py-1.5 text-xs font-semibold text-pink-600 hover:bg-pink-50"
-              >
-                Ver calendario
-              </Link>
-            </>
-          ) : (
-            <p className="mt-2 text-xs text-slate-400">Sin eventos para hoy.</p>
-          )}
-        </div>
-
-        {/* Próxima clase */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50">
-              <BookOpen className="h-4 w-4 text-amber-600" />
-            </div>
-            <span className="text-xs font-semibold text-slate-500">Próxima clase</span>
-          </div>
-          {nextClase ? (
-            <>
-              <div className="mt-2 text-xl font-bold text-[#0B1D4D]">{nextClase.horaInicio}</div>
-              <p className="text-xs text-slate-500">
-                {nextClase.grupo ?? ""} · {nextClase.asignatura}
-              </p>
-              <Link
-                href="/dashboard/horario"
-                className="mt-2 inline-flex items-center justify-center rounded-lg border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-600 hover:bg-amber-50"
-              >
-                Ver clase
-              </Link>
-            </>
-          ) : (
-            <p className="mt-2 text-xs text-slate-400">Sin clases para hoy.</p>
-          )}
-        </div>
+      <div className="mb-5 grid gap-5 lg:grid-cols-2">
+        <HistoriasBar puedeSubir={role === "COORDINADOR" || role === "ADMIN_CENTRO"} currentUserId={userId} currentUserRole={role} currentUserSchoolId={schoolId} />
+        <ComunidadPanel avisos={avisos} />
       </div>
+
 
       {/* Agenda del día + Horario fijo semanal */}
       <div className="mt-5 grid gap-5 lg:grid-cols-2">

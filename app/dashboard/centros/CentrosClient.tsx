@@ -36,6 +36,7 @@ type SchoolRow = {
   userCount: number;
   updatedAt: string;
   logoUrl: string | null;
+  cursoAcademico: string | null;
 };
 
 export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
@@ -503,6 +504,35 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
                     {label}
                   </option>
                 ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-slate-600">
+                Curso académico
+              </label>
+              <select
+                name="cursoAcademico"
+                defaultValue={selected.cursoAcademico ?? ""}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+              >
+                <option value="">—</option>
+                {(() => {
+                  const anyoActual = new Date().getFullYear();
+                  const opciones: string[] = [];
+                  for (let i = -1; i <= 2; i++) {
+                    const inicio = anyoActual + i;
+                    opciones.push(`${inicio}-${inicio + 1}`);
+                  }
+                  if (selected.cursoAcademico && !opciones.includes(selected.cursoAcademico)) {
+                    opciones.unshift(selected.cursoAcademico);
+                  }
+                  return opciones.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ));
+                })()}
               </select>
             </div>
 

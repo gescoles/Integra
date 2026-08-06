@@ -32,6 +32,7 @@ export default async function CentrosPage() {
     userCount: s._count.users,
     updatedAt: new Date(s.updatedAt).toLocaleDateString("es-ES"),
     logoUrl: s.logoUrl,
+    cursoAcademico: s.cursoAcademico,
   }));
 
   const stats = {

@@ -135,6 +135,32 @@ export function CreateSchoolModal() {
               </div>
 
               <div>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                  Curso académico
+                </label>
+                <select
+                  name="cursoAcademico"
+                  defaultValue=""
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                >
+                  <option value="">—</option>
+                  {(() => {
+                    const anyoActual = new Date().getFullYear();
+                    const opciones = [];
+                    for (let i = -1; i <= 2; i++) {
+                      const inicio = anyoActual + i;
+                      opciones.push(`${inicio}-${inicio + 1}`);
+                    }
+                    return opciones.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ));
+                  })()}
+                </select>
+              </div>
+
+              <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
                   Módulos contratados
                 </label>

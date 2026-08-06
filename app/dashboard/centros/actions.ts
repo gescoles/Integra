@@ -12,6 +12,7 @@ export async function createSchool(formData: FormData) {
   const plan = formData.get("plan") as Plan;
   const userLimitRaw = formData.get("userLimit") as string;
   const modules = formData.getAll("modules") as string[];
+  const cursoAcademico = (formData.get("cursoAcademico") as string)?.trim();
 
   if (!name) {
     throw new Error("El nombre del centro es obligatorio.");
@@ -25,6 +26,7 @@ export async function createSchool(formData: FormData) {
       plan: plan || "BASICO",
       userLimit: Number(userLimitRaw) || 50,
       modules,
+      cursoAcademico: cursoAcademico || null,
     },
   });
 
@@ -37,6 +39,7 @@ export async function saveSchoolSettings(formData: FormData) {
   const status = formData.get("status") as SchoolStatus;
   const userLimitRaw = formData.get("userLimit") as string;
   const modules = formData.getAll("modules") as string[];
+  const cursoAcademico = (formData.get("cursoAcademico") as string)?.trim();
 
   if (!id) {
     throw new Error("Falta el identificador del centro.");
@@ -49,6 +52,7 @@ export async function saveSchoolSettings(formData: FormData) {
       status,
       userLimit: Number(userLimitRaw) || 50,
       modules,
+      cursoAcademico: cursoAcademico || null,
     },
   });
 
@@ -90,6 +94,7 @@ export async function deleteSchool(id: string) {
   // borrar la ficha ANTES que el alumno al que pertenece.
   await prisma.practicaAlumno.deleteMany({ where: { schoolId: id } });
   await prisma.salida.deleteMany({ where: { schoolId: id } });
+  await prisma.historia.deleteMany({ where: { schoolId: id } });
   await prisma.tutoria.deleteMany({ where: { schoolId: id } });
   await prisma.guardia.deleteMany({ where: { schoolId: id } });
   await prisma.materialRequest.deleteMany({ where: { schoolId: id } });
