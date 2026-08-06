@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -8,6 +8,8 @@ import {
   Home,
   Landmark,
   Users,
+  Menu,
+  X,
   ShieldCheck,
   CreditCard,
   Clock,
@@ -87,18 +89,62 @@ export function Sidebar({
   const { locale } = useLocale();
   const roleLabel = ROLE_LABELS_FULL[role] ?? role;
   const isSuperAdmin = role === "SUPERADMIN";
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // En cuanto se navega a otra página, cerramos el menú deslizante del
+  // móvil solo — así no hay que acordarse de cerrarlo a mano en cada enlace.
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col bg-[#0B1D4D] lg:flex">
-      <div className="flex items-center gap-2.5 px-6 py-4">
-        <HexLogo size={32} />
-        <div className="leading-tight">
-          <div className="text-base font-bold text-white">Integra</div>
-          <div className="text-[10px] text-slate-400">
-            Gestión inteligente para centros educativos
-          </div>
+    <>
+      {/* Barra superior solo para móvil/tablet: logo + botón de menú */}
+      <div className="fixed inset-x-0 top-0 z-30 flex items-center justify-between bg-[#0B1D4D] px-4 py-3 lg:hidden">
+        <div className="flex items-center gap-2">
+          <HexLogo size={26} />
+          <span className="text-sm font-bold text-white">Integra</span>
         </div>
+        <button
+          onClick={() => setMobileOpen(true)}
+          aria-label="Abrir menú"
+          className="rounded-lg p-1.5 text-white hover:bg-white/10"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
       </div>
+
+      {/* Fondo oscuro al abrir el menú en móvil */}
+      {mobileOpen && (
+        <div
+          onClick={() => setMobileOpen(false)}
+          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+        />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-[#0B1D4D] transition-transform duration-200 lg:translate-x-0 ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-2.5 px-6 py-4">
+          <div className="flex items-center gap-2.5">
+            <HexLogo size={32} />
+            <div className="leading-tight">
+              <div className="text-base font-bold text-white">Integra</div>
+              <div className="text-[10px] text-slate-400">
+                Gestión inteligente para centros educativos
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => setMobileOpen(false)}
+            aria-label="Cerrar menú"
+            className="rounded-lg p-1.5 text-slate-300 hover:bg-white/10 hover:text-white lg:hidden"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
       <nav className="no-scrollbar min-h-0 flex-1 space-y-0.5 overflow-y-auto px-4">
         {isSuperAdmin &&
@@ -271,5 +317,6 @@ export function Sidebar({
         </button>
       </div>
     </aside>
+    </>
   );
 }

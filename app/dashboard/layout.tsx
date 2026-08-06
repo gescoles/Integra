@@ -54,7 +54,7 @@ export default async function DashboardLayout({
           role={session.user.role}
           contractedModules={contractedModules}
         />
-        <div className="lg:pl-64">
+        <div className="pt-14 lg:pl-64 lg:pt-0">
           <div className="mx-auto max-w-7xl px-6 py-8 lg:px-10">{children}</div>
         </div>
         <ChatWidget userName={userName} />
