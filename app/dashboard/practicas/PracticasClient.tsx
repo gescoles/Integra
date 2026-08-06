@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, ChevronRight, FileText } from "lucide-react";
+import { Search, ChevronRight, FileText, FileSpreadsheet } from "lucide-react";
 import { useLocale } from "../SchoolContext";
 import { translate } from "../i18n";
 
@@ -24,10 +24,12 @@ export function PracticasClient({
   rows,
   profesores,
   showFilters = false,
+  schoolId,
 }: {
   rows: Row[];
   profesores: ProfesorOption[];
   showFilters?: boolean;
+  schoolId?: string | null;
 }) {
   const { locale } = useLocale();
   const [search, setSearch] = useState("");
@@ -78,6 +80,15 @@ export function PracticasClient({
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
+        )}
+
+        {showFilters && schoolId && (
+          <a
+            href={`/api/practicas/export?school=${schoolId}`}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+          >
+            <FileSpreadsheet className="h-4 w-4" /> {translate(locale, "practicas.descargarExcel")}
+          </a>
         )}
       </div>
 

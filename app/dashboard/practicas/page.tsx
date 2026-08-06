@@ -105,7 +105,7 @@ export default async function PracticasPage({
         <div className="mb-5 flex justify-end">
           <FichaAlumnoFormModal alumnos={alumnosSinFicha} userName={userName} />
         </div>
-        <PracticasClient rows={rows} profesores={profesores} showFilters />
+        <PracticasClient rows={rows} profesores={profesores} showFilters schoolId={searchParams.school} />
       </div>
     );
   }
@@ -150,7 +150,7 @@ export default async function PracticasPage({
       <div className="mb-5 flex justify-end">
         <FichaAlumnoFormModal alumnos={alumnosSinFicha} userName={userName} />
       </div>
-      <PracticasClient rows={rows} profesores={profesores} showFilters={isEquipoDirectivo} />
+      <PracticasClient rows={rows} profesores={profesores} showFilters={isEquipoDirectivo} schoolId={schoolId} />
     </div>
   );
 }

@@ -300,6 +300,177 @@ export async function buildSalidasWorkbook(schoolId: string, responsableId?: str
   };
 }
 
+/**
+ * Genera el Excel de Prácticas de un centro: una pestaña por ciclo
+ * formativo, con una fila por cada convenio de cada alumno (si un alumno
+ * tiene varios convenios, sale una fila por convenio; si todavía no tiene
+ * ninguno, sale igualmente una fila solo con su ficha).
+ */
+export async function buildPracticasWorkbook(schoolId: string) {
+  const fichasRaw = await prisma.practicaAlumno.findMany({
+    where: { schoolId },
+    include: {
+      alumno: { select: { nombre: true, curso: true } },
+      tutorImes: { select: { name: true, email: true } },
+      convenios: {
+        include: {
+          tutoriasSeguimiento: true,
+          cerradoPor: { select: { name: true, email: true } },
+        },
+        orderBy: { createdAt: "asc" },
+      },
+    },
+    orderBy: [{ cicloFormativo: "asc" }, { createdAt: "asc" }],
+  });
+
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "Integra";
+  workbook.created = new Date();
+
+  const ciclos = Array.from(new Set(fichasRaw.map((f) => f.cicloFormativo || "Sin ciclo"))).sort();
+  const usedNames = new Set<string>();
+
+  const columnas = [
+    { header: "Alumno", key: "alumno", width: 24 },
+    { header: "Curso", key: "curso", width: 12 },
+    { header: "Promoción", key: "promocion", width: 12 },
+    { header: "Año titulación", key: "anyTitulacion", width: 12 },
+    { header: "Tutor centro", key: "tutorImes", width: 20 },
+    { header: "DNI", key: "dni", width: 12 },
+    { header: "Fecha nacimiento", key: "fechaNacimiento", width: 14 },
+    { header: "Teléfono", key: "telefono", width: 13 },
+    { header: "Correo alumno", key: "correoAlumno", width: 22 },
+    { header: "Dirección", key: "direccion", width: 24 },
+    { header: "CAP", key: "cap", width: 10 },
+    { header: "NUSS", key: "nuss", width: 14 },
+    { header: "Tipología convenio", key: "tipologia", width: 16 },
+    { header: "Estado acuerdo", key: "estadoAcuerdo", width: 14 },
+    { header: "Convalida", key: "convalida", width: 10 },
+    { header: "Alta/baja SS", key: "quienAltaBajaSS", width: 16 },
+    { header: "Fecha inicio", key: "fechaInicio", width: 12 },
+    { header: "Fecha fin", key: "fechaFin", width: 12 },
+    { header: "Período", key: "periodo", width: 20 },
+    { header: "Empresa", key: "empresaNombre", width: 22 },
+    { header: "CIF empresa", key: "empresaCif", width: 14 },
+    { header: "Tutor empresa", key: "tutorEmpresaNombre", width: 20 },
+    { header: "Tel. tutor empresa", key: "tutorEmpresaTelefono", width: 15 },
+    { header: "Correo tutor empresa", key: "tutorEmpresaCorreo", width: 22 },
+    { header: "Observaciones convenio", key: "observaciones", width: 28 },
+    { header: "Nº prórrogas", key: "numProrrogas", width: 11 },
+    { header: "Tutoría inicial", key: "tutInicial", width: 26 },
+    { header: "Tutoría media", key: "tutMedia", width: 26 },
+    { header: "Tutoría final", key: "tutFinal", width: 26 },
+    { header: "Cerrado", key: "cerrado", width: 10 },
+    { header: "Nota final", key: "notaFinal", width: 11 },
+    { header: "Fecha cierre", key: "fechaCierre", width: 12 },
+    { header: "Cerrado por", key: "cerradoPor", width: 18 },
+  ];
+
+  for (const ciclo of ciclos) {
+    const fichasDelCiclo = fichasRaw.filter((f) => (f.cicloFormativo || "Sin ciclo") === ciclo);
+    const sheet = workbook.addWorksheet(sheetName(ciclo, usedNames));
+    sheet.columns = columnas;
+    styleHeaderRow(sheet.getRow(1));
+
+    for (const ficha of fichasDelCiclo) {
+      const datosAlumno = {
+        alumno: ficha.alumno.nombre,
+        curso: ficha.alumno.curso,
+        promocion: ficha.promocion === "PRIMERA" ? "1ª promoción" : "2ª promoción",
+        anyTitulacion: ficha.anyTitulacion ?? "—",
+        tutorImes: ficha.tutorImes?.name ?? ficha.tutorImes?.email ?? "—",
+        dni: ficha.dni ?? "—",
+        fechaNacimiento: ficha.fechaNacimiento ? ficha.fechaNacimiento.toLocaleDateString("es-ES") : "—",
+        telefono: ficha.telefono ?? "—",
+        correoAlumno: ficha.correoAlumno ?? "—",
+        direccion: ficha.direccion ?? "—",
+        cap: ficha.cap ?? "—",
+        nuss: ficha.nuss ?? "—",
+      };
+
+      if (ficha.convenios.length === 0) {
+        const row = sheet.addRow({
+          ...datosAlumno,
+          tipologia: "—",
+          estadoAcuerdo: "—",
+          convalida: "—",
+          quienAltaBajaSS: "—",
+          fechaInicio: "—",
+          fechaFin: "—",
+          periodo: "—",
+          empresaNombre: "Sin convenio todavía",
+          empresaCif: "—",
+          tutorEmpresaNombre: "—",
+          tutorEmpresaTelefono: "—",
+          tutorEmpresaCorreo: "—",
+          observaciones: "—",
+          numProrrogas: 0,
+          tutInicial: "—",
+          tutMedia: "—",
+          tutFinal: "—",
+          cerrado: "—",
+          notaFinal: "—",
+          fechaCierre: "—",
+          cerradoPor: "—",
+        });
+        row.alignment = { vertical: "middle", wrapText: true };
+        continue;
+      }
+
+      for (const c of ficha.convenios) {
+        const porTipo = new Map(c.tutoriasSeguimiento.map((t) => [t.tipo, t]));
+        const fmtTutoria = (tipo: "INICIAL" | "MEDIA" | "FINAL") => {
+          const t = porTipo.get(tipo);
+          if (!t) return "Sin registrar";
+          const partes = [
+            t.fecha ? t.fecha.toLocaleDateString("es-ES") : null,
+            t.medioContacto,
+            t.resumen,
+          ].filter(Boolean);
+          return partes.join(" · ") || "—";
+        };
+
+        const row = sheet.addRow({
+          ...datosAlumno,
+          tipologia: c.tipologia ?? "—",
+          estadoAcuerdo: c.estadoAcuerdo ?? "—",
+          convalida: c.convalida ? "Sí" : "No",
+          quienAltaBajaSS: c.quienAltaBajaSS ?? "—",
+          fechaInicio: c.fechaInicio ? c.fechaInicio.toLocaleDateString("es-ES") : "—",
+          fechaFin: c.fechaFin ? c.fechaFin.toLocaleDateString("es-ES") : "—",
+          periodo: c.periodo ?? "—",
+          empresaNombre: c.empresaNombre ?? "—",
+          empresaCif: c.empresaCif ?? "—",
+          tutorEmpresaNombre: c.tutorEmpresaNombre ?? "—",
+          tutorEmpresaTelefono: c.tutorEmpresaTelefono ?? "—",
+          tutorEmpresaCorreo: c.tutorEmpresaCorreo ?? "—",
+          observaciones: c.observaciones ?? "—",
+          numProrrogas: c.prorrogas?.length ?? 0,
+          tutInicial: fmtTutoria("INICIAL"),
+          tutMedia: fmtTutoria("MEDIA"),
+          tutFinal: fmtTutoria("FINAL"),
+          cerrado: c.cerrado ? "Sí" : "No",
+          notaFinal: c.notaFinal ?? "—",
+          fechaCierre: c.fechaCierre ? c.fechaCierre.toLocaleDateString("es-ES") : "—",
+          cerradoPor: c.cerradoPor?.name ?? c.cerradoPor?.email ?? "—",
+        });
+        row.alignment = { vertical: "middle", wrapText: true };
+      }
+    }
+
+    zebraStripe(sheet);
+    sheet.views = [{ state: "frozen", ySplit: 1 }];
+    sheet.autoFilter = { from: "A1", to: "AG1" };
+  }
+
+  if (workbook.worksheets.length === 0) {
+    const sheet = workbook.addWorksheet("Prácticas");
+    sheet.addRow(["Todavía no se ha creado ninguna ficha de prácticas en este centro."]);
+  }
+
+  return { workbook };
+}
+
 export function safeFileName(name: string) {
   return name.replace(/[^a-z0-9áéíóúñ]+/gi, "_");
 }
