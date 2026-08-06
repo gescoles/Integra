@@ -66,6 +66,7 @@ model School {
   alumnos   Alumno[]
   avisos    Aviso[]
   salidas   Salida[]
+  practicas PracticaAlumno[]
 }
 
 model User {
@@ -91,6 +92,7 @@ model User {
   avisos       Aviso[]
   salidasCreadas     Salida[] @relation("SalidaCreador")
   salidasResponsable Salida[] @relation("SalidaResponsable")
+  practicasComoTutor PracticaAlumno[] @relation("PracticaTutorIMES")
   notificaciones     Notificacion[]
 }
 
@@ -152,6 +154,7 @@ model Alumno {
   createdAt  DateTime         @default(now())
   contactos  AlumnoContacto[]
   tutorias   Tutoria[]
+  practicas  PracticaAlumno[]
 }
 
 model AlumnoContacto {
@@ -232,6 +235,86 @@ model Salida {
   creadoPor    User         @relation("SalidaCreador", fields: [creadoPorId], references: [id])
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @default(now()) @updatedAt
+}
+
+enum Promocion {
+  PRIMERA
+  SEGUNDA
+}
+
+// Ficha de un alumno en prácticas: sus datos personales/administrativos.
+// Cada alumno tiene UNA ficha, y a partir de ahí se le pueden crear uno o
+// varios convenios (a lo largo del tiempo, o si repite ciclo, etc.).
+model PracticaAlumno {
+  id       String @id @default(cuid())
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id])
+  alumnoId String @unique
+  alumno   Alumno @relation(fields: [alumnoId], references: [id])
+
+  promocion      Promocion @default(PRIMERA)
+  cicloFormativo String?
+  anyTitulacion  String?
+
+  // Tutor iMES (profesor del centro responsable del alumno en prácticas)
+  tutorImesId String?
+  tutorImes   User?   @relation("PracticaTutorIMES", fields: [tutorImesId], references: [id])
+
+  dni             String?
+  fechaNacimiento DateTime?
+  telefono        String?
+  direccion       String?
+  correoAlumno    String?
+  cap             String?
+  nuss            String?
+
+  convenios Convenio[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+// Un alumno puede tener varios convenios (por ejemplo, si cambia de empresa,
+// o repite curso). Cada convenio es un acuerdo de prácticas concreto.
+model Convenio {
+  id               String         @id @default(cuid())
+  practicaAlumnoId String
+  practicaAlumno   PracticaAlumno @relation(fields: [practicaAlumnoId], references: [id], onDelete: Cascade)
+
+  tipologia       String?
+  estadoAcuerdo   String?
+  convalida       Boolean   @default(false)
+  quienAltaBajaSS String?
+  fechaInicio     DateTime?
+  fechaFin        DateTime?
+  periodo         String?
+
+  empresaCif           String?
+  empresaNombre        String?
+  tutorEmpresaNombre   String?
+  tutorEmpresaTelefono String?
+  tutorEmpresaCorreo   String?
+
+  observaciones String?
+
+  prorrogas Prorroga[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+// Una prórroga alarga (o repite) el período de un convenio ya existente.
+// Un convenio puede tener varias prórrogas seguidas.
+model Prorroga {
+  id         String   @id @default(cuid())
+  convenioId String
+  convenio   Convenio @relation(fields: [convenioId], references: [id], onDelete: Cascade)
+
+  fechaInicio   DateTime?
+  fechaFin      DateTime?
+  observaciones String?
+
+  createdAt DateTime @default(now())
 }
 
 model Guardia {

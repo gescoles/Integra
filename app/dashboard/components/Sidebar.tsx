@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -38,6 +39,7 @@ const superadminNav: { href: string; labelKey: TranslationKey; icon: typeof Home
   { href: "/dashboard/tutorias", labelKey: "nav.tutorias", icon: Users },
   { href: "/dashboard/guardias", labelKey: "nav.guardias", icon: ShieldCheck },
   { href: "/dashboard/material", labelKey: "nav.material", icon: BookOpen },
+  { href: "/dashboard/practicas", labelKey: "nav.practicas", icon: Briefcase },
   { href: "/dashboard/salidas", labelKey: "nav.salidas", icon: Bus },
   { href: "/dashboard/salidas/aprobaciones", labelKey: "nav.aprobaciones", icon: CheckSquare },
   { href: "/dashboard/calendario", labelKey: "nav.calendario", icon: CalendarDays },
@@ -56,6 +58,7 @@ const centroModulos: { key: string; href: string; labelKey: TranslationKey; icon
   { key: "guardias", href: "/dashboard/guardias", labelKey: "nav.guardias", icon: ShieldCheck },
   { key: "material", href: "/dashboard/material", labelKey: "nav.material", icon: BookOpen },
   { key: "salidas", href: "/dashboard/salidas", labelKey: "nav.salidas", icon: Bus },
+  { key: "practicas", href: "/dashboard/practicas", labelKey: "nav.practicas", icon: Briefcase },
 ];
 
 // Utilidades (Calendario y Horario): igual que los módulos de arriba, solo
@@ -67,7 +70,6 @@ const utilidadesModulos: { key: string; href: string; labelKey: TranslationKey; 
 
 // Funcionalidades que todavía no existen para nadie, independientemente del plan
 const centroProximamente = [
-  { label: "Prácticas", icon: Briefcase },
   { label: "Coordinación", icon: UsersRound },
   { label: "Disciplina", icon: ShieldAlert },
 ];
@@ -154,36 +156,38 @@ export function Sidebar({
             }
 
             return (
-              <Link
-                key={item.key}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  active
-                    ? "bg-[#2F6FED] text-white"
-                    : "text-slate-300 hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                <item.icon className="h-4 w-4" />
-                {translate(locale, item.labelKey)}
-              </Link>
+              <Fragment key={item.key}>
+                <Link
+                  href={item.href}
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    active
+                      ? "bg-[#2F6FED] text-white"
+                      : "text-slate-300 hover:bg-white/5 hover:text-white"
+                  }`}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {translate(locale, item.labelKey)}
+                </Link>
+
+                {/* "Aprobaciones" es un submenú de Salidas en concreto, así
+                    que va justo debajo de ese enlace, no del último módulo
+                    de toda la lista. */}
+                {item.key === "salidas" && (role === "COORDINADOR" || role === "ADMIN_CENTRO") && (
+                  <Link
+                    href="/dashboard/salidas/aprobaciones"
+                    className={`ml-6 flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                      pathname === "/dashboard/salidas/aprobaciones"
+                        ? "bg-[#2F6FED] text-white"
+                        : "text-slate-400 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    <CheckSquare className="h-3.5 w-3.5" />
+                    {translate(locale, "nav.aprobaciones")}
+                  </Link>
+                )}
+              </Fragment>
             );
           })}
-
-        {!isSuperAdmin &&
-          contractedModules.includes("salidas") &&
-          (role === "COORDINADOR" || role === "ADMIN_CENTRO") && (
-            <Link
-              href="/dashboard/salidas/aprobaciones"
-              className={`ml-6 flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors ${
-                pathname === "/dashboard/salidas/aprobaciones"
-                  ? "bg-[#2F6FED] text-white"
-                  : "text-slate-400 hover:bg-white/5 hover:text-white"
-              }`}
-            >
-              <CheckSquare className="h-3.5 w-3.5" />
-              {translate(locale, "nav.aprobaciones")}
-            </Link>
-          )}
 
         {!isSuperAdmin && (
           <div className="pt-2">
