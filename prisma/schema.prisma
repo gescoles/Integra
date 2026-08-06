@@ -178,10 +178,12 @@ model Notificacion {
   titulo    String
   mensaje   String
   link      String?
+  relatedId String?
   leida     Boolean  @default(false)
   createdAt DateTime @default(now())
 
   @@index([userId, leida])
+  @@index([relatedId])
 }
 
 enum SalidaEstado {

@@ -9,7 +9,7 @@ import {
   sendSalidaAprobadaEmail,
   sendSalidaRechazadaEmail,
 } from "@/lib/email";
-import { notifyUsers } from "@/lib/notifications";
+import { notifyUsers, clearNotificationsFor } from "@/lib/notifications";
 
 export async function createSalida(formData: FormData) {
   const session = await getServerSession(authOptions);
@@ -99,6 +99,7 @@ export async function createSalida(formData: FormData) {
         titulo: "Nueva salida pendiente de aprobar",
         mensaje: `${creadorNombre} ha propuesto "${actividad}" (${curso}) para el ${fecha.toLocaleDateString("es-ES")}.`,
         link: "/dashboard/salidas/aprobaciones",
+        relatedId: salida.id,
       }
     );
 
@@ -144,6 +145,10 @@ export async function aprobarSalida(id: string) {
   revalidatePath("/dashboard/salidas");
   revalidatePath("/dashboard/salidas/aprobaciones");
   revalidatePath("/dashboard");
+
+  // La notificación de "pendiente de aprobar" ya no tiene sentido para
+  // nadie del equipo directivo una vez resuelta: la quitamos para todos.
+  await clearNotificationsFor(id);
 
   try {
     // Avisamos al profesor que la creó Y a todo el equipo directivo del
@@ -200,6 +205,8 @@ export async function rechazarSalida(id: string) {
   revalidatePath("/dashboard/salidas");
   revalidatePath("/dashboard/salidas/aprobaciones");
   revalidatePath("/dashboard");
+
+  await clearNotificationsFor(id);
 
   try {
     const equipoDirectivo = await prisma.user.findMany({

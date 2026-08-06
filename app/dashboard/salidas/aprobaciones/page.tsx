@@ -24,6 +24,12 @@ async function getPendientes(schoolId: string) {
     orderBy: { fecha: "asc" },
   });
 
+  const todosLosIds = Array.from(new Set(salidasRaw.flatMap((s) => s.profesoresIds)));
+  const profesoresAcompanantes = todosLosIds.length
+    ? await prisma.user.findMany({ where: { id: { in: todosLosIds } }, select: { id: true, name: true, email: true } })
+    : [];
+  const nombrePorId = new Map(profesoresAcompanantes.map((p) => [p.id, p.name ?? p.email]));
+
   return salidasRaw.map((s) => ({
     id: s.id,
     curso: s.curso,
@@ -34,6 +40,7 @@ async function getPendientes(schoolId: string) {
     horaVuelta: s.horaVuelta,
     vueltaDirectaCasa: s.vueltaDirectaCasa,
     responsableName: s.responsable?.name ?? s.responsable?.email ?? "—",
+    acompanantesNombres: s.profesoresIds.map((id) => nombrePorId.get(id) ?? "—"),
     numAlumnos: s.numAlumnos,
     costo: s.costo,
     moneda: s.moneda,

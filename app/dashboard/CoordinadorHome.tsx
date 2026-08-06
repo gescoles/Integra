@@ -9,6 +9,7 @@ import {
   Users,
   MessageCircle,
   CheckCircle2,
+  Bus,
 } from "lucide-react";
 
 function startOfToday() {
@@ -68,6 +69,11 @@ export async function CoordinadorHome({
   const modules = school?.modules ?? [];
   const hasTutorias = modules.includes("tutorias");
   const hasGuardias = modules.includes("guardias");
+  const hasSalidas = modules.includes("salidas");
+
+  const salidasPendientes = hasSalidas
+    ? await prisma.salida.count({ where: { schoolId, estado: "PENDIENTE" } })
+    : 0;
 
   const hoy = startOfToday();
   const finHoy = endOfToday();
@@ -158,6 +164,25 @@ export async function CoordinadorHome({
         subtitle={translate(locale, "home.subtitle.centro")}
         notificationCount={agenda.length}
       />
+
+      {salidasPendientes > 0 && (
+        <Link
+          href="/dashboard/salidas/aprobaciones"
+          className="mb-5 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 hover:bg-amber-100"
+        >
+          <div className="flex items-center gap-2.5">
+            <Bus className="h-4 w-4 shrink-0 text-amber-600" />
+            <span className="text-sm font-semibold text-amber-800">
+              {salidasPendientes === 1
+                ? translate(locale, "home.salidaPendienteSingular")
+                : `${salidasPendientes} ${translate(locale, "home.salidasPendientesPlural")}`}
+            </span>
+          </div>
+          <span className="text-xs font-semibold text-amber-700 underline">
+            {translate(locale, "home.revisarAhora")}
+          </span>
+        </Link>
+      )}
 
       {/* ¿Qué tengo hoy? */}
       <div className="mb-2">
