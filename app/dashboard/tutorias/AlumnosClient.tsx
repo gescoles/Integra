@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition, type ReactElement } from "react";
+import { useMemo, useState, type ReactElement } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search,
@@ -31,7 +31,7 @@ import {
   MEDIO_LABELS,
 } from "./alumnoConstants";
 import { TUTORIA_STATUS_COLORS } from "../constants";
-import { useLocale } from "../SchoolContext";
+import { useLocale, useGuardadoTransition } from "../SchoolContext";
 import { translate } from "../i18n";
 
 type Contacto = { id: string; relacion: string; telefono: string | null; email: string | null };
@@ -86,8 +86,8 @@ export function AlumnosClient({
   const [error, setError] = useState<string | null>(null);
   const [cerrarError, setCerrarError] = useState<string | null>(null);
   const [justLength, setJustLength] = useState(0);
-  const [pending, startTransition] = useTransition();
-  const [cerrando, startCerrarTransition] = useTransition();
+  const [pending, startTransition] = useGuardadoTransition();
+  const [cerrando, startCerrarTransition] = useGuardadoTransition();
 
   async function handleEditTutoria(formData: FormData) {
     setError(null);

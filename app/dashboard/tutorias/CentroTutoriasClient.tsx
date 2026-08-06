@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import {
   Search,
   Calendar,
@@ -28,7 +28,7 @@ import {
   RIESGO_COLORS,
 } from "./alumnoConstants";
 import { deleteTutoriaAlumno, cerrarTutoria, deleteAlumno } from "./alumnoActions";
-import { useLocale } from "../SchoolContext";
+import { useLocale, useGuardadoTransition } from "../SchoolContext";
 import { translate } from "../i18n";
 
 type Contacto = { id: string; relacion: string; telefono: string | null; email: string | null };
@@ -108,7 +108,7 @@ export function CentroTutoriasClient({
   const [cerrarNotas, setCerrarNotas] = useState("");
   const [cerrarFecha, setCerrarFecha] = useState("");
   const [adminError, setAdminError] = useState<string | null>(null);
-  const [adminPending, startAdminTransition] = useTransition();
+  const [adminPending, startAdminTransition] = useGuardadoTransition();
 
   function handleAdminDeleteTutoria(id: string) {
     if (!confirm("¿Eliminar esta tutoría? No se puede deshacer.")) return;

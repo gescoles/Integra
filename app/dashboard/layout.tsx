@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Sidebar } from "./components/Sidebar";
 import { ChatWidget } from "./components/ChatWidget";
+import { SavingOverlay } from "./components/SavingOverlay";
 import { SchoolProvider } from "./SchoolContext";
 
 export default async function DashboardLayout({
@@ -57,6 +58,7 @@ export default async function DashboardLayout({
           <div className="mx-auto max-w-7xl px-6 py-8 lg:px-10">{children}</div>
         </div>
         <ChatWidget userName={userName} />
+        <SavingOverlay />
       </div>
     </SchoolProvider>
   );

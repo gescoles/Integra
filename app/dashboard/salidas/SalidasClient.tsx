@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { Search, Trash2, FileSpreadsheet } from "lucide-react";
 import { deleteSalida } from "./actions";
 import { SALIDA_ESTADO_COLORS } from "../constants";
-import { useLocale } from "../SchoolContext";
+import { useLocale, useGuardadoTransition } from "../SchoolContext";
 import { translate } from "../i18n";
 
 type Row = {
@@ -52,7 +52,7 @@ export function SalidasClient({
   const [responsableFilter, setResponsableFilter] = useState("Todos");
   const [cursoFilter, setCursoFilter] = useState("Todos");
   const [fechaFilter, setFechaFilter] = useState("");
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useGuardadoTransition();
   const [error, setError] = useState<string | null>(null);
 
   const cursos = useMemo(() => Array.from(new Set(rows.map((r) => r.curso))).sort(), [rows]);

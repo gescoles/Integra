@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Pencil, MoreVertical, X, Filter, Trash2, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { updateUser, deleteUser, getUserDeleteImpact } from "./actions";
-import { useLocale } from "../SchoolContext";
+import { useLocale, useGuardadoTransition } from "../SchoolContext";
 import { translate } from "../i18n";
 import {
   ROLE_LABELS,
@@ -55,7 +55,7 @@ export function UsuariosClient({
   const [pageSize, setPageSize] = useState(5);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [isDeleting, startDeleteTransition] = useTransition();
+  const [isDeleting, startDeleteTransition] = useGuardadoTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
   const [deleteImpact, setDeleteImpact] = useState<{

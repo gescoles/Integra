@@ -14,6 +14,7 @@ export default async function FichaPracticaPage({ params }: { params: { id: stri
   const locale = session?.user.locale ?? "ES";
   const userName = session?.user.name || session?.user.email.split("@")[0] || "Usuario";
   const role = session?.user.role ?? "PROFESOR";
+  const esDirectivo = role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO";
 
   const ficha = await prisma.practicaAlumno.findUnique({
     where: { id: params.id },
@@ -21,7 +22,11 @@ export default async function FichaPracticaPage({ params }: { params: { id: stri
       alumno: { select: { id: true, nombre: true, curso: true, avatarUrl: true } },
       tutorImes: { select: { id: true, name: true, email: true } },
       convenios: {
-        include: { prorrogas: { orderBy: { createdAt: "asc" } } },
+        include: {
+          prorrogas: { orderBy: { createdAt: "asc" } },
+          tutoriasSeguimiento: true,
+          cerradoPor: { select: { name: true, email: true } },
+        },
         orderBy: { createdAt: "desc" },
       },
     },
@@ -36,12 +41,6 @@ export default async function FichaPracticaPage({ params }: { params: { id: stri
 
   if (!puedeGestionar) redirect("/dashboard/practicas");
 
-  const profesoresRaw = await prisma.user.findMany({
-    where: { schoolId: ficha.schoolId, role: { in: ["PROFESOR", "COORDINADOR", "ADMIN_CENTRO"] } },
-    select: { id: true, name: true, email: true },
-    orderBy: { name: "asc" },
-  });
-
   return (
     <div>
       <DashboardHeader
@@ -52,6 +51,7 @@ export default async function FichaPracticaPage({ params }: { params: { id: stri
         notificationCount={0}
       />
       <DetalleClient
+        esDirectivo={esDirectivo}
         ficha={{
           id: ficha.id,
           alumnoNombre: ficha.alumno.nombre,
@@ -85,14 +85,34 @@ export default async function FichaPracticaPage({ params }: { params: { id: stri
           tutorEmpresaTelefono: c.tutorEmpresaTelefono,
           tutorEmpresaCorreo: c.tutorEmpresaCorreo,
           observaciones: c.observaciones,
+          cerrado: c.cerrado,
+          notaFinal: c.notaFinal,
+          fechaCierre: c.fechaCierre?.toISOString() ?? null,
+          cerradoPorNombre: c.cerradoPor?.name ?? c.cerradoPor?.email ?? null,
+          tutoriasSeguimiento: c.tutoriasSeguimiento.map((t) => ({
+            id: t.id,
+            tipo: t.tipo,
+            fecha: t.fecha?.toISOString() ?? null,
+            resumen: t.resumen,
+            medioContacto: t.medioContacto,
+          })),
           prorrogas: c.prorrogas.map((p) => ({
             id: p.id,
+            tipologia: p.tipologia,
+            estadoAcuerdo: p.estadoAcuerdo,
+            convalida: p.convalida,
+            quienAltaBajaSS: p.quienAltaBajaSS,
             fechaInicio: p.fechaInicio?.toISOString() ?? null,
             fechaFin: p.fechaFin?.toISOString() ?? null,
+            periodo: p.periodo,
+            empresaCif: p.empresaCif,
+            empresaNombre: p.empresaNombre,
+            tutorEmpresaNombre: p.tutorEmpresaNombre,
+            tutorEmpresaTelefono: p.tutorEmpresaTelefono,
+            tutorEmpresaCorreo: p.tutorEmpresaCorreo,
             observaciones: p.observaciones,
           })),
         }))}
-        profesores={profesoresRaw.map((p) => ({ id: p.id, name: p.name ?? p.email }))}
       />
     </div>
   );

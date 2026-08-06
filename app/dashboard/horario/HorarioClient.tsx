@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Plus, Trash2, X, Pencil } from "lucide-react";
 import { addHorarioBloque, updateHorarioBloque, deleteHorarioBloque } from "./actions";
 import { NowIndicator } from "../components/NowIndicator";
-import { useLocale } from "../SchoolContext";
+import { useLocale, useGuardadoTransition } from "../SchoolContext";
 import { translate } from "../i18n";
 
 type Bloque = {
@@ -46,7 +46,7 @@ export function HorarioClient({ bloques, readOnly = false }: { bloques: Bloque[]
   const [editing, setEditing] = useState<Bloque | null>(null);
   const [defaultDia, setDefaultDia] = useState(1);
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [pending, startTransition] = useGuardadoTransition();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const hours = Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => HOUR_START + i);

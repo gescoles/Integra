@@ -1,26 +1,44 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Trash2,
-  Plus,
   Building2,
   Calendar,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Award,
 } from "lucide-react";
-import { eliminarConvenio, crearProrroga, eliminarProrroga } from "../actions";
+import { eliminarConvenio, eliminarProrroga } from "../actions";
 import { ConvenioFormModal } from "./ConvenioFormModal";
+import { ProrrogaFormModal } from "./ProrrogaFormModal";
+import { CerrarConvenioModal } from "./CerrarConvenioModal";
+import { TutoriaSeguimientoBlock } from "./TutoriaSeguimientoBlock";
 import { EditFichaModal } from "./EditFichaModal";
-import { ButtonSpinner } from "../../components/ButtonSpinner";
-import { useLocale } from "../../SchoolContext";
+import { useLocale, useGuardadoTransition } from "../../SchoolContext";
 import { translate } from "../../i18n";
 
-type Prorroga = { id: string; fechaInicio: string | null; fechaFin: string | null; observaciones: string | null };
+type Tutoria = { id: string; tipo: string; fecha: string | null; resumen: string | null; medioContacto: string | null };
+type Prorroga = {
+  id: string;
+  tipologia: string | null;
+  estadoAcuerdo: string | null;
+  convalida: boolean;
+  quienAltaBajaSS: string | null;
+  fechaInicio: string | null;
+  fechaFin: string | null;
+  periodo: string | null;
+  empresaCif: string | null;
+  empresaNombre: string | null;
+  tutorEmpresaNombre: string | null;
+  tutorEmpresaTelefono: string | null;
+  tutorEmpresaCorreo: string | null;
+  observaciones: string | null;
+};
 type Convenio = {
   id: string;
   tipologia: string | null;
@@ -36,6 +54,11 @@ type Convenio = {
   tutorEmpresaTelefono: string | null;
   tutorEmpresaCorreo: string | null;
   observaciones: string | null;
+  cerrado: boolean;
+  notaFinal: string | null;
+  fechaCierre: string | null;
+  cerradoPorNombre: string | null;
+  tutoriasSeguimiento: Tutoria[];
   prorrogas: Prorroga[];
 };
 type Ficha = {
@@ -59,87 +82,76 @@ type Ficha = {
 
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("es-ES") : "—");
 
-function ProrrogaQuickAdd({ convenioId, fichaId }: { convenioId: string; fichaId: string }) {
-  const router = useRouter();
+function ProrrogaCard({ prorroga, fichaId, convenioId }: { prorroga: Prorroga; fichaId: string; convenioId: string }) {
   const { locale } = useLocale();
-  const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
-  const formRef = useRef<HTMLFormElement>(null);
+  const router = useRouter();
+  const [isPending, startTransition] = useGuardadoTransition();
+  const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(formData: FormData) {
-    formData.set("convenioId", convenioId);
-    formData.set("practicaAlumnoId", fichaId);
-    setPending(true);
-    try {
-      await crearProrroga(formData);
-      router.refresh();
-      setOpen(false);
-      formRef.current?.reset();
-    } finally {
-      setPending(false);
-    }
-  }
-
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1 text-xs font-semibold text-[#2F6FED] hover:underline"
-      >
-        <Plus className="h-3 w-3" /> {translate(locale, "practicas.nuevaProrroga")}
-      </button>
-    );
+  function handleDelete() {
+    if (!confirm(translate(locale, "practicas.confirmEliminarProrroga"))) return;
+    setError(null);
+    startTransition(async () => {
+      try {
+        await eliminarProrroga(prorroga.id, fichaId);
+        router.refresh();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "No se pudo eliminar.");
+      }
+    });
   }
 
   return (
-    <form ref={formRef} action={handleSubmit} className="mt-2 flex flex-wrap items-end gap-2 rounded-lg bg-slate-50 p-2.5">
-      <div>
-        <label className="mb-1 block text-[10px] font-semibold text-slate-500">{translate(locale, "practicas.fechaInicio")}</label>
-        <input name="fechaInicio" type="date" className="rounded-md border border-slate-200 px-2 py-1.5 text-xs outline-none focus:border-[#2F6FED]" />
+    <div className="rounded-lg bg-slate-50 p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="text-xs font-semibold text-slate-600">
+            {fmt(prorroga.fechaInicio)} – {fmt(prorroga.fechaFin)}
+          </div>
+          <div className="text-xs text-slate-400">
+            {prorroga.empresaNombre ?? translate(locale, "practicas.sinEmpresa")}
+            {prorroga.tipologia && ` · ${prorroga.tipologia}`}
+          </div>
+          {prorroga.observaciones && <p className="mt-1 text-xs text-slate-500">{prorroga.observaciones}</p>}
+          {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <ProrrogaFormModal fichaId={fichaId} convenioId={convenioId} prorroga={prorroga} />
+          <button onClick={handleDelete} disabled={isPending} className="rounded-md p-1 text-slate-400 hover:bg-red-50 hover:text-red-600">
+            <Trash2 className="h-3 w-3" />
+          </button>
+        </div>
       </div>
-      <div>
-        <label className="mb-1 block text-[10px] font-semibold text-slate-500">{translate(locale, "practicas.fechaFin")}</label>
-        <input name="fechaFin" type="date" className="rounded-md border border-slate-200 px-2 py-1.5 text-xs outline-none focus:border-[#2F6FED]" />
-      </div>
-      <div className="flex-1 min-w-[120px]">
-        <label className="mb-1 block text-[10px] font-semibold text-slate-500">{translate(locale, "salidas.observaciones")}</label>
-        <input name="observaciones" className="w-full rounded-md border border-slate-200 px-2 py-1.5 text-xs outline-none focus:border-[#2F6FED]" />
-      </div>
-      <button type="button" onClick={() => setOpen(false)} className="rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-500 hover:bg-white">
-        {translate(locale, "common.cancelar")}
-      </button>
-      <button type="submit" disabled={pending} className="inline-flex items-center gap-1 rounded-md bg-[#2F6FED] px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60">
-        {pending && <ButtonSpinner />}
-        {translate(locale, "common.guardar")}
-      </button>
-    </form>
+    </div>
   );
 }
 
-function ConvenioCard({ convenio, fichaId }: { convenio: Convenio; fichaId: string }) {
+function ConvenioCard({ convenio, fichaId, esDirectivo }: { convenio: Convenio; fichaId: string; esDirectivo: boolean }) {
   const { locale } = useLocale();
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useGuardadoTransition();
   const [expanded, setExpanded] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const tiposHechos = new Set(convenio.tutoriasSeguimiento.map((t) => t.tipo));
+  const faltanTutorias = (["INICIAL", "MEDIA", "FINAL"] as const).filter((t) => !tiposHechos.has(t));
+  const soloLectura = convenio.cerrado && !esDirectivo;
 
   function handleDelete() {
     if (!confirm(translate(locale, "practicas.confirmEliminarConvenio"))) return;
+    setError(null);
     startTransition(async () => {
-      await eliminarConvenio(convenio.id, fichaId);
-      router.refresh();
-    });
-  }
-
-  function handleDeleteProrroga(id: string) {
-    if (!confirm(translate(locale, "practicas.confirmEliminarProrroga"))) return;
-    startTransition(async () => {
-      await eliminarProrroga(id, fichaId);
-      router.refresh();
+      try {
+        await eliminarConvenio(convenio.id, fichaId);
+        router.refresh();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "No se pudo eliminar el convenio.");
+      }
     });
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+    <div className={`rounded-2xl border bg-white p-5 ${convenio.cerrado ? "border-emerald-200" : "border-slate-200"}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <button onClick={() => setExpanded((v) => !v)} className="text-slate-400 hover:text-slate-600">
@@ -154,6 +166,13 @@ function ConvenioCard({ convenio, fichaId }: { convenio: Convenio; fichaId: stri
                   <CheckCircle2 className="h-2.5 w-2.5" /> {translate(locale, "practicas.convalida")}
                 </span>
               )}
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                  convenio.cerrado ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-[#2F6FED]"
+                }`}
+              >
+                {convenio.cerrado ? translate(locale, "practicas.cerradoEstado") : translate(locale, "practicas.enCurso")}
+              </span>
             </div>
             <p className="ml-6 text-xs text-slate-400">
               {convenio.tipologia ?? "—"} · {convenio.estadoAcuerdo ?? "—"}
@@ -161,11 +180,40 @@ function ConvenioCard({ convenio, fichaId }: { convenio: Convenio; fichaId: stri
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <ConvenioFormModal fichaId={fichaId} convenio={convenio} />
-          <button onClick={handleDelete} disabled={isPending} className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600">
+          {!soloLectura && <ConvenioFormModal fichaId={fichaId} convenio={convenio} />}
+          <button onClick={handleDelete} disabled={isPending} title={translate(locale, "common.eliminar")} className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600">
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
+      </div>
+
+      {error && <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{error}</div>}
+
+      {/* Nota final / cierre: siempre visible, aunque la tarjeta esté
+          colapsada, para que nunca "desaparezca" el botón de cerrar. */}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+        <div>
+          {convenio.notaFinal && (
+            <div className="flex items-center gap-1.5 text-sm">
+              <Award className="h-4 w-4 text-amber-500" />
+              <span className="font-semibold text-slate-700">{translate(locale, "practicas.notaFinal")}:</span>
+              <span className="text-slate-600">{convenio.notaFinal}</span>
+            </div>
+          )}
+          {convenio.cerrado && convenio.fechaCierre && (
+            <p className="mt-0.5 text-xs text-slate-400">
+              {translate(locale, "practicas.cerradoPor")} {convenio.cerradoPorNombre ?? "—"} · {fmt(convenio.fechaCierre)}
+            </p>
+          )}
+        </div>
+        <CerrarConvenioModal
+          fichaId={fichaId}
+          convenioId={convenio.id}
+          cerrado={convenio.cerrado}
+          notaFinal={convenio.notaFinal}
+          esDirectivo={esDirectivo}
+          faltanTutorias={faltanTutorias}
+        />
       </div>
 
       {expanded && (
@@ -193,26 +241,31 @@ function ConvenioCard({ convenio, fichaId }: { convenio: Convenio; fichaId: stri
             <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">{convenio.observaciones}</p>
           )}
 
+          {/* Tutorías de seguimiento */}
+          <div className="mt-4 border-t border-slate-100 pt-4">
+            <TutoriaSeguimientoBlock
+              convenioId={convenio.id}
+              fichaId={fichaId}
+              tutorias={convenio.tutoriasSeguimiento}
+              bloqueado={soloLectura}
+            />
+          </div>
+
+          {/* Prórrogas */}
           <div className="mt-4 border-t border-slate-100 pt-3">
-            <div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">
-              {translate(locale, "practicas.prorrogas")} ({convenio.prorrogas.length})
+            <div className="mb-2 flex items-center justify-between">
+              <div className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                {translate(locale, "practicas.prorrogas")} ({convenio.prorrogas.length})
+              </div>
+              {!soloLectura && <ProrrogaFormModal fichaId={fichaId} convenioId={convenio.id} />}
             </div>
             {convenio.prorrogas.length > 0 && (
-              <div className="mb-2 space-y-1.5">
+              <div className="space-y-1.5">
                 {convenio.prorrogas.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-xs">
-                    <span className="text-slate-600">
-                      {fmt(p.fechaInicio)} – {fmt(p.fechaFin)}
-                      {p.observaciones && <span className="text-slate-400"> · {p.observaciones}</span>}
-                    </span>
-                    <button onClick={() => handleDeleteProrroga(p.id)} className="text-slate-400 hover:text-red-600">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+                  <ProrrogaCard key={p.id} prorroga={p} fichaId={fichaId} convenioId={convenio.id} />
                 ))}
               </div>
             )}
-            <ProrrogaQuickAdd convenioId={convenio.id} fichaId={fichaId} />
           </div>
         </>
       )}
@@ -223,11 +276,11 @@ function ConvenioCard({ convenio, fichaId }: { convenio: Convenio; fichaId: stri
 export function DetalleClient({
   ficha,
   convenios,
-  profesores,
+  esDirectivo,
 }: {
   ficha: Ficha;
   convenios: Convenio[];
-  profesores: { id: string; name: string }[];
+  esDirectivo: boolean;
 }) {
   const { locale } = useLocale();
 
@@ -310,7 +363,7 @@ export function DetalleClient({
         ) : (
           <div className="space-y-4">
             {convenios.map((c) => (
-              <ConvenioCard key={c.id} convenio={c} fichaId={ficha.id} />
+              <ConvenioCard key={c.id} convenio={c} fichaId={ficha.id} esDirectivo={esDirectivo} />
             ))}
           </div>
         )}

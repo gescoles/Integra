@@ -93,6 +93,8 @@ model User {
   salidasCreadas     Salida[] @relation("SalidaCreador")
   salidasResponsable Salida[] @relation("SalidaResponsable")
   practicasComoTutor PracticaAlumno[] @relation("PracticaTutorIMES")
+  conveniosCerrados  Convenio[] @relation("ConvenioCerradoPor")
+  tutoriasSeguimientoCreadas TutoriaSeguimiento[] @relation("TutoriaSeguimientoCreador")
   notificaciones     Notificacion[]
 }
 
@@ -276,6 +278,12 @@ model PracticaAlumno {
 
 // Un alumno puede tener varios convenios (por ejemplo, si cambia de empresa,
 // o repite curso). Cada convenio es un acuerdo de prácticas concreto.
+enum TipoTutoriaSeguimiento {
+  INICIAL
+  MEDIA
+  FINAL
+}
+
 model Convenio {
   id               String         @id @default(cuid())
   practicaAlumnoId String
@@ -297,24 +305,67 @@ model Convenio {
 
   observaciones String?
 
-  prorrogas Prorroga[]
+  // Cierre del convenio: lo puede cerrar el profesor tutor (si ya están las
+  // 3 tutorías de seguimiento) o, sin esa condición y siempre editable
+  // después, Coordinación/Dirección/SuperAdmin.
+  cerrado      Boolean   @default(false)
+  notaFinal    String?
+  fechaCierre  DateTime?
+  cerradoPorId String?
+  cerradoPor   User?     @relation("ConvenioCerradoPor", fields: [cerradoPorId], references: [id])
+
+  prorrogas           Prorroga[]
+  tutoriasSeguimiento TutoriaSeguimiento[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 }
 
+// Las 3 tutorías de seguimiento de un convenio en prácticas: inicial, media
+// y final. Hay que registrarlas antes de que un profesor pueda cerrar el
+// convenio (Coordinación/SuperAdmin pueden saltárselo).
+model TutoriaSeguimiento {
+  id          String                 @id @default(cuid())
+  convenioId  String
+  convenio    Convenio               @relation(fields: [convenioId], references: [id], onDelete: Cascade)
+  tipo        TipoTutoriaSeguimiento
+  fecha       DateTime?
+  resumen     String?
+  medioContacto String?
+  creadoPorId String?
+  creadoPor   User?                  @relation("TutoriaSeguimientoCreador", fields: [creadoPorId], references: [id])
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @default(now()) @updatedAt
+
+  @@unique([convenioId, tipo])
+}
+
 // Una prórroga alarga (o repite) el período de un convenio ya existente.
-// Un convenio puede tener varias prórrogas seguidas.
+// Tiene los mismos campos que un convenio (puede cambiar de empresa,
+// tipología, etc.), y un convenio puede tener varias prórrogas seguidas.
 model Prorroga {
   id         String   @id @default(cuid())
   convenioId String
   convenio   Convenio @relation(fields: [convenioId], references: [id], onDelete: Cascade)
 
-  fechaInicio   DateTime?
-  fechaFin      DateTime?
+  tipologia       String?
+  estadoAcuerdo   String?
+  convalida       Boolean   @default(false)
+  quienAltaBajaSS String?
+  fechaInicio     DateTime?
+  fechaFin        DateTime?
+  periodo         String?
+
+  empresaCif           String?
+  empresaNombre        String?
+  tutorEmpresaNombre   String?
+  tutorEmpresaTelefono String?
+  tutorEmpresaCorreo   String?
+
   observaciones String?
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 model Guardia {

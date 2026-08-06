@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import {
   Search,
   RefreshCw,
@@ -13,7 +13,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { saveSchoolSettings, deleteSchool, uploadSchoolLogo, getSchoolDeleteImpact } from "./actions";
-import { useLocale } from "../SchoolContext";
+import { useLocale, useGuardadoTransition } from "../SchoolContext";
 import { translate } from "../i18n";
 import {
   MODULES,
@@ -51,9 +51,9 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [isDeleting, startDeleteTransition] = useTransition();
+  const [isDeleting, startDeleteTransition] = useGuardadoTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [isUploadingLogo, startLogoTransition] = useTransition();
+  const [isUploadingLogo, startLogoTransition] = useGuardadoTransition();
   const [logoError, setLogoError] = useState<string | null>(null);
 
   function handleLogoUpload(schoolId: string, file: File) {

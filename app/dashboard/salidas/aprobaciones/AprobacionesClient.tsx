@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, X, Calendar, Clock, Users, Euro, UserCircle, GraduationCap, Tag } from "lucide-react";
 import { aprobarSalida, rechazarSalida } from "../actions";
-import { useLocale } from "../../SchoolContext";
+import { useLocale, useGuardadoTransition } from "../../SchoolContext";
 import { translate } from "../../i18n";
 
 type Row = {
@@ -50,7 +50,7 @@ function Campo({
 export function AprobacionesClient({ rows }: { rows: Row[] }) {
   const router = useRouter();
   const { locale } = useLocale();
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useGuardadoTransition();
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 

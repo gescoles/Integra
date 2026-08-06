@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Plus, Trash2, X, Settings } from "lucide-react";
 import { createEvento, deleteEvento } from "./actions";
 import { deleteTutoriaAlumno } from "../tutorias/alumnoActions";
 import { NowIndicator } from "../components/NowIndicator";
-import { useLocale } from "../SchoolContext";
+import { useLocale, useGuardadoTransition } from "../SchoolContext";
 import { translate } from "../i18n";
 
 type Item = {
@@ -54,7 +54,7 @@ export function CalendarioClient({
   const [open, setOpen] = useState(false);
   const [defaultDate, setDefaultDate] = useState<string>(dias[0]?.dateIso ?? "");
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [pending, startTransition] = useGuardadoTransition();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const hours = Array.from({ length: hourEnd - hourStart + 1 }, (_, i) => hourStart + i);

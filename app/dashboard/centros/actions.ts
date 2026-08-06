@@ -85,6 +85,11 @@ export async function deleteSchool(id: string) {
   if (alumnoIds.length > 0) {
     await prisma.alumnoContacto.deleteMany({ where: { alumnoId: { in: alumnoIds } } });
   }
+  // Prácticas: al borrar la ficha, Prisma se encarga solo de sus convenios,
+  // prórrogas y tutorías de seguimiento (todas en cascada), pero hay que
+  // borrar la ficha ANTES que el alumno al que pertenece.
+  await prisma.practicaAlumno.deleteMany({ where: { schoolId: id } });
+  await prisma.salida.deleteMany({ where: { schoolId: id } });
   await prisma.tutoria.deleteMany({ where: { schoolId: id } });
   await prisma.guardia.deleteMany({ where: { schoolId: id } });
   await prisma.materialRequest.deleteMany({ where: { schoolId: id } });
@@ -93,6 +98,7 @@ export async function deleteSchool(id: string) {
   if (userIds.length > 0) {
     await prisma.horarioBloque.deleteMany({ where: { profesorId: { in: userIds } } });
     await prisma.calendarEvento.deleteMany({ where: { userId: { in: userIds } } });
+    await prisma.notificacion.deleteMany({ where: { userId: { in: userIds } } });
   }
   await prisma.user.deleteMany({ where: { schoolId: id } });
 

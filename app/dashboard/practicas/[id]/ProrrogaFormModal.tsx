@@ -3,12 +3,12 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Pencil, X } from "lucide-react";
-import { crearConvenio, actualizarConvenio } from "../actions";
+import { crearProrroga, actualizarProrroga } from "../actions";
 import { ButtonSpinner } from "../../components/ButtonSpinner";
 import { useLocale } from "../../SchoolContext";
 import { translate } from "../../i18n";
 
-type Convenio = {
+type Prorroga = {
   id: string;
   tipologia: string | null;
   estadoAcuerdo: string | null;
@@ -25,12 +25,14 @@ type Convenio = {
   observaciones: string | null;
 };
 
-export function ConvenioFormModal({
+export function ProrrogaFormModal({
   fichaId,
-  convenio,
+  convenioId,
+  prorroga,
 }: {
   fichaId: string;
-  convenio?: Convenio;
+  convenioId: string;
+  prorroga?: Prorroga;
 }) {
   const router = useRouter();
   const { locale } = useLocale();
@@ -38,7 +40,7 @@ export function ConvenioFormModal({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  const isEdit = Boolean(convenio);
+  const isEdit = Boolean(prorroga);
 
   function handleClose() {
     setOpen(false);
@@ -48,14 +50,15 @@ export function ConvenioFormModal({
 
   async function handleSubmit(formData: FormData) {
     formData.set("practicaAlumnoId", fichaId);
+    formData.set("convenioId", convenioId);
     setPending(true);
     setError(null);
     try {
-      if (isEdit && convenio) {
-        formData.set("id", convenio.id);
-        await actualizarConvenio(formData);
+      if (isEdit && prorroga) {
+        formData.set("id", prorroga.id);
+        await actualizarProrroga(formData);
       } else {
-        await crearConvenio(formData);
+        await crearProrroga(formData);
       }
       router.refresh();
       handleClose();
@@ -77,9 +80,9 @@ export function ConvenioFormModal({
       ) : (
         <button
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-[#2F6FED] hover:underline"
         >
-          <Plus className="h-4 w-4" /> {translate(locale, "practicas.nuevoConvenio")}
+          <Plus className="h-3 w-3" /> {translate(locale, "practicas.nuevaProrroga")}
         </button>
       )}
 
@@ -88,7 +91,7 @@ export function ConvenioFormModal({
           <div className="my-8 w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-lg font-bold text-[#0B1D4D]">
-                {isEdit ? translate(locale, "practicas.editarConvenio") : translate(locale, "practicas.nuevoConvenio")}
+                {isEdit ? translate(locale, "practicas.editarProrroga") : translate(locale, "practicas.nuevaProrroga")}
               </h2>
               <button onClick={handleClose} className="rounded p-1 text-slate-400 hover:bg-slate-100">
                 <X className="h-4 w-4" />
@@ -101,7 +104,7 @@ export function ConvenioFormModal({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.tipologia")}</label>
-                  <select name="tipologia" defaultValue={convenio?.tipologia ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]">
+                  <select name="tipologia" defaultValue={prorroga?.tipologia ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]">
                     <option value="">—</option>
                     <option value="FCT">FCT</option>
                     <option value="Formación dual">Formación dual</option>
@@ -111,7 +114,7 @@ export function ConvenioFormModal({
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.estadoAcuerdo")}</label>
-                  <select name="estadoAcuerdo" defaultValue={convenio?.estadoAcuerdo ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]">
+                  <select name="estadoAcuerdo" defaultValue={prorroga?.estadoAcuerdo ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]">
                     <option value="">—</option>
                     <option value="Pendiente de firma">Pendiente de firma</option>
                     <option value="Firmado">Firmado</option>
@@ -121,15 +124,15 @@ export function ConvenioFormModal({
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.fechaInicio")}</label>
-                  <input name="fechaInicio" type="date" defaultValue={fmtDate(convenio?.fechaInicio ?? null)} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                  <input name="fechaInicio" type="date" defaultValue={fmtDate(prorroga?.fechaInicio ?? null)} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.fechaFin")}</label>
-                  <input name="fechaFin" type="date" defaultValue={fmtDate(convenio?.fechaFin ?? null)} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                  <input name="fechaFin" type="date" defaultValue={fmtDate(prorroga?.fechaFin ?? null)} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.periodo")}</label>
-                  <select name="periodo" defaultValue={convenio?.periodo ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]">
+                  <select name="periodo" defaultValue={prorroga?.periodo ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]">
                     <option value="">—</option>
                     <option value="1r trimestre">1r trimestre</option>
                     <option value="2n trimestre">2n trimestre</option>
@@ -140,12 +143,12 @@ export function ConvenioFormModal({
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.quienAltaBaja")}</label>
-                  <input name="quienAltaBajaSS" defaultValue={convenio?.quienAltaBajaSS ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                  <input name="quienAltaBajaSS" defaultValue={prorroga?.quienAltaBajaSS ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
                 </div>
               </div>
 
               <label className="flex items-center gap-2 text-sm text-slate-600">
-                <input type="checkbox" name="convalida" defaultChecked={convenio?.convalida} className="rounded border-slate-300 accent-[#2F6FED]" />
+                <input type="checkbox" name="convalida" defaultChecked={prorroga?.convalida} className="rounded border-slate-300 accent-[#2F6FED]" />
                 {translate(locale, "practicas.convalida")}
               </label>
 
@@ -154,30 +157,30 @@ export function ConvenioFormModal({
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.empresaNombre")}</label>
-                    <input name="empresaNombre" defaultValue={convenio?.empresaNombre ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                    <input name="empresaNombre" defaultValue={prorroga?.empresaNombre ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
                   </div>
                   <div>
                     <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.empresaCif")}</label>
-                    <input name="empresaCif" defaultValue={convenio?.empresaCif ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                    <input name="empresaCif" defaultValue={prorroga?.empresaCif ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
                   </div>
                   <div>
                     <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.tutorEmpresaNombre")}</label>
-                    <input name="tutorEmpresaNombre" defaultValue={convenio?.tutorEmpresaNombre ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                    <input name="tutorEmpresaNombre" defaultValue={prorroga?.tutorEmpresaNombre ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
                   </div>
                   <div>
                     <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.tutorEmpresaTelefono")}</label>
-                    <input name="tutorEmpresaTelefono" defaultValue={convenio?.tutorEmpresaTelefono ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                    <input name="tutorEmpresaTelefono" defaultValue={prorroga?.tutorEmpresaTelefono ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
                   </div>
                   <div className="col-span-2">
                     <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.tutorEmpresaCorreo")}</label>
-                    <input name="tutorEmpresaCorreo" type="email" defaultValue={convenio?.tutorEmpresaCorreo ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                    <input name="tutorEmpresaCorreo" type="email" defaultValue={prorroga?.tutorEmpresaCorreo ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
                   </div>
                 </div>
               </div>
 
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "salidas.observaciones")}</label>
-                <textarea name="observaciones" rows={3} defaultValue={convenio?.observaciones ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                <textarea name="observaciones" rows={3} defaultValue={prorroga?.observaciones ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
               </div>
 
               <div className="flex justify-end gap-2 pt-2">

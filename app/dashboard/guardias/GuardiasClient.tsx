@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { updateGuardiaStatus } from "./actions";
 import { GUARDIA_STATUS_LABELS, GUARDIA_STATUS_COLORS } from "../constants";
-import { useLocale } from "../SchoolContext";
+import { useLocale, useGuardadoTransition } from "../SchoolContext";
 import { translate } from "../i18n";
 
 type Row = {
@@ -32,7 +32,7 @@ export function GuardiasClient({
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
   const [profesorFilter, setProfesorFilter] = useState("Todos");
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useGuardadoTransition();
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();

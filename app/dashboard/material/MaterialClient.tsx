@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { Search, Trash2, ExternalLink, FileSpreadsheet } from "lucide-react";
 import { deleteMaterial } from "./actions";
 import { MaterialFormModal } from "./MaterialFormModal";
 import { MATERIAL_CATEGORIA_LABELS, MATERIAL_CATEGORIA_COLORS } from "../constants";
-import { useLocale } from "../SchoolContext";
+import { useLocale, useGuardadoTransition } from "../SchoolContext";
 import { translate } from "../i18n";
 
 type MaterialRow = {
@@ -42,7 +42,7 @@ export function MaterialClient({
   const { locale } = useLocale();
   const [cursoFilter, setCursoFilter] = useState("Todos");
   const [profesorFilter, setProfesorFilter] = useState("Todos");
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useGuardadoTransition();
   const [error, setError] = useState<string | null>(null);
 
   const cursos = useMemo(
