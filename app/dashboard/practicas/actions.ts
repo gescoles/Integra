@@ -175,6 +175,7 @@ export async function cerrarConvenio(formData: FormData) {
   const id = formData.get("id") as string;
   const fichaId = formData.get("practicaAlumnoId") as string;
   const notaFinal = texto(formData, "notaFinal");
+  const fechaCierre = fecha(formData, "fechaCierre") ?? new Date();
   const permiso = await puedeGestionarFicha(fichaId);
   if (!permiso.ok || !permiso.session) throw new Error("No autorizado.");
 
@@ -206,7 +207,7 @@ export async function cerrarConvenio(formData: FormData) {
     data: {
       cerrado: true,
       notaFinal,
-      fechaCierre: new Date(),
+      fechaCierre,
       cerradoPorId: permiso.session.user.id,
     },
   });

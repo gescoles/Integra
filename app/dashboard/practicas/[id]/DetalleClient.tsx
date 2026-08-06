@@ -211,6 +211,7 @@ function ConvenioCard({ convenio, fichaId, esDirectivo }: { convenio: Convenio; 
           convenioId={convenio.id}
           cerrado={convenio.cerrado}
           notaFinal={convenio.notaFinal}
+          fechaCierre={convenio.fechaCierre}
           esDirectivo={esDirectivo}
           faltanTutorias={faltanTutorias}
         />

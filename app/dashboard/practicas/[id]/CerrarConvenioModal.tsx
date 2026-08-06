@@ -13,6 +13,7 @@ export function CerrarConvenioModal({
   convenioId,
   cerrado,
   notaFinal,
+  fechaCierre,
   esDirectivo,
   faltanTutorias,
 }: {
@@ -20,6 +21,7 @@ export function CerrarConvenioModal({
   convenioId: string;
   cerrado: boolean;
   notaFinal: string | null;
+  fechaCierre: string | null;
   esDirectivo: boolean;
   faltanTutorias: string[];
 }) {
@@ -106,6 +108,16 @@ export function CerrarConvenioModal({
               <p className="rounded-lg bg-blue-50 px-3 py-2.5 text-xs text-[#2F6FED]">
                 {translate(locale, "practicas.avisoNotaConvenio")}
               </p>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.fechaCierre")}</label>
+                <input
+                  name="fechaCierre"
+                  type="date"
+                  defaultValue={fechaCierre ? fechaCierre.slice(0, 10) : new Date().toISOString().slice(0, 10)}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                />
+              </div>
 
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.notaFinal")}</label>
