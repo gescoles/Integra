@@ -15,6 +15,7 @@ import {
 import { saveSchoolSettings, deleteSchool, uploadSchoolLogo, getSchoolDeleteImpact } from "./actions";
 import { useLocale, useGuardadoTransition } from "../SchoolContext";
 import { translate } from "../i18n";
+import { ButtonSpinner } from "../components/ButtonSpinner";
 import {
   MODULES,
   PLAN_LABELS,
@@ -469,7 +470,13 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
                   )}
                 </div>
                 <label className="flex-1 cursor-pointer rounded-lg border border-dashed border-slate-300 px-3 py-2 text-center text-xs font-medium text-slate-500 hover:border-[#2F6FED] hover:text-[#2F6FED]">
-                  {isUploadingLogo ? "Subiendo..." : "Cambiar foto"}
+                  {isUploadingLogo ? (
+                    <span className="inline-flex items-center justify-center gap-1.5">
+                      <ButtonSpinner light={false} /> Subiendo...
+                    </span>
+                  ) : (
+                    "Cambiar foto"
+                  )}
                   <input
                     type="file"
                     accept="image/*"
@@ -591,7 +598,13 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
               disabled={pending}
               className="w-full rounded-lg bg-[#2F6FED] py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
             >
-              {pending ? "Guardando..." : "Guardar cambios"}
+              {pending ? (
+                <span className="inline-flex items-center justify-center gap-1.5">
+                  <ButtonSpinner /> Guardando...
+                </span>
+              ) : (
+                "Guardar cambios"
+              )}
             </button>
 
             <p className="rounded-lg bg-blue-50 p-3 text-[11px] text-slate-500">
@@ -677,7 +690,13 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
                 onClick={performDeleteSchool}
                 className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {isDeleting ? "Eliminando..." : "Eliminar definitivamente"}
+                {isDeleting ? (
+                  <span className="inline-flex items-center justify-center gap-1.5">
+                    <ButtonSpinner /> Eliminando...
+                  </span>
+                ) : (
+                  "Eliminar definitivamente"
+                )}
               </button>
             </div>
           </div>

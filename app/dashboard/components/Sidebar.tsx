@@ -10,6 +10,8 @@ import {
   Users,
   Menu,
   X,
+  AlertTriangle,
+  GraduationCap,
   ShieldCheck,
   CreditCard,
   Clock,
@@ -36,12 +38,14 @@ import { translate, TranslationKey } from "../i18n";
 
 const superadminNav: { href: string; labelKey: TranslationKey; icon: typeof Home }[] = [
   { href: "/dashboard", labelKey: "nav.inicio", icon: Home },
+  { href: "/dashboard/mis-alumnos", labelKey: "nav.alumnos", icon: GraduationCap },
   { href: "/dashboard/centros", labelKey: "nav.centros", icon: Landmark },
   { href: "/dashboard/usuarios", labelKey: "nav.usuarios", icon: Users },
   { href: "/dashboard/tutorias", labelKey: "nav.tutorias", icon: Users },
   { href: "/dashboard/guardias", labelKey: "nav.guardias", icon: ShieldCheck },
   { href: "/dashboard/material", labelKey: "nav.material", icon: BookOpen },
   { href: "/dashboard/practicas", labelKey: "nav.practicas", icon: Briefcase },
+  { href: "/dashboard/expedientes", labelKey: "nav.expedientes", icon: AlertTriangle },
   { href: "/dashboard/salidas", labelKey: "nav.salidas", icon: Bus },
   { href: "/dashboard/salidas/aprobaciones", labelKey: "nav.aprobaciones", icon: CheckSquare },
   { href: "/dashboard/calendario", labelKey: "nav.calendario", icon: CalendarDays },
@@ -61,6 +65,7 @@ const centroModulos: { key: string; href: string; labelKey: TranslationKey; icon
   { key: "material", href: "/dashboard/material", labelKey: "nav.material", icon: BookOpen },
   { key: "salidas", href: "/dashboard/salidas", labelKey: "nav.salidas", icon: Bus },
   { key: "practicas", href: "/dashboard/practicas", labelKey: "nav.practicas", icon: Briefcase },
+  { key: "expedientes", href: "/dashboard/expedientes", labelKey: "nav.expedientes", icon: AlertTriangle },
 ];
 
 // Utilidades (Calendario y Horario): igual que los módulos de arriba, solo
@@ -177,6 +182,51 @@ export function Sidebar({
           >
             <Home className="h-4 w-4" />
             {translate(locale, "nav.inicio")}
+          </Link>
+        )}
+
+        {/* "Mis alumnos" no depende de ningún módulo contratado: varios
+            módulos (Tutorías, Prácticas, Expedientes) necesitan que exista
+            esta ficha de alumnos, así que siempre está disponible.
+            Coordinación/Dirección ven, además, la opción de consultar todo
+            el centro (no solo sus propios alumnos tutorizados). */}
+        {!isSuperAdmin && (role === "COORDINADOR" || role === "ADMIN_CENTRO") && (
+          <div className="pt-1">
+            <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              {translate(locale, "nav.alumnos")}
+            </div>
+            <Link
+              href="/dashboard/mis-alumnos"
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                pathname === "/dashboard/mis-alumnos"
+                  ? "bg-[#2F6FED] text-white"
+                  : "text-slate-300 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              <GraduationCap className="h-4 w-4" />
+              {translate(locale, "nav.misAlumnos")}
+            </Link>
+            <Link
+              href="/dashboard/mis-alumnos?vista=centro"
+              className="ml-6 flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+            >
+              <Users className="h-3.5 w-3.5" />
+              {translate(locale, "nav.alumnosCentro")}
+            </Link>
+          </div>
+        )}
+
+        {!isSuperAdmin && role === "PROFESOR" && (
+          <Link
+            href="/dashboard/mis-alumnos"
+            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              pathname === "/dashboard/mis-alumnos"
+                ? "bg-[#2F6FED] text-white"
+                : "text-slate-300 hover:bg-white/5 hover:text-white"
+            }`}
+          >
+            <GraduationCap className="h-4 w-4" />
+            {translate(locale, "nav.misAlumnos")}
           </Link>
         )}
 

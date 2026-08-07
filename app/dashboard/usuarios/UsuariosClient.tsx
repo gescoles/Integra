@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search, Pencil, MoreVertical, X, Filter, Trash2, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { updateUser, deleteUser, getUserDeleteImpact } from "./actions";
 import { useLocale, useGuardadoTransition } from "../SchoolContext";
+import { ButtonSpinner } from "../components/ButtonSpinner";
 import { translate } from "../i18n";
 import {
   ROLE_LABELS,
@@ -468,7 +469,13 @@ export function UsuariosClient({
                   disabled={pending}
                   className="rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
                 >
-                  {pending ? "Guardando..." : "Guardar cambios"}
+                  {pending ? (
+                    <span className="inline-flex items-center justify-center gap-1.5">
+                      <ButtonSpinner /> Guardando...
+                    </span>
+                  ) : (
+                    "Guardar cambios"
+                  )}
                 </button>
               </div>
             </form>
@@ -546,7 +553,13 @@ export function UsuariosClient({
                 onClick={performDeleteUser}
                 className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {isDeleting ? "Eliminando..." : "Eliminar definitivamente"}
+                {isDeleting ? (
+                  <span className="inline-flex items-center justify-center gap-1.5">
+                    <ButtonSpinner /> Eliminando...
+                  </span>
+                ) : (
+                  "Eliminar definitivamente"
+                )}
               </button>
             </div>
           </div>

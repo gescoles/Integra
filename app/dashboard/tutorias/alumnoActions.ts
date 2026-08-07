@@ -50,6 +50,7 @@ export async function createAlumno(formData: FormData) {
   }
 
   revalidatePath("/dashboard/tutorias");
+  revalidatePath("/dashboard/mis-alumnos");
   return alumno.id;
 }
 
@@ -59,7 +60,10 @@ export async function updateAlumnoFicha(formData: FormData) {
 
   const id = formData.get("id") as string;
   const alumno = await prisma.alumno.findUnique({ where: { id } });
-  if (!alumno || (alumno.profesorId !== session.user.id && session.user.role !== "SUPERADMIN")) {
+  const esDirectivo =
+    session.user.role === "SUPERADMIN" ||
+    ((session.user.role === "COORDINADOR" || session.user.role === "ADMIN_CENTRO") && alumno?.schoolId === session.user.schoolId);
+  if (!alumno || (alumno.profesorId !== session.user.id && !esDirectivo)) {
     throw new Error("No puedes editar un alumno que no es tuyo.");
   }
 
@@ -94,6 +98,7 @@ export async function updateAlumnoFicha(formData: FormData) {
   }
 
   revalidatePath("/dashboard/tutorias");
+  revalidatePath("/dashboard/mis-alumnos");
 }
 
 export async function createTutoriaAlumno(formData: FormData) {
@@ -232,7 +237,10 @@ export async function deleteAlumno(id: string) {
   if (!session?.user.id) throw new Error("No autorizado.");
 
   const alumno = await prisma.alumno.findUnique({ where: { id } });
-  if (!alumno || (alumno.profesorId !== session.user.id && session.user.role !== "SUPERADMIN")) {
+  const esDirectivo =
+    session.user.role === "SUPERADMIN" ||
+    ((session.user.role === "COORDINADOR" || session.user.role === "ADMIN_CENTRO") && alumno?.schoolId === session.user.schoolId);
+  if (!alumno || (alumno.profesorId !== session.user.id && !esDirectivo)) {
     throw new Error("No puedes eliminar un alumno que no es tuyo.");
   }
 
@@ -242,6 +250,7 @@ export async function deleteAlumno(id: string) {
   await prisma.alumno.delete({ where: { id } });
 
   revalidatePath("/dashboard/tutorias");
+  revalidatePath("/dashboard/mis-alumnos");
   revalidatePath("/dashboard/calendario");
   revalidatePath("/dashboard");
 }

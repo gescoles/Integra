@@ -208,3 +208,86 @@ export async function sendSalidaRechazadaEmail(params: {
     `,
   });
 }
+
+export async function sendIncidenciaCreadaEmail(params: {
+  to: string;
+  tutorNombre: string;
+  creadorNombre: string;
+  alumnoNombre: string;
+  curso: string;
+  tipoIncidencia: string;
+  prioridad: string;
+  fecha: Date;
+  lugar: string | null;
+  descripcion: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const prioridadColor = params.prioridad === "ALTA" ? "#DC2626" : params.prioridad === "MEDIA" ? "#D97706" : "#16A34A";
+
+  await transporter.sendMail({
+    from: `Integra <${from}>`,
+    to: params.to,
+    subject: `Nueva incidencia asignada: ${params.alumnoNombre} (${params.tipoIncidencia})`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Se te ha asignado una nueva incidencia</h2>
+        <p style="color:#64748B; font-size:13px; margin-top:0;">
+          ${params.creadorNombre} ha registrado una incidencia y te ha marcado como tutor responsable.
+        </p>
+        <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
+          <p style="margin:0;"><strong>Alumno:</strong> ${params.alumnoNombre} (${params.curso})</p>
+          <p style="margin:8px 0 0;"><strong>Tipo de incidencia:</strong> ${params.tipoIncidencia}</p>
+          <p style="margin:8px 0 0;"><strong>Prioridad:</strong> <span style="color:${prioridadColor}; font-weight:bold;">${params.prioridad}</span></p>
+          <p style="margin:8px 0 0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+          ${params.lugar ? `<p style="margin:8px 0 0;"><strong>Lugar:</strong> ${params.lugar}</p>` : ""}
+          <p style="margin:8px 0 0;"><strong>Descripción:</strong> ${params.descripcion}</p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Puedes ver el expediente completo y hacerle seguimiento desde Integra, en Expedientes.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendTresIncidenciasEmail(params: {
+  to: string[];
+  alumnoNombre: string;
+  curso: string;
+}) {
+  if (params.to.length === 0) return;
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  await transporter.sendMail({
+    from: `Integra <${from}>`,
+    to: params.to.join(", "),
+    subject: `Aviso: ${params.alumnoNombre} ha llegado a 3 incidencias`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#DC2626; margin-bottom: 8px;">Aviso de 3 incidencias</h2>
+        <div style="background:#FEF2F2; border-radius:8px; padding:16px; margin:16px 0; border:1px solid #FECACA;">
+          <p style="margin:0;">
+            El alumno <strong>${params.alumnoNombre}</strong> (${params.curso}) ha alcanzado
+            <strong>3 incidencias</strong> registradas en Integra.
+          </p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Puedes revisar el expediente completo y valorar un parte con expulsión desde
+          Integra, en Expedientes.
+        </p>
+      </div>
+    `,
+  });
+}
