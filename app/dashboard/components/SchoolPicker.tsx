@@ -45,10 +45,10 @@ export function SchoolPicker({
           <Link
             key={s.id}
             href={`${basePath}?school=${s.id}`}
-            className="group flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white p-6 text-center transition-all hover:-translate-y-0.5 hover:border-[#2F6FED] hover:shadow-md"
+            className="group flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white p-6 text-center transition-all hover:-translate-y-0.5 hover:border-[#FD5249] hover:shadow-md"
           >
             <SchoolLogo school={s} size="lg" />
-            <span className="text-sm font-semibold text-slate-700 group-hover:text-[#2F6FED]">
+            <span className="text-sm font-semibold text-slate-700 group-hover:text-[#FD5249]">
               {s.name}
             </span>
           </Link>
@@ -73,7 +73,7 @@ export function SchoolSwitcher({
   return (
     <div className="mb-5 rounded-xl border border-blue-100 bg-blue-50/50 p-3">
       <div className="mb-2 flex items-center gap-2">
-        <Landmark className="h-4 w-4 text-[#2F6FED]" />
+        <Landmark className="h-4 w-4 text-[#FD5249]" />
         <span className="text-xs font-semibold text-slate-500">
           {translate(locale, "schoolSwitcher.label")}
         </span>
@@ -85,7 +85,7 @@ export function SchoolSwitcher({
             href={`${basePath}?school=${s.id}`}
             className={`flex items-center gap-2 rounded-lg py-1.5 pl-1.5 pr-3 text-xs font-semibold transition-colors ${
               s.id === currentSchoolId
-                ? "bg-[#2F6FED] text-white"
+                ? "bg-[#FD5249] text-white"
                 : "bg-white text-slate-600 hover:bg-slate-100"
             }`}
           >

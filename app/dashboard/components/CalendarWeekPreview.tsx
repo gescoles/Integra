@@ -66,7 +66,7 @@ export async function CalendarWeekPreview({
         <h3 className="text-sm font-bold text-[#0B1D4D]">Calendario de esta semana</h3>
         <Link
           href="/dashboard/calendario"
-          className="inline-flex items-center gap-1 text-xs font-semibold text-[#2F6FED] hover:underline"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-[#FD5249] hover:underline"
         >
           Ver calendario completo <ArrowRight className="h-3 w-3" />
         </Link>
@@ -77,12 +77,12 @@ export async function CalendarWeekPreview({
           <div
             key={dia.dateIso}
             className={`rounded-xl border p-2.5 ${
-              dia.isToday ? "border-[#2F6FED]" : "border-slate-100"
+              dia.isToday ? "border-[#FD5249]" : "border-slate-100"
             }`}
           >
             <div
               className={`mb-1.5 text-[11px] font-bold capitalize ${
-                dia.isToday ? "text-[#2F6FED]" : "text-slate-500"
+                dia.isToday ? "text-[#FD5249]" : "text-slate-500"
               }`}
             >
               {dia.label}

@@ -291,3 +291,56 @@ export async function sendTresIncidenciasEmail(params: {
     `,
   });
 }
+
+export async function sendExpedienteEmail(params: {
+  to: string;
+  tutorNombre: string;
+  data: {
+    numero: string;
+    alumnoNombre: string;
+    alumnoCurso: string;
+    schoolName: string;
+    fechaInicio: string;
+    sancionDias: number;
+    sancionMotivo?: string;
+    fechaAplicacionInicio: string;
+    fechaAplicacionFin: string;
+    fets: string;
+  };
+  pdfBuffer: Buffer;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  await transporter.sendMail({
+    from: `Integra <${from}>`,
+    to: params.to,
+    subject: `Expediente disciplinario ${params.data.numero} · ${params.data.alumnoNombre}`,
+    attachments: [
+      {
+        filename: `Expedient_${params.data.numero}.pdf`,
+        content: params.pdfBuffer,
+        contentType: "application/pdf",
+      },
+    ],
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Expediente disciplinario enviado</h2>
+        <p style="color:#64748B; font-size:13px; margin-top:0;">
+          Se ha completado y enviado un expediente sancionador del que eres tutor/a. Tienes el documento completo en PDF adjunto a este correo.
+        </p>
+        <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
+          <p style="margin:0;"><strong>Expedient núm.:</strong> ${params.data.numero}</p>
+          <p style="margin:8px 0 0;"><strong>Centre:</strong> ${params.data.schoolName}</p>
+          <p style="margin:8px 0 0;"><strong>Alumne:</strong> ${params.data.alumnoNombre} (${params.data.alumnoCurso})</p>
+          <p style="margin:8px 0 0;"><strong>Data d'obertura:</strong> ${params.data.fechaInicio}</p>
+          <p style="margin:8px 0 0;"><strong>Sanció:</strong> expulsió de ${params.data.sancionDias} dies (del ${params.data.fechaAplicacionInicio} al ${params.data.fechaAplicacionFin})</p>
+          <p style="margin:8px 0 0;"><strong>Fets:</strong> ${params.data.fets}</p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          También puedes consultarlo en cualquier momento desde Integra, en Expedientes.
+        </p>
+      </div>
+    `,
+  });
+}

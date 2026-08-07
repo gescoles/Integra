@@ -14,7 +14,7 @@ export async function addHorarioBloque(formData: FormData) {
   const horaFin = formData.get("horaFin") as string;
   const asignatura = (formData.get("asignatura") as string)?.trim();
   const grupo = (formData.get("grupo") as string)?.trim();
-  const color = (formData.get("color") as string) || "#2F6FED";
+  const color = (formData.get("color") as string) || "#FD5249";
 
   if (!asignatura) throw new Error("La asignatura es obligatoria.");
   if (!grupo) throw new Error("El grupo es obligatorio.");
@@ -53,7 +53,7 @@ export async function updateHorarioBloque(formData: FormData) {
   const horaFin = formData.get("horaFin") as string;
   const asignatura = (formData.get("asignatura") as string)?.trim();
   const grupo = (formData.get("grupo") as string)?.trim();
-  const color = (formData.get("color") as string) || "#2F6FED";
+  const color = (formData.get("color") as string) || "#FD5249";
 
   if (!asignatura) throw new Error("La asignatura es obligatoria.");
   if (!grupo) throw new Error("El grupo es obligatorio.");

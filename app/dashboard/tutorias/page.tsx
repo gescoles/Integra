@@ -286,7 +286,7 @@ export default async function TutoriasPage({
           <Link
             href="/dashboard/tutorias?vista=mios"
             className={`rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
-              vista === "mios" ? "bg-[#2F6FED] text-white" : "text-slate-600 hover:bg-slate-50"
+              vista === "mios" ? "bg-[#FD5249] text-white" : "text-slate-600 hover:bg-slate-50"
             }`}
           >
             {translate(locale, "tutorias.tabMios")}
@@ -294,7 +294,7 @@ export default async function TutoriasPage({
           <Link
             href="/dashboard/tutorias?vista=centro"
             className={`rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
-              vista === "centro" ? "bg-[#2F6FED] text-white" : "text-slate-600 hover:bg-slate-50"
+              vista === "centro" ? "bg-[#FD5249] text-white" : "text-slate-600 hover:bg-slate-50"
             }`}
           >
             {translate(locale, "tutorias.tabCentro")}

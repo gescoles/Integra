@@ -203,9 +203,11 @@ export async function cambiarEstadoIncidencia(id: string, estado: "EN_SEGUIMIENT
   const permiso = await puedeGestionar(id);
   if (!permiso.ok || !permiso.session || !permiso.incidencia) throw new Error("No autorizado.");
 
-  if (estado === "EN_SEGUIMIENTO" && !permiso.incidencia.familiaInformada) {
+  if ((estado === "EN_SEGUIMIENTO" || estado === "CERRADA") && !permiso.incidencia.familiaInformada) {
     throw new Error(
-      "No puedes marcar esta incidencia en seguimiento sin informar antes a la familia. Edita la incidencia y marca la casilla \"Familia informada\"."
+      estado === "CERRADA"
+        ? "No puedes cerrar esta incidencia sin informar antes a la familia. Edita la incidencia y marca la casilla \"Familia informada\"."
+        : "No puedes marcar esta incidencia en seguimiento sin informar antes a la familia. Edita la incidencia y marca la casilla \"Familia informada\"."
     );
   }
 
@@ -242,40 +244,187 @@ export async function eliminarIncidencia(id: string) {
     throw new Error("Solo Coordinación, Dirección o SuperAdmin puede eliminar expedientes.");
   }
 
+  await prisma.expediente.deleteMany({ where: { incidenciaId: id } });
   await prisma.incidencia.delete({ where: { id } });
   revalidatePath("/dashboard/expedientes");
 }
 
-export async function aplicarSancion(formData: FormData) {
-  const id = formData.get("id") as string;
+function textoRequerido(formData: FormData, campo: string, etiqueta: string) {
+  const raw = (formData.get(campo) as string)?.trim();
+  if (!raw) throw new Error(`El campo "${etiqueta}" es obligatorio.`);
+  return raw;
+}
+
+function fechaRequerida(formData: FormData, campo: string, etiqueta: string) {
+  const raw = formData.get(campo) as string;
+  if (!raw) throw new Error(`El campo "${etiqueta}" es obligatorio.`);
+  return new Date(`${raw}T00:00:00`);
+}
+
+async function generarNumeroExpediente(schoolId: string) {
+  const anyo = new Date().getFullYear().toString().slice(-2);
+  const inicioAnyo = new Date(new Date().getFullYear(), 0, 1);
+  const totalEsteAnyo = await prisma.expediente.count({
+    where: { schoolId, createdAt: { gte: inicioAnyo } },
+  });
+  const siguiente = (totalEsteAnyo + 1).toString().padStart(4, "0");
+  return `${anyo}${siguiente}`;
+}
+
+function extraerCamposExpediente(formData: FormData) {
+  const diasRaw = Number(formData.get("sancionDias"));
+  if (!diasRaw || diasRaw < 1) throw new Error('El campo "Días de expulsión" es obligatorio.');
+
+  return {
+    fechaInicio: fechaRequerida(formData, "fechaInicio", "Data d'obertura"),
+    fets: textoRequerido(formData, "fets", "Fets que motiven l'obertura"),
+    testimonis: textoRequerido(formData, "testimonis", "Testimonis i proves"),
+    informeTutor: textoRequerido(formData, "informeTutor", "Informe del tutor/a"),
+    audienciaResumen: textoRequerido(formData, "audienciaResumen", "Audiència a l'alumne"),
+    valoracionComision: textoRequerido(formData, "valoracionComision", "Valoració de la Comissió"),
+    medidasProvisionales: textoRequerido(formData, "medidasProvisionales", "Mesures provisionals"),
+    sancionDias: diasRaw,
+    sancionMotivo: textoRequerido(formData, "sancionMotivo", "Motiu del part"),
+    fechaAplicacionInicio: fechaRequerida(formData, "fechaAplicacionInicio", "Data d'aplicació (inici)"),
+    fechaAplicacionFin: fechaRequerida(formData, "fechaAplicacionFin", "Data d'aplicació (fi)"),
+    recursoEstado: textoRequerido(formData, "recursoEstado", "Informació sobre recursos"),
+    direccionNombre: textoRequerido(formData, "direccionNombre", "Direcció del centre"),
+    coordinadorNombre: textoRequerido(formData, "coordinadorNombre", "Coordinador de Departament"),
+  };
+}
+
+// Se pueden crear varios expedientes para el mismo alumno/incidencia a lo
+// largo del tiempo (uno debajo de otro en la lista); cada clic en "Nuevo
+// expediente" crea uno más, no sobrescribe el anterior.
+export async function crearExpediente(formData: FormData) {
+  const incidenciaId = formData.get("incidenciaId") as string;
   const session = await getServerSession(authOptions);
   if (!session?.user.id || !esDirectivo(session.user.role)) {
-    throw new Error("Solo Coordinación, Dirección o SuperAdmin puede aplicar un parte con expulsión.");
+    throw new Error("Solo Coordinación, Dirección o SuperAdmin puede crear un expediente.");
   }
 
-  const diasRaw = formData.get("sancionDias") as string;
-  const motivo = (formData.get("sancionMotivo") as string)?.trim();
-  const dias = Number(diasRaw);
+  const incidencia = await prisma.incidencia.findUnique({ where: { id: incidenciaId } });
+  if (!incidencia) throw new Error("No se ha encontrado la incidencia.");
 
-  if (!dias || dias < 1) throw new Error("Indica un número de días de expulsión válido.");
-  if (!motivo) throw new Error("Indica el motivo del parte.");
+  const campos = extraerCamposExpediente(formData);
+  const numero = await generarNumeroExpediente(incidencia.schoolId);
 
-  await prisma.incidencia.update({
-    where: { id },
+  const expediente = await prisma.expediente.create({
     data: {
-      sancionDias: dias,
-      sancionMotivo: motivo,
-      sancionFecha: new Date(),
-      sancionPorId: session.user.id,
-      eventos: {
-        create: {
-          tipo: "SANCION",
-          descripcion: `Parte con expulsión de ${dias} día${dias > 1 ? "s" : ""}: ${motivo}`,
-          autorId: session.user.id,
-        },
-      },
+      schoolId: incidencia.schoolId,
+      alumnoId: incidencia.alumnoId,
+      incidenciaId,
+      tutorId: incidencia.tutorId,
+      creadoPorId: session.user.id,
+      numero,
+      ...campos,
     },
   });
 
+  await prisma.incidenciaEvento.create({
+    data: {
+      incidenciaId,
+      tipo: "EXPEDIENTE_CREADO",
+      descripcion: `Expediente ${numero} creado (borrador, sin enviar todavía)`,
+      autorId: session.user.id,
+    },
+  });
+
+  revalidatePath("/dashboard/expedientes");
+  return { id: expediente.id };
+}
+
+export async function actualizarExpediente(formData: FormData) {
+  const id = formData.get("id") as string;
+  const session = await getServerSession(authOptions);
+  if (!session?.user.id || !esDirectivo(session.user.role)) {
+    throw new Error("Solo Coordinación, Dirección o SuperAdmin puede editar un expediente.");
+  }
+
+  const expediente = await prisma.expediente.findUnique({ where: { id } });
+  if (!expediente) throw new Error("No se ha encontrado el expediente.");
+  if (expediente.estado === "ENVIADO") {
+    throw new Error("Este expediente ya se ha enviado al tutor y no se puede editar.");
+  }
+
+  const campos = extraerCamposExpediente(formData);
+  await prisma.expediente.update({ where: { id }, data: campos });
+
+  await prisma.incidenciaEvento.create({
+    data: {
+      incidenciaId: expediente.incidenciaId,
+      tipo: "EXPEDIENTE_EDITADO",
+      descripcion: `Expediente ${expediente.numero} editado`,
+      autorId: session.user.id,
+    },
+  });
+
+  revalidatePath("/dashboard/expedientes");
+}
+
+// Envía el expediente ya redactado al tutor: email con toda la información
+// + el PDF adjunto, y notificación en la app. Solo Coordinación, Dirección
+// o SuperAdmin pueden darle a enviar.
+export async function enviarExpediente(id: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user.id || !esDirectivo(session.user.role)) {
+    throw new Error("Solo Coordinación, Dirección o SuperAdmin puede enviar el expediente al tutor.");
+  }
+
+  const expediente = await prisma.expediente.findUnique({ where: { id } });
+  if (!expediente) throw new Error("No se ha encontrado el expediente.");
+  if (expediente.estado === "ENVIADO") throw new Error("Este expediente ya se había enviado.");
+
+  const { getExpedienteData, buildExpedientePdf } = await import("@/lib/expedienteDocs");
+  const { sendExpedienteEmail } = await import("@/lib/email");
+
+  const data = await getExpedienteData(id);
+  if (!data) throw new Error("No se pudo generar el expediente.");
+
+  const tutor = await prisma.user.findUnique({ where: { id: expediente.tutorId }, select: { name: true, email: true } });
+  const pdfBytes = await buildExpedientePdf(data);
+
+  if (tutor?.email) {
+    await sendExpedienteEmail({
+      to: tutor.email,
+      tutorNombre: tutor.name ?? tutor.email,
+      data,
+      pdfBuffer: Buffer.from(pdfBytes),
+    });
+  }
+
+  await notifyUsers([expediente.tutorId], {
+    schoolId: expediente.schoolId,
+    tipo: "EXPEDIENTE_ENVIADO",
+    titulo: "Expediente disciplinario enviado",
+    mensaje: `Expediente ${expediente.numero} · ${data.alumnoNombre}`,
+    link: "/dashboard/expedientes",
+    relatedId: expediente.id,
+  });
+
+  await prisma.expediente.update({
+    where: { id },
+    data: { estado: "ENVIADO", enviadoEn: new Date() },
+  });
+
+  await prisma.incidenciaEvento.create({
+    data: {
+      incidenciaId: expediente.incidenciaId,
+      tipo: "EXPEDIENTE_ENVIADO",
+      descripcion: `Expediente ${expediente.numero} enviado al tutor`,
+      autorId: session.user.id,
+    },
+  });
+
+  revalidatePath("/dashboard/expedientes");
+}
+
+export async function eliminarExpediente(id: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user.id || !esDirectivo(session.user.role)) {
+    throw new Error("Solo Coordinación, Dirección o SuperAdmin puede eliminar un expediente.");
+  }
+
+  await prisma.expediente.delete({ where: { id } });
   revalidatePath("/dashboard/expedientes");
 }

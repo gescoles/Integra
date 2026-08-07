@@ -8,7 +8,7 @@ import { ButtonSpinner } from "../components/ButtonSpinner";
 import { useLocale } from "../SchoolContext";
 import { translate } from "../i18n";
 
-type AlumnoOption = { id: string; nombre: string; curso: string; avatarUrl: string | null };
+type AlumnoOption = { id: string; nombre: string; curso: string; avatarUrl: string | null; profesorId?: string };
 type ProfesorOption = { id: string; name: string };
 
 const TIPOS_INCIDENCIA = [
@@ -43,11 +43,13 @@ export function IncidenciaFormModal({
   profesores,
   incidencia,
   alumnoFijo,
+  etiquetaBoton,
 }: {
   alumnos: AlumnoOption[];
   profesores: ProfesorOption[];
   incidencia?: IncidenciaEdit;
   alumnoFijo?: { id: string; nombre: string; curso: string; avatarUrl: string | null };
+  etiquetaBoton?: string;
 }) {
   const router = useRouter();
   const { locale } = useLocale();
@@ -58,6 +60,7 @@ export function IncidenciaFormModal({
   const [busquedaAlumno, setBusquedaAlumno] = useState("");
   const [buscadorAbierto, setBuscadorAbierto] = useState(false);
   const [familiaInformada, setFamiliaInformada] = useState(incidencia?.familiaInformada ?? false);
+  const [tutorSeleccionado, setTutorSeleccionado] = useState(incidencia?.tutorId ?? "");
   const formRef = useRef<HTMLFormElement>(null);
   const isEdit = Boolean(incidencia);
 
@@ -70,7 +73,10 @@ export function IncidenciaFormModal({
   function handleClose() {
     setOpen(false);
     setError(null);
-    if (!alumnoFijo) setAlumnoSeleccionado(null);
+    if (!alumnoFijo) {
+      setAlumnoSeleccionado(null);
+      setTutorSeleccionado(incidencia?.tutorId ?? "");
+    }
     formRef.current?.reset();
   }
 
@@ -119,9 +125,9 @@ export function IncidenciaFormModal({
       ) : (
         <button
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]"
         >
-          <Plus className="h-4 w-4" /> {translate(locale, "expedientes.nuevaIncidencia")}
+          <Plus className="h-4 w-4" /> {etiquetaBoton ?? translate(locale, "expedientes.nuevaIncidencia")}
         </button>
       )}
 
@@ -146,7 +152,7 @@ export function IncidenciaFormModal({
                     {translate(locale, "expedientes.alumno")} <span className="text-red-500">*</span>
                   </label>
                   {alumnoSeleccionado ? (
-                    <div className="flex items-center justify-between rounded-lg border border-[#2F6FED] bg-blue-50 px-3 py-2.5">
+                    <div className="flex items-center justify-between rounded-lg border border-[#FD5249] bg-blue-50 px-3 py-2.5">
                       <div className="flex items-center gap-2.5">
                         <div className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-slate-200">
                           {alumnoSeleccionado.avatarUrl && (
@@ -174,7 +180,7 @@ export function IncidenciaFormModal({
                         onFocus={() => setBuscadorAbierto(true)}
                         onBlur={() => setTimeout(() => setBuscadorAbierto(false), 150)}
                         placeholder={translate(locale, "practicas.buscarAlumnoPlaceholder")}
-                        className="w-full rounded-lg border border-slate-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#2F6FED]"
+                        className="w-full rounded-lg border border-slate-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#FD5249]"
                       />
                       {buscadorAbierto && (
                         <div className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
@@ -188,6 +194,7 @@ export function IncidenciaFormModal({
                                 onMouseDown={() => {
                                   setAlumnoSeleccionado(a);
                                   setBusquedaAlumno("");
+                                  if (a.profesorId) setTutorSeleccionado(a.profesorId);
                                 }}
                                 className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-slate-50"
                               >
@@ -218,7 +225,7 @@ export function IncidenciaFormModal({
                     name="tipoIncidencia"
                     required
                     defaultValue={incidencia?.tipoIncidencia ?? ""}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   >
                     <option value="" disabled>—</option>
                     {TIPOS_INCIDENCIA.map((t) => (
@@ -228,7 +235,7 @@ export function IncidenciaFormModal({
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "expedientes.prioridad")}</label>
-                  <select name="prioridad" defaultValue={incidencia?.prioridad ?? "MEDIA"} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]">
+                  <select name="prioridad" defaultValue={incidencia?.prioridad ?? "MEDIA"} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]">
                     <option value="BAJA">{translate(locale, "expedientes.baja")}</option>
                     <option value="MEDIA">{translate(locale, "expedientes.media")}</option>
                     <option value="ALTA">{translate(locale, "expedientes.alta")}</option>
@@ -241,8 +248,9 @@ export function IncidenciaFormModal({
                   <select
                     name="tutorId"
                     required
-                    defaultValue={incidencia?.tutorId ?? ""}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    value={tutorSeleccionado}
+                    onChange={(e) => setTutorSeleccionado(e.target.value)}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   >
                     <option value="" disabled>—</option>
                     {profesores.map((p) => (
@@ -259,12 +267,12 @@ export function IncidenciaFormModal({
                     type="datetime-local"
                     required
                     defaultValue={incidencia ? fmtDateTime(incidencia.fecha) : fmtDateTime(new Date().toISOString())}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "expedientes.lugar")}</label>
-                  <input name="lugar" defaultValue={incidencia?.lugar ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                  <input name="lugar" defaultValue={incidencia?.lugar ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
                 </div>
               </div>
 
@@ -272,17 +280,17 @@ export function IncidenciaFormModal({
                 <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                   {translate(locale, "expedientes.descripcion")} <span className="text-red-500">*</span>
                 </label>
-                <textarea name="descripcion" rows={3} required defaultValue={incidencia?.descripcion ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                <textarea name="descripcion" rows={3} required defaultValue={incidencia?.descripcion ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
               </div>
 
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "expedientes.observaciones")}</label>
-                <textarea name="observaciones" rows={2} defaultValue={incidencia?.observaciones ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                <textarea name="observaciones" rows={2} defaultValue={incidencia?.observaciones ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
               </div>
 
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "expedientes.medidasAplicadas")}</label>
-                <textarea name="medidasAplicadas" rows={2} defaultValue={incidencia?.medidasAplicadas ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                <textarea name="medidasAplicadas" rows={2} defaultValue={incidencia?.medidasAplicadas ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
               </div>
 
               <div className="rounded-lg bg-slate-50 p-3">
@@ -291,7 +299,7 @@ export function IncidenciaFormModal({
                     type="checkbox"
                     checked={familiaInformada}
                     onChange={(e) => setFamiliaInformada(e.target.checked)}
-                    className="rounded border-slate-300 accent-[#2F6FED]"
+                    className="rounded border-slate-300 accent-[#FD5249]"
                   />
                   {translate(locale, "expedientes.familiaInformada")}
                 </label>
@@ -300,7 +308,7 @@ export function IncidenciaFormModal({
                     name="familiaInformadaComunicacion"
                     defaultValue={incidencia?.familiaInformadaComunicacion ?? ""}
                     placeholder={translate(locale, "expedientes.familiaInformadaPlaceholder")}
-                    className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                    className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
                   />
                 )}
               </div>
@@ -312,7 +320,7 @@ export function IncidenciaFormModal({
                 <button
                   type="submit"
                   disabled={pending}
-                  className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
                 >
                   {pending && <ButtonSpinner />}
                   {translate(locale, "common.guardar")}

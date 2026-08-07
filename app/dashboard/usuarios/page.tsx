@@ -78,7 +78,7 @@ export default async function UsuariosPage({
           notificationCount={0}
         />
         <nav className="mb-5 flex items-center gap-2 text-xs text-slate-400">
-          <Link href="/dashboard" className="hover:text-[#2F6FED]">
+          <Link href="/dashboard" className="hover:text-[#FD5249]">
             {translate(locale, "nav.inicio")}
           </Link>
           <span>›</span>
@@ -94,7 +94,7 @@ export default async function UsuariosPage({
             <div className="mt-4 text-center">
               <Link
                 href={`/dashboard/usuarios?school=${UNASSIGNED}`}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-[#2F6FED]"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-[#FD5249]"
               >
                 <UserX className="h-3.5 w-3.5" />
                 {translate(locale, "usuarios.verSinAsignar")}
@@ -147,7 +147,7 @@ export default async function UsuariosPage({
       />
 
       <nav className="mb-5 flex items-center gap-2 text-xs text-slate-400">
-        <Link href="/dashboard" className="hover:text-[#2F6FED]">
+        <Link href="/dashboard" className="hover:text-[#FD5249]">
           {translate(locale, "nav.inicio")}
         </Link>
         <span>›</span>
@@ -168,7 +168,7 @@ export default async function UsuariosPage({
             href={`/dashboard/usuarios?school=${UNASSIGNED}`}
             className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${
               isUnassignedView
-                ? "border-[#2F6FED] bg-blue-50 text-[#2F6FED]"
+                ? "border-[#FD5249] bg-blue-50 text-[#FD5249]"
                 : "border-slate-200 text-slate-500 hover:bg-slate-50"
             }`}
           >
@@ -182,7 +182,7 @@ export default async function UsuariosPage({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
-            <User className="h-5 w-5 text-[#2F6FED]" />
+            <User className="h-5 w-5 text-[#FD5249]" />
           </div>
           <div className="mt-3 text-xs text-slate-500">{translate(locale, "usuarios.profesores")}</div>
           <div className="text-2xl font-bold text-[#0B1D4D]">{stats.profesores}</div>
@@ -206,7 +206,7 @@ export default async function UsuariosPage({
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
-            <UserPlus className="h-5 w-5 text-[#2F6FED]" />
+            <UserPlus className="h-5 w-5 text-[#FD5249]" />
           </div>
           <h3 className="mt-3 text-sm font-bold text-[#0B1D4D]">{translate(locale, "usuarios.crearNuevoUsuario")}</h3>
           <p className="mt-1 text-xs text-slate-500">{translate(locale, "usuarios.anadeUsuarioCentro")}</p>

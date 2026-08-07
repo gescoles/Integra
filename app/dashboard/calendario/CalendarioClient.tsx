@@ -30,7 +30,7 @@ type DiaData = {
 
 const ROW_HEIGHT = 56; // px por hora
 const COLORES = [
-  "#2F6FED", "#8B5CF6", "#22C55E", "#F59E0B", "#EF4444", "#0EA5E9",
+  "#FD5249", "#8B5CF6", "#22C55E", "#F59E0B", "#EF4444", "#0EA5E9",
   "#EC4899", "#14B8A6", "#F97316", "#A855F7", "#84CC16", "#06B6D4",
   "#D946EF", "#F43F5E", "#64748B",
 ];
@@ -122,7 +122,7 @@ export function CalendarioClient({
           {offset !== 0 && (
             <Link
               href="/dashboard/calendario"
-              className="ml-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-[#2F6FED] hover:bg-blue-50"
+              className="ml-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-[#FD5249] hover:bg-blue-50"
             >
               {translate(locale, "calendario.hoy")}
             </Link>
@@ -132,7 +132,7 @@ export function CalendarioClient({
         {!readOnly && (
           <button
             onClick={() => openModal(dias.find((d) => d.isToday)?.dateIso ?? dias[0].dateIso)}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]"
           >
             <Plus className="h-4 w-4" /> {translate(locale, "calendario.programar")}
           </button>
@@ -152,13 +152,13 @@ export function CalendarioClient({
             >
               <span
                 className={`text-xs font-bold capitalize ${
-                  dia.isToday ? "text-[#2F6FED]" : "text-[#0B1D4D]"
+                  dia.isToday ? "text-[#FD5249]" : "text-[#0B1D4D]"
                 }`}
               >
                 {dia.label}
               </span>
               {dia.isToday && (
-                <span className="rounded-full bg-[#2F6FED] px-2 py-0.5 text-[10px] font-semibold text-white">
+                <span className="rounded-full bg-[#FD5249] px-2 py-0.5 text-[10px] font-semibold text-white">
                   {translate(locale, "calendario.hoy")}
                 </span>
               )}
@@ -202,7 +202,7 @@ export function CalendarioClient({
               {!readOnly && (
                 <button
                   onClick={() => openModal(dia.dateIso)}
-                  className="absolute right-1 top-1 z-10 rounded p-1 text-slate-300 opacity-0 hover:bg-slate-100 hover:text-[#2F6FED] group-hover:opacity-100"
+                  className="absolute right-1 top-1 z-10 rounded p-1 text-slate-300 opacity-0 hover:bg-slate-100 hover:text-[#FD5249] group-hover:opacity-100"
                   title={translate(locale, "calendario.programarEnEsteDia")}
                 >
                   <Plus className="h-3.5 w-3.5" />
@@ -249,7 +249,7 @@ export function CalendarioClient({
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
         <div className="flex flex-wrap items-center gap-4">
           <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "#2F6FED" }} />
+            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "#FD5249" }} />
             {translate(locale, "calendario.horarioSemanal")}
           </span>
           <span className="flex items-center gap-1.5">
@@ -267,7 +267,7 @@ export function CalendarioClient({
         </div>
         <Link
           href="/dashboard/horario"
-          className="inline-flex items-center gap-1 font-semibold text-[#2F6FED] hover:underline"
+          className="inline-flex items-center gap-1 font-semibold text-[#FD5249] hover:underline"
         >
           <Settings className="h-3.5 w-3.5" /> {translate(locale, "calendario.configurarMiHorario")}
         </Link>
@@ -299,7 +299,7 @@ export function CalendarioClient({
                   name="title"
                   required
                   placeholder={translate(locale, "calendario.tituloPlaceholder")}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 />
               </div>
 
@@ -311,7 +311,7 @@ export function CalendarioClient({
                   required
                   min={new Date().toISOString().slice(0, 10)}
                   defaultValue={defaultDate}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 />
               </div>
 
@@ -325,7 +325,7 @@ export function CalendarioClient({
                     type="time"
                     required
                     defaultValue="09:00"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
                 <div>
@@ -337,7 +337,7 @@ export function CalendarioClient({
                     type="time"
                     required
                     defaultValue="10:00"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
               </div>
@@ -374,7 +374,7 @@ export function CalendarioClient({
                 <button
                   type="submit"
                   disabled={pending}
-                  className="rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                  className="rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
                 >
                   {pending ? translate(locale, "calendario.programando") : translate(locale, "calendario.programar")}
                 </button>

@@ -56,7 +56,7 @@ export default async function CentrosPage() {
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="flex items-center gap-5 rounded-2xl border border-slate-200 bg-white p-6">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-blue-50">
-            <Building2 className="h-8 w-8 text-[#2F6FED]" />
+            <Building2 className="h-8 w-8 text-[#FD5249]" />
           </div>
           <div className="flex-1">
             <h3 className="font-bold text-[#0B1D4D]">Crear centro</h3>
@@ -71,7 +71,7 @@ export default async function CentrosPage() {
 
         <div className="flex items-center gap-5 rounded-2xl border border-slate-200 bg-white p-6">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-blue-50">
-            <ClipboardList className="h-8 w-8 text-[#2F6FED]" />
+            <ClipboardList className="h-8 w-8 text-[#FD5249]" />
           </div>
           <div className="flex-1">
             <h3 className="font-bold text-[#0B1D4D]">Lista de centros</h3>
@@ -80,7 +80,7 @@ export default async function CentrosPage() {
             </p>
             <a
               href="#lista-de-centros"
-              className="mt-3 inline-flex items-center gap-1 rounded-lg border border-[#2F6FED] px-4 py-2 text-sm font-semibold text-[#2F6FED] hover:bg-blue-50"
+              className="mt-3 inline-flex items-center gap-1 rounded-lg border border-[#FD5249] px-4 py-2 text-sm font-semibold text-[#FD5249] hover:bg-blue-50"
             >
               Ver lista <ArrowRight className="h-3.5 w-3.5" />
             </a>
@@ -92,11 +92,11 @@ export default async function CentrosPage() {
       <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
-            <Building2 className="h-5 w-5 text-[#2F6FED]" />
+            <Building2 className="h-5 w-5 text-[#FD5249]" />
           </div>
           <div className="mt-3 text-xs text-slate-500">Centros activos</div>
           <div className="text-2xl font-bold text-[#0B1D4D]">{stats.activos}</div>
-          <Link href="#lista-de-centros" className="mt-2 inline-block text-xs font-semibold text-[#2F6FED] hover:underline">
+          <Link href="#lista-de-centros" className="mt-2 inline-block text-xs font-semibold text-[#FD5249] hover:underline">
             Ver todos los centros →
           </Link>
         </div>
@@ -106,7 +106,7 @@ export default async function CentrosPage() {
           </div>
           <div className="mt-3 text-xs text-slate-500">Pendientes de revisión</div>
           <div className="text-2xl font-bold text-[#0B1D4D]">{stats.revision}</div>
-          <Link href="#lista-de-centros" className="mt-2 inline-block text-xs font-semibold text-[#2F6FED] hover:underline">
+          <Link href="#lista-de-centros" className="mt-2 inline-block text-xs font-semibold text-[#FD5249] hover:underline">
             Ver pendientes →
           </Link>
         </div>
@@ -116,7 +116,7 @@ export default async function CentrosPage() {
           </div>
           <div className="mt-3 text-xs text-slate-500">Planes Pro</div>
           <div className="text-2xl font-bold text-[#0B1D4D]">{stats.pro}</div>
-          <Link href="/dashboard/planes" className="mt-2 inline-block text-xs font-semibold text-[#2F6FED] hover:underline">
+          <Link href="/dashboard/planes" className="mt-2 inline-block text-xs font-semibold text-[#FD5249] hover:underline">
             Ver planes →
           </Link>
         </div>
@@ -126,7 +126,7 @@ export default async function CentrosPage() {
           </div>
           <div className="mt-3 text-xs text-slate-500">Usuarios totales</div>
           <div className="text-2xl font-bold text-[#0B1D4D]">{stats.usuarios}</div>
-          <Link href="/dashboard/usuarios" className="mt-2 inline-block text-xs font-semibold text-[#2F6FED] hover:underline">
+          <Link href="/dashboard/usuarios" className="mt-2 inline-block text-xs font-semibold text-[#FD5249] hover:underline">
             Ver usuarios →
           </Link>
         </div>

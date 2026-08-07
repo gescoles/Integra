@@ -36,7 +36,7 @@ export function CreateUserModal({ schools }: { schools: SchoolOption[] }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
+        className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]"
       >
         <Plus className="h-4 w-4" /> Nuevo usuario
       </button>
@@ -70,7 +70,7 @@ export function CreateUserModal({ schools }: { schools: SchoolOption[] }) {
                     name="name"
                     required
                     placeholder="Ej. Marta Rodríguez"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
                 <div>
@@ -80,7 +80,7 @@ export function CreateUserModal({ schools }: { schools: SchoolOption[] }) {
                   <input
                     name="dni"
                     placeholder="Ej. 45678912X"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
               </div>
@@ -94,7 +94,7 @@ export function CreateUserModal({ schools }: { schools: SchoolOption[] }) {
                   type="email"
                   required
                   placeholder="nombre@centro.com"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 />
               </div>
 
@@ -109,7 +109,7 @@ export function CreateUserModal({ schools }: { schools: SchoolOption[] }) {
                   disabled={autoPassword}
                   minLength={8}
                   placeholder={autoPassword ? "Se generará automáticamente" : "Mínimo 8 caracteres"}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED] disabled:bg-slate-50 disabled:text-slate-400"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249] disabled:bg-slate-50 disabled:text-slate-400"
                 />
 
                 <label className="mt-2.5 flex items-start gap-2 text-xs text-slate-600">
@@ -118,7 +118,7 @@ export function CreateUserModal({ schools }: { schools: SchoolOption[] }) {
                     name="autoPassword"
                     checked={autoPassword}
                     onChange={(e) => setAutoPassword(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-[#2F6FED]"
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-[#FD5249]"
                   />
                   <span>
                     Generar una contraseña segura automáticamente y enviarla por
@@ -136,7 +136,7 @@ export function CreateUserModal({ schools }: { schools: SchoolOption[] }) {
                   <select
                     name="role"
                     defaultValue="PROFESOR"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   >
                     {ASSIGNABLE_ROLES.map((role) => (
                       <option key={role} value={role}>
@@ -153,7 +153,7 @@ export function CreateUserModal({ schools }: { schools: SchoolOption[] }) {
                     name="schoolId"
                     defaultValue={schools[0]?.id ?? ""}
                     required
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   >
                     {schools.length === 0 && <option value="">No hay centros creados todavía</option>}
                     {schools.map((s) => (
@@ -176,7 +176,7 @@ export function CreateUserModal({ schools }: { schools: SchoolOption[] }) {
                 <button
                   type="submit"
                   disabled={pending}
-                  className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
                 >
                   {pending && <ButtonSpinner />}
                   {pending ? "Creando..." : "Crear usuario"}

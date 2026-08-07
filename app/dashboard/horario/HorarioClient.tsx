@@ -20,7 +20,7 @@ type Bloque = {
 const DIA_VALUES = [1, 2, 3, 4, 5, 6, 7];
 
 const COLORES = [
-  "#2F6FED", "#8B5CF6", "#22C55E", "#F59E0B", "#EF4444", "#0EA5E9",
+  "#FD5249", "#8B5CF6", "#22C55E", "#F59E0B", "#EF4444", "#0EA5E9",
   "#EC4899", "#14B8A6", "#F97316", "#A855F7", "#84CC16", "#06B6D4",
   "#D946EF", "#F43F5E", "#64748B",
 ];
@@ -101,7 +101,7 @@ export function HorarioClient({ bloques, readOnly = false }: { bloques: Bloque[]
         <div className="mb-4 flex justify-end">
           <button
             onClick={() => openCreate(1)}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]"
           >
             <Plus className="h-4 w-4" /> {translate(locale, "calendario.programar")}
           </button>
@@ -120,7 +120,7 @@ export function HorarioClient({ bloques, readOnly = false }: { bloques: Bloque[]
             >
               <span
                 className={`text-xs font-bold ${
-                  dia.value === HOY_DIA_SEMANA ? "text-[#2F6FED]" : "text-[#0B1D4D]"
+                  dia.value === HOY_DIA_SEMANA ? "text-[#FD5249]" : "text-[#0B1D4D]"
                 }`}
               >
                 {dia.label}
@@ -163,7 +163,7 @@ export function HorarioClient({ bloques, readOnly = false }: { bloques: Bloque[]
                 {!readOnly && (
                   <button
                     onClick={() => openCreate(dia.value)}
-                    className="absolute right-1 top-1 z-10 rounded p-1 text-slate-300 opacity-0 hover:bg-slate-100 hover:text-[#2F6FED] group-hover:opacity-100"
+                    className="absolute right-1 top-1 z-10 rounded p-1 text-slate-300 opacity-0 hover:bg-slate-100 hover:text-[#FD5249] group-hover:opacity-100"
                     title={translate(locale, "calendario.programarEnEsteDia")}
                   >
                     <Plus className="h-3.5 w-3.5" />
@@ -227,7 +227,7 @@ export function HorarioClient({ bloques, readOnly = false }: { bloques: Bloque[]
                 <select
                   name="diaSemana"
                   defaultValue={editing?.diaSemana ?? defaultDia}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 >
                   {DIAS.map((d) => (
                     <option key={d.value} value={d.value}>
@@ -247,7 +247,7 @@ export function HorarioClient({ bloques, readOnly = false }: { bloques: Bloque[]
                     type="time"
                     required
                     defaultValue={editing?.horaInicio ?? "08:00"}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
                 <div>
@@ -259,7 +259,7 @@ export function HorarioClient({ bloques, readOnly = false }: { bloques: Bloque[]
                     type="time"
                     required
                     defaultValue={editing?.horaFin ?? "08:55"}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
               </div>
@@ -273,7 +273,7 @@ export function HorarioClient({ bloques, readOnly = false }: { bloques: Bloque[]
                   required
                   defaultValue={editing?.asignatura ?? ""}
                   placeholder={translate(locale, "horario.asignaturaPlaceholder")}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 />
               </div>
 
@@ -284,7 +284,7 @@ export function HorarioClient({ bloques, readOnly = false }: { bloques: Bloque[]
                   required
                   defaultValue={editing?.grupo ?? ""}
                   placeholder={translate(locale, "horario.grupoPlaceholder")}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 />
               </div>
 
@@ -333,7 +333,7 @@ export function HorarioClient({ bloques, readOnly = false }: { bloques: Bloque[]
                   <button
                     type="submit"
                     disabled={pending}
-                    className="rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                    className="rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
                   >
                     {pending
                       ? translate(locale, "common.guardando")

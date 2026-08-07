@@ -31,7 +31,7 @@ export function NuevoAvisoButton() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-[#2F6FED] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#255ed1]"
+        className="inline-flex items-center gap-1.5 rounded-lg bg-[#FD5249] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#D7463E]"
       >
         <Plus className="h-3.5 w-3.5" /> Nuevo aviso
       </button>
@@ -62,7 +62,7 @@ export function NuevoAvisoButton() {
                   name="titulo"
                   required
                   placeholder="Ej. Reunión claustro ordinario"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 />
               </div>
 
@@ -71,7 +71,7 @@ export function NuevoAvisoButton() {
                 <select
                   name="categoria"
                   defaultValue="GENERAL"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 >
                   <option value="GENERAL">General</option>
                   <option value="ACADEMICO">Académico</option>
@@ -86,7 +86,7 @@ export function NuevoAvisoButton() {
                   required
                   rows={3}
                   placeholder="Escribe el aviso..."
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 />
               </div>
 
@@ -101,7 +101,7 @@ export function NuevoAvisoButton() {
                 <button
                   type="submit"
                   disabled={pending}
-                  className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
                 >
                   {pending && <ButtonSpinner />}
                   {pending ? "Publicando..." : "Publicar aviso"}

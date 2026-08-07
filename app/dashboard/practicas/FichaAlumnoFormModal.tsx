@@ -66,7 +66,7 @@ export function FichaAlumnoFormModal({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
+        className="inline-flex items-center gap-1.5 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]"
       >
         <Plus className="h-4 w-4" /> {translate(locale, "practicas.nuevaFicha")}
       </button>
@@ -89,7 +89,7 @@ export function FichaAlumnoFormModal({
                   {translate(locale, "practicas.alumno")} <span className="text-red-500">*</span>
                 </label>
                 {alumnoSeleccionado ? (
-                  <div className="flex items-center justify-between rounded-lg border border-[#2F6FED] bg-blue-50 px-3 py-2.5">
+                  <div className="flex items-center justify-between rounded-lg border border-[#FD5249] bg-blue-50 px-3 py-2.5">
                     <div className="flex items-center gap-2.5">
                       <div className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-slate-200">
                         {alumnoSeleccionado.avatarUrl && (
@@ -115,7 +115,7 @@ export function FichaAlumnoFormModal({
                       onFocus={() => setBuscadorAbierto(true)}
                       onBlur={() => setTimeout(() => setBuscadorAbierto(false), 150)}
                       placeholder={translate(locale, "practicas.buscarAlumnoPlaceholder")}
-                      className="w-full rounded-lg border border-slate-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#2F6FED]"
+                      className="w-full rounded-lg border border-slate-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#FD5249]"
                     />
                     {buscadorAbierto && (
                       <div className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
@@ -154,12 +154,12 @@ export function FichaAlumnoFormModal({
                   {translate(locale, "practicas.promocion")} <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-2">
-                  <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-600 has-[:checked]:border-[#2F6FED] has-[:checked]:bg-blue-50 has-[:checked]:text-[#2F6FED]">
-                    <input type="radio" name="promocion" value="PRIMERA" defaultChecked className="accent-[#2F6FED]" />
+                  <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-600 has-[:checked]:border-[#FD5249] has-[:checked]:bg-blue-50 has-[:checked]:text-[#FD5249]">
+                    <input type="radio" name="promocion" value="PRIMERA" defaultChecked className="accent-[#FD5249]" />
                     {translate(locale, "practicas.primeraPromocion")}
                   </label>
-                  <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-600 has-[:checked]:border-[#2F6FED] has-[:checked]:bg-blue-50 has-[:checked]:text-[#2F6FED]">
-                    <input type="radio" name="promocion" value="SEGUNDA" className="accent-[#2F6FED]" />
+                  <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-600 has-[:checked]:border-[#FD5249] has-[:checked]:bg-blue-50 has-[:checked]:text-[#FD5249]">
+                    <input type="radio" name="promocion" value="SEGUNDA" className="accent-[#FD5249]" />
                     {translate(locale, "practicas.segundaPromocion")}
                   </label>
                 </div>
@@ -168,11 +168,11 @@ export function FichaAlumnoFormModal({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.cicloFormativo")}</label>
-                  <input name="cicloFormativo" placeholder="Ej. 1r CFGM AC" className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                  <input name="cicloFormativo" placeholder="Ej. 1r CFGM AC" className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.anyTitulacion")}</label>
-                  <input name="anyTitulacion" placeholder="Ej. 2027" className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                  <input name="anyTitulacion" placeholder="Ej. 2027" className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
                 </div>
                 <div className="col-span-2">
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.tutorImes")}</label>
@@ -204,7 +204,7 @@ export function FichaAlumnoFormModal({
                 </div>
               </div>
 
-              <p className="rounded-lg bg-blue-50 px-3 py-2.5 text-xs text-[#2F6FED]">
+              <p className="rounded-lg bg-blue-50 px-3 py-2.5 text-xs text-[#FD5249]">
                 {translate(locale, "practicas.avisoFichaPrimero")}
               </p>
 
@@ -215,7 +215,7 @@ export function FichaAlumnoFormModal({
                 <button
                   type="submit"
                   disabled={pending}
-                  className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
                 >
                   {pending && <ButtonSpinner />}
                   {pending ? translate(locale, "common.creando") : translate(locale, "practicas.guardarFicha")}

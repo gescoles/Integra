@@ -111,6 +111,11 @@ export async function deleteUser(id: string) {
   // Se borra todo lo asociado, en el orden correcto para no romper claves foráneas.
   if (alumnoIds.length > 0) {
     await prisma.alumnoContacto.deleteMany({ where: { alumnoId: { in: alumnoIds } } });
+    // Si alguno de sus alumnos tiene ficha de Prácticas o Incidencias
+    // abiertas, hay que borrarlas antes de poder borrar al propio alumno.
+    await prisma.practicaAlumno.deleteMany({ where: { alumnoId: { in: alumnoIds } } });
+    await prisma.expediente.deleteMany({ where: { alumnoId: { in: alumnoIds } } });
+    await prisma.incidencia.deleteMany({ where: { alumnoId: { in: alumnoIds } } });
   }
   await prisma.tutoria.deleteMany({ where: { profesorId: id } });
   await prisma.guardia.deleteMany({ where: { profesorId: id } });
@@ -119,6 +124,15 @@ export async function deleteUser(id: string) {
   await prisma.horarioBloque.deleteMany({ where: { profesorId: id } });
   await prisma.calendarEvento.deleteMany({ where: { userId: id } });
   await prisma.aviso.deleteMany({ where: { autorId: id } });
+
+  // Estos módulos se añadieron después de escribir esta función, así que
+  // hacía falta sumarlos aquí también (si no, borrar el usuario fallaba por
+  // culpa de estas referencias sueltas).
+  await prisma.historiaVista.deleteMany({ where: { userId: id } });
+  await prisma.historia.deleteMany({ where: { autorId: id } });
+  await prisma.salida.deleteMany({ where: { OR: [{ creadoPorId: id }, { responsableId: id }] } });
+  await prisma.expediente.deleteMany({ where: { OR: [{ tutorId: id }, { creadoPorId: id }] } });
+  await prisma.incidencia.deleteMany({ where: { OR: [{ creadorId: id }, { tutorId: id }] } });
 
   await prisma.user.delete({ where: { id } });
   revalidatePath("/dashboard/usuarios");

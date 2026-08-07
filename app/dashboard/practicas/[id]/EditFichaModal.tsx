@@ -75,12 +75,12 @@ export function EditFichaModal({ ficha }: { ficha: Ficha }) {
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.promocion")}</label>
                 <div className="flex gap-2">
-                  <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-600 has-[:checked]:border-[#2F6FED] has-[:checked]:bg-blue-50 has-[:checked]:text-[#2F6FED]">
-                    <input type="radio" name="promocion" value="PRIMERA" defaultChecked={ficha.promocion === "PRIMERA"} className="accent-[#2F6FED]" />
+                  <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-600 has-[:checked]:border-[#FD5249] has-[:checked]:bg-blue-50 has-[:checked]:text-[#FD5249]">
+                    <input type="radio" name="promocion" value="PRIMERA" defaultChecked={ficha.promocion === "PRIMERA"} className="accent-[#FD5249]" />
                     {translate(locale, "practicas.primeraPromocion")}
                   </label>
-                  <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-600 has-[:checked]:border-[#2F6FED] has-[:checked]:bg-blue-50 has-[:checked]:text-[#2F6FED]">
-                    <input type="radio" name="promocion" value="SEGUNDA" defaultChecked={ficha.promocion === "SEGUNDA"} className="accent-[#2F6FED]" />
+                  <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-600 has-[:checked]:border-[#FD5249] has-[:checked]:bg-blue-50 has-[:checked]:text-[#FD5249]">
+                    <input type="radio" name="promocion" value="SEGUNDA" defaultChecked={ficha.promocion === "SEGUNDA"} className="accent-[#FD5249]" />
                     {translate(locale, "practicas.segundaPromocion")}
                   </label>
                 </div>
@@ -89,11 +89,11 @@ export function EditFichaModal({ ficha }: { ficha: Ficha }) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.cicloFormativo")}</label>
-                  <input name="cicloFormativo" defaultValue={ficha.cicloFormativo ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                  <input name="cicloFormativo" defaultValue={ficha.cicloFormativo ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.anyTitulacion")}</label>
-                  <input name="anyTitulacion" defaultValue={ficha.anyTitulacion ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                  <input name="anyTitulacion" defaultValue={ficha.anyTitulacion ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
                 </div>
                 <div className="col-span-2">
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.tutorImes")}</label>
@@ -132,7 +132,7 @@ export function EditFichaModal({ ficha }: { ficha: Ficha }) {
                 <button
                   type="submit"
                   disabled={pending}
-                  className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
                 >
                   {pending && <ButtonSpinner />}
                   {pending ? translate(locale, "common.guardando") : translate(locale, "common.guardar")}

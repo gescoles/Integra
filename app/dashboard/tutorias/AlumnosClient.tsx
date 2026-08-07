@@ -200,7 +200,7 @@ export function AlumnosClient({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={translate(locale, "tutorias.buscarAlumnoPlaceholder")}
-            className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#2F6FED]"
+            className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#FD5249]"
           />
         </div>
 
@@ -334,7 +334,7 @@ export function AlumnosClient({
               <h3 className="text-sm font-bold text-[#0B1D4D]">{translate(locale, "tutorias.historialTutorias")}</h3>
               <button
                 onClick={() => setNuevaTutoriaOpen(true)}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
+                className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]"
               >
                 <Plus className="h-4 w-4" /> {translate(locale, "tutorias.registrarNuevaTutoria")}
               </button>
@@ -448,7 +448,7 @@ export function AlumnosClient({
                     type="date"
                     required
                     defaultValue={new Date().toISOString().slice(0, 10)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
                 <div>
@@ -458,7 +458,7 @@ export function AlumnosClient({
                     type="time"
                     required
                     defaultValue="09:00"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
               </div>
@@ -468,7 +468,7 @@ export function AlumnosClient({
                 <select
                   name="conQuien"
                   defaultValue="ALUMNO"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 >
                   {Object.keys(CON_QUIEN_LABELS).map((value) => (
                     <option key={value} value={value}>
@@ -483,7 +483,7 @@ export function AlumnosClient({
                 <select
                   name="medio"
                   defaultValue="PRESENCIAL"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 >
                   {Object.keys(MEDIO_LABELS).map((value) => (
                     <option key={value} value={value}>
@@ -501,7 +501,7 @@ export function AlumnosClient({
                   name="causa"
                   required
                   placeholder={translate(locale, "tutorias.causaPlaceholder")}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 />
               </div>
 
@@ -520,7 +520,7 @@ export function AlumnosClient({
                 <button
                   type="submit"
                   disabled={pending}
-                  className="rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                  className="rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
                 >
                   {pending ? translate(locale, "tutorias.registrando") : translate(locale, "tutorias.registrarTutoria")}
                 </button>
@@ -559,7 +559,7 @@ export function AlumnosClient({
                   name="nombre"
                   required
                   defaultValue={selected.nombre}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 />
               </div>
 
@@ -572,7 +572,7 @@ export function AlumnosClient({
                     name="curso"
                     required
                     defaultValue={selected.curso}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
                 <div>
@@ -581,7 +581,7 @@ export function AlumnosClient({
                     name="edad"
                     type="number"
                     defaultValue={selected.edad ?? ""}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
               </div>
@@ -593,7 +593,7 @@ export function AlumnosClient({
                 <select
                   name="riesgo"
                   defaultValue={selected.riesgo}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 >
                   {Object.keys(RIESGO_LABELS).map((value) => (
                     <option key={value} value={value}>
@@ -613,14 +613,14 @@ export function AlumnosClient({
                         name="madreTelefono"
                         defaultValue={madre?.telefono ?? ""}
                         placeholder={translate(locale, "tutorias.telefono")}
-                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
                       />
                       <input
                         name="madreEmail"
                         type="email"
                         defaultValue={madre?.email ?? ""}
                         placeholder={translate(locale, "tutorias.email")}
-                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
                       />
                     </div>
                   </div>
@@ -631,14 +631,14 @@ export function AlumnosClient({
                         name="padreTelefono"
                         defaultValue={padre?.telefono ?? ""}
                         placeholder={translate(locale, "tutorias.telefono")}
-                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
                       />
                       <input
                         name="padreEmail"
                         type="email"
                         defaultValue={padre?.email ?? ""}
                         placeholder={translate(locale, "tutorias.email")}
-                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
                       />
                     </div>
                   </div>
@@ -665,7 +665,7 @@ export function AlumnosClient({
                   <button
                     type="submit"
                     disabled={pending}
-                    className="rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                    className="rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
                   >
                     {pending ? translate(locale, "common.guardando") : translate(locale, "tutorias.guardarCambios")}
                   </button>
@@ -765,7 +765,7 @@ export function AlumnosClient({
             <div className="mt-5 flex justify-end">
               <button
                 onClick={() => setViewingTutoria(null)}
-                className="rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
+                className="rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]"
               >
                 {translate(locale, "common.cerrar")}
               </button>
@@ -805,7 +805,7 @@ export function AlumnosClient({
                     type="date"
                     required
                     defaultValue={new Date(editingTutoria.sessionDate).toISOString().slice(0, 10)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
                 <div>
@@ -818,7 +818,7 @@ export function AlumnosClient({
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
               </div>
@@ -828,7 +828,7 @@ export function AlumnosClient({
                 <select
                   name="conQuien"
                   defaultValue={editingTutoria.conQuien ?? "ALUMNO"}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 >
                   {Object.keys(CON_QUIEN_LABELS).map((value) => (
                     <option key={value} value={value}>
@@ -843,7 +843,7 @@ export function AlumnosClient({
                 <select
                   name="medio"
                   defaultValue={editingTutoria.medio ?? "PRESENCIAL"}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 >
                   {Object.keys(MEDIO_LABELS).map((value) => (
                     <option key={value} value={value}>
@@ -861,7 +861,7 @@ export function AlumnosClient({
                   name="causa"
                   required
                   defaultValue={editingTutoria.causa}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 />
               </div>
 
@@ -885,7 +885,7 @@ export function AlumnosClient({
                   <button
                     type="submit"
                     disabled={pending}
-                    className="rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                    className="rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
                   >
                     {pending ? translate(locale, "common.guardando") : translate(locale, "tutorias.guardarCambios")}
                   </button>
@@ -941,7 +941,7 @@ export function AlumnosClient({
                   rows={5}
                   onChange={(e) => setJustLength(e.target.value.length)}
                   placeholder={translate(locale, "tutorias.resumenPlaceholder")}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 />
                 <p className="mt-1 text-right text-xs text-slate-400">{justLength}/1000</p>
               </div>
@@ -954,7 +954,7 @@ export function AlumnosClient({
                   name="proximoSeguimiento"
                   type="date"
                   min={new Date().toISOString().slice(0, 10)}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 />
                 <p className="mt-1 text-xs text-slate-400">
                   {translate(locale, "tutorias.fechaProximoSeguimientoDesc")}

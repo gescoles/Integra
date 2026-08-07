@@ -55,14 +55,14 @@ export function PracticasClient({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={translate(locale, "practicas.buscarPlaceholder")}
-            className="w-full rounded-lg border border-slate-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#2F6FED]"
+            className="w-full rounded-lg border border-slate-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#FD5249]"
           />
         </div>
 
         <select
           value={promocionFilter}
           onChange={(e) => setPromocionFilter(e.target.value)}
-          className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+          className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
         >
           <option value="Todos">{translate(locale, "practicas.todasPromociones")}</option>
           <option value="PRIMERA">{translate(locale, "practicas.primeraPromocion")}</option>
@@ -73,7 +73,7 @@ export function PracticasClient({
           <select
             value={tutorFilter}
             onChange={(e) => setTutorFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+            className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
           >
             <option value="Todos">{translate(locale, "practicas.todosTutores")}</option>
             {profesores.map((p) => (
@@ -127,7 +127,7 @@ export function PracticasClient({
                     </div>
                   </td>
                   <td className="py-3 pr-4">
-                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${r.promocion === "PRIMERA" ? "bg-blue-50 text-[#2F6FED]" : "bg-violet-50 text-violet-600"}`}>
+                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${r.promocion === "PRIMERA" ? "bg-blue-50 text-[#FD5249]" : "bg-violet-50 text-violet-600"}`}>
                       {r.promocion === "PRIMERA" ? translate(locale, "practicas.primeraPromocion") : translate(locale, "practicas.segundaPromocion")}
                     </span>
                   </td>
@@ -143,7 +143,7 @@ export function PracticasClient({
                   <td className="py-3 text-right">
                     <Link
                       href={`/dashboard/practicas/${r.id}`}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-[#2F6FED] hover:underline"
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-[#FD5249] hover:underline"
                     >
                       {translate(locale, "practicas.verConvenios")} <ChevronRight className="h-3.5 w-3.5" />
                     </Link>

@@ -35,7 +35,7 @@ export function AgendaTimeline({ titulo, items, verMasHref }: { titulo: string; 
     <div className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="mb-5 flex items-center justify-between">
         <h3 className="text-sm font-bold text-[#0B1D4D]">{titulo}</h3>
-        <Link href={verMasHref} className="text-xs font-semibold text-[#2F6FED] hover:underline">
+        <Link href={verMasHref} className="text-xs font-semibold text-[#FD5249] hover:underline">
           Ver agenda completa
         </Link>
       </div>

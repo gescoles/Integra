@@ -115,7 +115,7 @@ export function ChatWidget({ userName }: { userName: string }) {
       >
         <div className="h-full w-full overflow-hidden rounded-full bg-white shadow-lg ring-1 ring-black/5">
           {open ? (
-            <div className="flex h-full w-full items-center justify-center bg-[#2F6FED] text-white">
+            <div className="flex h-full w-full items-center justify-center bg-[#FD5249] text-white">
               <X className="h-6 w-6" />
             </div>
           ) : (
@@ -151,7 +151,7 @@ export function ChatWidget({ userName }: { userName: string }) {
               <div key={i} className={`flex gap-2 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
                 <div
                   className={`flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full ${
-                    m.role === "user" ? "bg-[#2F6FED]" : "bg-slate-100"
+                    m.role === "user" ? "bg-[#FD5249]" : "bg-slate-100"
                   }`}
                 >
                   {m.role === "user" ? (
@@ -163,7 +163,7 @@ export function ChatWidget({ userName }: { userName: string }) {
                 </div>
                 <div
                   className={`max-w-[75%] whitespace-pre-wrap rounded-xl px-3 py-2 text-sm ${
-                    m.role === "user" ? "bg-[#2F6FED] text-white" : "bg-slate-100 text-slate-700"
+                    m.role === "user" ? "bg-[#FD5249] text-white" : "bg-slate-100 text-slate-700"
                   }`}
                 >
                   {m.content}
@@ -194,12 +194,12 @@ export function ChatWidget({ userName }: { userName: string }) {
                 onKeyDown={handleKeyDown}
                 rows={1}
                 placeholder={translate(locale, "chat.placeholder")}
-                className="max-h-24 flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                className="max-h-24 flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
               />
               <button
                 onClick={handleSend}
                 disabled={pending || !input.trim()}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#2F6FED] text-white hover:bg-[#255ed1] disabled:opacity-40"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#FD5249] text-white hover:bg-[#D7463E] disabled:opacity-40"
               >
                 <Send className="h-4 w-4" />
               </button>

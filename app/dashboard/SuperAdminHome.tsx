@@ -22,7 +22,7 @@ import {
 const quickActions = [
   {
     icon: UserPlus,
-    color: "bg-blue-50 text-[#2F6FED]",
+    color: "bg-blue-50 text-[#FD5249]",
     title: "Añadir nuevo centro",
     text: "Registra un nuevo centro en la plataforma",
     href: "/dashboard/centros",
@@ -58,7 +58,7 @@ const quickActions = [
 ];
 
 const PLAN_COLORS: Record<string, string> = {
-  BASICO: "#2F6FED",
+  BASICO: "#FD5249",
   PRO: "#22C55E",
   PREMIUM: "#A855F7",
 };
@@ -139,7 +139,7 @@ export async function SuperAdminHome({
       cta: "Ver todos los centros",
       href: "/dashboard/centros",
       icon: Landmark,
-      color: "bg-blue-50 text-[#2F6FED]",
+      color: "bg-blue-50 text-[#FD5249]",
     },
     {
       label: "Usuarios activos",
@@ -193,7 +193,7 @@ export async function SuperAdminHome({
     })),
     ...recentUsers.map((u) => ({
       icon: UserPlus,
-      color: "bg-blue-50 text-[#2F6FED]",
+      color: "bg-blue-50 text-[#FD5249]",
       title: "Usuario creado",
       detail: u.email,
       time: timeAgo(u.createdAt),
@@ -261,7 +261,7 @@ export async function SuperAdminHome({
             <div className="text-2xl font-bold text-[#0B1D4D]">{s.value}</div>
             <Link
               href={s.href}
-              className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#2F6FED] hover:underline"
+              className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#FD5249] hover:underline"
             >
               {s.cta} <ArrowRight className="h-3 w-3" />
             </Link>
@@ -311,7 +311,7 @@ export async function SuperAdminHome({
           <PlansDonut data={plansData} />
           <Link
             href="/dashboard/planes"
-            className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[#2F6FED] hover:underline"
+            className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-[#FD5249] hover:underline"
           >
             Ver todos los planes <ArrowRight className="h-3 w-3" />
           </Link>
@@ -326,7 +326,7 @@ export async function SuperAdminHome({
             <Link
               key={a.title}
               href={a.href}
-              className="group rounded-xl border border-slate-200 p-4 transition-colors hover:border-[#2F6FED]"
+              className="group rounded-xl border border-slate-200 p-4 transition-colors hover:border-[#FD5249]"
             >
               <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${a.color}`}>
                 <a.icon className="h-5 w-5" />
@@ -344,7 +344,7 @@ export async function SuperAdminHome({
       {/* Banner */}
       <div className="mt-5 flex flex-col items-center gap-6 rounded-2xl border border-blue-100 bg-blue-50/50 p-8 sm:flex-row">
         <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm">
-          <ShieldCheck className="h-12 w-12 text-[#2F6FED]" strokeWidth={1.5} />
+          <ShieldCheck className="h-12 w-12 text-[#FD5249]" strokeWidth={1.5} />
         </div>
         <div className="flex-1 text-center sm:text-left">
           <h3 className="text-lg font-bold text-[#0B1D4D]">Todo bajo control</h3>
@@ -356,7 +356,7 @@ export async function SuperAdminHome({
         </div>
         <a
           href="#"
-          className="shrink-0 rounded-lg border border-[#2F6FED] px-5 py-2.5 text-sm font-semibold text-[#2F6FED] hover:bg-white"
+          className="shrink-0 rounded-lg border border-[#FD5249] px-5 py-2.5 text-sm font-semibold text-[#FD5249] hover:bg-white"
         >
           Ver documentación
         </a>

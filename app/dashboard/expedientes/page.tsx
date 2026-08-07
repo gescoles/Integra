@@ -23,14 +23,14 @@ async function getExpedientesData(schoolId: string, soloPropiasDeUserId?: string
         alumno: { select: { id: true, nombre: true, curso: true, avatarUrl: true } },
         creador: { select: { name: true, email: true } },
         tutor: { select: { id: true, name: true, email: true } },
-        sancionPor: { select: { name: true, email: true } },
         eventos: { orderBy: { createdAt: "asc" }, include: { autor: { select: { name: true, email: true } } } },
+        expedientes: { orderBy: { createdAt: "desc" } },
       },
       orderBy: { createdAt: "desc" },
     }),
     prisma.alumno.findMany({
       where: { schoolId },
-      select: { id: true, nombre: true, curso: true, avatarUrl: true },
+      select: { id: true, nombre: true, curso: true, avatarUrl: true, profesorId: true },
       orderBy: { nombre: "asc" },
     }),
     prisma.user.findMany({
@@ -61,11 +61,27 @@ async function getExpedientesData(schoolId: string, soloPropiasDeUserId?: string
     familiaInformada: inc.familiaInformada,
     familiaInformadaFecha: inc.familiaInformadaFecha?.toISOString() ?? null,
     familiaInformadaComunicacion: inc.familiaInformadaComunicacion,
-    sancionDias: inc.sancionDias,
-    sancionMotivo: inc.sancionMotivo,
-    sancionFecha: inc.sancionFecha?.toISOString() ?? null,
-    sancionPorNombre: inc.sancionPor?.name ?? inc.sancionPor?.email ?? null,
     createdAt: inc.createdAt.toISOString(),
+    expedientes: inc.expedientes.map((e) => ({
+      id: e.id,
+      numero: e.numero,
+      estado: e.estado,
+      fechaInicio: e.fechaInicio.toISOString(),
+      fets: e.fets,
+      testimonis: e.testimonis,
+      informeTutor: e.informeTutor,
+      audienciaResumen: e.audienciaResumen,
+      valoracionComision: e.valoracionComision,
+      medidasProvisionales: e.medidasProvisionales,
+      sancionDias: e.sancionDias,
+      sancionMotivo: e.sancionMotivo,
+      fechaAplicacionInicio: e.fechaAplicacionInicio.toISOString(),
+      fechaAplicacionFin: e.fechaAplicacionFin.toISOString(),
+      recursoEstado: e.recursoEstado,
+      direccionNombre: e.direccionNombre,
+      coordinadorNombre: e.coordinadorNombre,
+      enviadoEn: e.enviadoEn?.toISOString() ?? null,
+    })),
     eventos: inc.eventos.map((e) => ({
       id: e.id,
       tipo: e.tipo,
@@ -75,7 +91,7 @@ async function getExpedientesData(schoolId: string, soloPropiasDeUserId?: string
     })),
   }));
 
-  const alumnos = alumnosRaw.map((a) => ({ id: a.id, nombre: a.nombre, curso: a.curso, avatarUrl: a.avatarUrl }));
+  const alumnos = alumnosRaw.map((a) => ({ id: a.id, nombre: a.nombre, curso: a.curso, avatarUrl: a.avatarUrl, profesorId: a.profesorId }));
   const profesores = profesoresRaw.map((p) => ({ id: p.id, name: p.name ?? p.email }));
 
   return { rows, alumnos, profesores };

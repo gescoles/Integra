@@ -10,11 +10,7 @@ const DURACION_HISTORIA_HORAS = 24;
 
 export async function crearHistoria(formData: FormData) {
   const session = await getServerSession(authOptions);
-  const role = session?.user.role;
   if (!session?.user.id || !session.user.schoolId) throw new Error("No autorizado.");
-  if (role !== "COORDINADOR" && role !== "ADMIN_CENTRO") {
-    throw new Error("Solo Coordinación o Dirección del centro pueden publicar historias.");
-  }
 
   const file = formData.get("imagen") as File | null;
   const texto = (formData.get("texto") as string)?.trim();

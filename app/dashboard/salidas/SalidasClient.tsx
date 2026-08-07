@@ -88,7 +88,7 @@ export function SalidasClient({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={translate(locale, "salidas.buscarPlaceholder")}
-            className="w-full rounded-lg border border-slate-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#2F6FED]"
+            className="w-full rounded-lg border border-slate-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#FD5249]"
           />
         </div>
 
@@ -96,7 +96,7 @@ export function SalidasClient({
           <select
             value={responsableFilter}
             onChange={(e) => setResponsableFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+            className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
           >
             <option value="Todos">{translate(locale, "salidas.todosResponsables")}</option>
             {profesores.map((p) => (
@@ -111,7 +111,7 @@ export function SalidasClient({
           <select
             value={cursoFilter}
             onChange={(e) => setCursoFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+            className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
           >
             <option value="Todos">{translate(locale, "material.todosCursos")}</option>
             {cursos.map((c) => (
@@ -127,7 +127,7 @@ export function SalidasClient({
             type="date"
             value={fechaFilter}
             onChange={(e) => setFechaFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+            className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
           />
         )}
 

@@ -244,7 +244,7 @@ export async function ProfesorHome({
       </div>
 
       <div className="mb-5 grid gap-5 lg:grid-cols-2">
-        <HistoriasBar puedeSubir={false} currentUserId={userId} currentUserRole={role} currentUserSchoolId={schoolId} />
+        <HistoriasBar puedeSubir currentUserId={userId} currentUserRole={role} currentUserSchoolId={schoolId} />
         <ComunidadPanel avisos={avisos} />
       </div>
 
@@ -255,7 +255,7 @@ export async function ProfesorHome({
             <h3 className="text-sm font-bold text-[#0B1D4D]">Agenda del día</h3>
             <Link
               href="/dashboard/calendario"
-              className="text-xs font-semibold text-[#2F6FED] hover:underline"
+              className="text-xs font-semibold text-[#FD5249] hover:underline"
             >
               Ver agenda completa
             </Link>
@@ -287,7 +287,7 @@ export async function ProfesorHome({
             <h3 className="text-sm font-bold text-[#0B1D4D]">Horario fijo semanal</h3>
             <Link
               href="/dashboard/horario"
-              className="text-xs font-semibold text-[#2F6FED] hover:underline"
+              className="text-xs font-semibold text-[#FD5249] hover:underline"
             >
               Ver horario semanal
             </Link>

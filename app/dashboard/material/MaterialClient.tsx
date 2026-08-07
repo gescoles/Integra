@@ -88,13 +88,13 @@ export function MaterialClient({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={translate(locale, "material.buscarPlaceholder")}
-            className="w-full rounded-lg border border-slate-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#2F6FED]"
+            className="w-full rounded-lg border border-slate-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#FD5249]"
           />
         </div>
         <select
           value={cursoFilter}
           onChange={(e) => setCursoFilter(e.target.value)}
-          className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+          className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
         >
           <option value="Todos">{translate(locale, "material.todosCursos")}</option>
           {cursos.map((c) => (
@@ -108,7 +108,7 @@ export function MaterialClient({
           <select
             value={profesorFilter}
             onChange={(e) => setProfesorFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+            className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
           >
             <option value="Todos">{translate(locale, "material.todosProfesores")}</option>
             {profesores.map((p) => (
@@ -186,7 +186,7 @@ export function MaterialClient({
                           href={r.enlace}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[#2F6FED] hover:underline"
+                          className="inline-flex items-center gap-1 text-[#FD5249] hover:underline"
                         >
                           Ver enlace <ExternalLink className="h-3 w-3" />
                         </a>

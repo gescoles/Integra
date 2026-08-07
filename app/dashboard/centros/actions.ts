@@ -98,6 +98,7 @@ export async function deleteSchool(id: string) {
   await prisma.tutoria.deleteMany({ where: { schoolId: id } });
   await prisma.guardia.deleteMany({ where: { schoolId: id } });
   await prisma.materialRequest.deleteMany({ where: { schoolId: id } });
+  await prisma.expediente.deleteMany({ where: { schoolId: id } });
   await prisma.incidencia.deleteMany({ where: { schoolId: id } });
   await prisma.alumno.deleteMany({ where: { schoolId: id } });
   await prisma.aviso.deleteMany({ where: { schoolId: id } });

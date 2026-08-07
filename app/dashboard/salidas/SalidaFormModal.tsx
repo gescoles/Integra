@@ -53,7 +53,7 @@ export function SalidaFormModal({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
+        className="inline-flex items-center gap-1.5 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]"
       >
         <Plus className="h-4 w-4" /> {translate(locale, "salidas.nuevaSalida")}
       </button>
@@ -75,7 +75,7 @@ export function SalidaFormModal({
                 </div>
                 <button
                   onClick={handleClose}
-                  className="w-full rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
+                  className="w-full rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]"
                 >
                   {translate(locale, "common.cerrar")}
                 </button>
@@ -95,7 +95,7 @@ export function SalidaFormModal({
                       name="curso"
                       required
                       placeholder={translate(locale, "salidas.cursoPlaceholder")}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                     />
                   </div>
                   <div>
@@ -106,7 +106,7 @@ export function SalidaFormModal({
                       name="tipo"
                       required
                       placeholder={translate(locale, "salidas.tipoPlaceholder")}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                     />
                   </div>
                 </div>
@@ -119,7 +119,7 @@ export function SalidaFormModal({
                     name="actividad"
                     required
                     placeholder={translate(locale, "salidas.actividadPlaceholder")}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
 
@@ -132,7 +132,7 @@ export function SalidaFormModal({
                     type="date"
                     required
                     defaultValue={new Date().toISOString().slice(0, 10)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
 
@@ -146,7 +146,7 @@ export function SalidaFormModal({
                       type="time"
                       required
                       defaultValue="09:00"
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                     />
                   </div>
                   <div>
@@ -159,7 +159,7 @@ export function SalidaFormModal({
                       required={!vueltaDirectaCasa}
                       disabled={vueltaDirectaCasa}
                       defaultValue="14:00"
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED] disabled:bg-slate-50 disabled:text-slate-400"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249] disabled:bg-slate-50 disabled:text-slate-400"
                     />
                   </div>
                 </div>
@@ -170,7 +170,7 @@ export function SalidaFormModal({
                     name="vueltaDirectaCasa"
                     checked={vueltaDirectaCasa}
                     onChange={(e) => setVueltaDirectaCasa(e.target.checked)}
-                    className="rounded border-slate-300 accent-[#2F6FED]"
+                    className="rounded border-slate-300 accent-[#FD5249]"
                   />
                   {translate(locale, "salidas.vueltaDirectaCasa")}
                 </label>
@@ -183,7 +183,7 @@ export function SalidaFormModal({
                     name="responsableId"
                     required
                     defaultValue={currentUserId}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   >
                     {profesores.map((p) => (
                       <option key={p.id} value={p.id}>
@@ -200,7 +200,7 @@ export function SalidaFormModal({
                   <div className="max-h-32 space-y-1 overflow-y-auto rounded-lg border border-slate-200 p-2">
                     {profesores.map((p) => (
                       <label key={p.id} className="flex items-center gap-2 rounded px-1.5 py-1 text-sm text-slate-600 hover:bg-slate-50">
-                        <input type="checkbox" name="profesoresIds" value={p.id} className="rounded border-slate-300 accent-[#2F6FED]" />
+                        <input type="checkbox" name="profesoresIds" value={p.id} className="rounded border-slate-300 accent-[#FD5249]" />
                         {p.name}
                       </label>
                     ))}
@@ -218,7 +218,7 @@ export function SalidaFormModal({
                       min={0}
                       required
                       placeholder="25"
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                     />
                   </div>
                   <div>
@@ -231,7 +231,7 @@ export function SalidaFormModal({
                       min={0}
                       step="0.01"
                       placeholder="0.00"
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                     />
                   </div>
                   <div>
@@ -241,7 +241,7 @@ export function SalidaFormModal({
                     <select
                       name="moneda"
                       defaultValue="EUR"
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                     >
                       <option value="EUR">EUR (€)</option>
                       <option value="USD">USD ($)</option>
@@ -258,11 +258,11 @@ export function SalidaFormModal({
                     name="observaciones"
                     rows={3}
                     placeholder={translate(locale, "salidas.observacionesPlaceholder")}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
 
-                <p className="flex items-start gap-2 rounded-lg bg-blue-50 px-3 py-2.5 text-xs text-[#2F6FED]">
+                <p className="flex items-start gap-2 rounded-lg bg-blue-50 px-3 py-2.5 text-xs text-[#FD5249]">
                   <Mail className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   {translate(locale, "salidas.avisoAutomatico")}
                 </p>
@@ -278,7 +278,7 @@ export function SalidaFormModal({
                   <button
                     type="submit"
                     disabled={pending}
-                    className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
                   >
                     {pending && <ButtonSpinner />}
                     {pending ? translate(locale, "common.creando") : translate(locale, "salidas.guardarSalida")}

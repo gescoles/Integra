@@ -34,8 +34,8 @@ export function AssemblingLogo({ size = 56 }: { size?: number }) {
     <svg key={ciclo} width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id={gradientId} x1="2" y1="2" x2="38" y2="38" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#3B82F6" />
-          <stop offset="1" stopColor="#8B5CF6" />
+          <stop offset="0" stopColor="#FD5249" />
+          <stop offset="1" stopColor="#E0453D" />
         </linearGradient>
       </defs>
 

@@ -167,7 +167,7 @@ export function UsuariosClient({
               setPage(1);
             }}
             placeholder={translate(locale, "usuarios.buscarPlaceholder")}
-            className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#2F6FED]"
+            className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#FD5249]"
           />
         </div>
 
@@ -177,7 +177,7 @@ export function UsuariosClient({
             setRoleFilter(e.target.value);
             setPage(1);
           }}
-          className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+          className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
         >
           <option value="Todos">{translate(locale, "usuarios.todosRoles")}</option>
           {ASSIGNABLE_ROLES.map((r) => (
@@ -194,7 +194,7 @@ export function UsuariosClient({
               setSchoolFilter(e.target.value);
               setPage(1);
             }}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
           >
             <option value="Todos">{translate(locale, "usuarios.todosCentros")}</option>
             {schools.map((s) => (
@@ -213,7 +213,7 @@ export function UsuariosClient({
           onClick={() => setBlurNames((v) => !v)}
           title="Difuminar nombres de los usuarios"
           className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
-            blurNames ? "border-[#2F6FED] bg-blue-50 text-[#2F6FED]" : "border-slate-200 text-slate-600 hover:bg-slate-50"
+            blurNames ? "border-[#FD5249] bg-blue-50 text-[#FD5249]" : "border-slate-200 text-slate-600 hover:bg-slate-50"
           }`}
         >
           {blurNames ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -296,13 +296,13 @@ export function UsuariosClient({
                       <button
                         onClick={() => setEditingId(u.id)}
                         title="Editar"
-                        className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#2F6FED]"
+                        className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#FD5249]"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
                       <button
                         title="Más opciones"
-                        className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#2F6FED]"
+                        className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#FD5249]"
                       >
                         <MoreVertical className="h-3.5 w-3.5" />
                       </button>
@@ -353,7 +353,7 @@ export function UsuariosClient({
                 key={n}
                 onClick={() => setPage(n as number)}
                 className={`h-6 w-6 rounded-md ${
-                  page === n ? "bg-[#2F6FED] text-white" : "border border-slate-200"
+                  page === n ? "bg-[#FD5249] text-white" : "border border-slate-200"
                 }`}
               >
                 {n}
@@ -415,7 +415,7 @@ export function UsuariosClient({
                 <select
                   name="role"
                   defaultValue={editing.role}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
                 >
                   {ASSIGNABLE_ROLES.map((r) => (
                     <option key={r} value={r}>
@@ -430,7 +430,7 @@ export function UsuariosClient({
                 <select
                   name="schoolId"
                   defaultValue={editing.schoolId ?? ""}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
                 >
                   <option value="">{translate(locale, "usuarios.sinAsignar")}</option>
                   {editSchools.map((s) => (
@@ -446,7 +446,7 @@ export function UsuariosClient({
                 <select
                   name="status"
                   defaultValue={editing.status}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
                 >
                   {Object.entries(STATUS_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>
@@ -467,7 +467,7 @@ export function UsuariosClient({
                 <button
                   type="submit"
                   disabled={pending}
-                  className="rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                  className="rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
                 >
                   {pending ? (
                     <span className="inline-flex items-center justify-center gap-1.5">

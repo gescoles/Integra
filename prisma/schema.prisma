@@ -70,6 +70,7 @@ model School {
   practicas PracticaAlumno[]
   historias Historia[]
   incidencias Incidencia[]
+  expedientes Expediente[]
 }
 
 // Una "historia" (como en Instagram) que un centro publica; la ven todos
@@ -124,15 +125,56 @@ model Incidencia {
   familiaInformadaFecha       DateTime?
   familiaInformadaComunicacion String?
 
-  // Parte y expulsión: se puede aplicar desde la 3ª incidencia del alumno
-  // en adelante (Coordinación/Dirección/SuperAdmin).
-  sancionDias     Int?
-  sancionMotivo   String?
-  sancionFecha    DateTime?
-  sancionPorId    String?
-  sancionPor      User?     @relation("IncidenciaSancionador", fields: [sancionPorId], references: [id])
+  eventos     IncidenciaEvento[]
+  expedientes Expediente[]
 
-  eventos IncidenciaEvento[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+enum EstadoExpediente {
+  BORRADOR
+  ENVIADO
+}
+
+// El "parte y expulsión" formal. Un alumno (o una misma incidencia, si se
+// repite) puede tener VARIOS expedientes a lo largo del tiempo, cada uno
+// con su propio número. Se crea como borrador, se puede editar mientras
+// esté en borrador, y Coordinación/Dirección/SuperAdmin lo envía al tutor
+// cuando está listo (por email, con el PDF adjunto, + notificación).
+model Expediente {
+  id           String     @id @default(cuid())
+  schoolId     String
+  school       School     @relation(fields: [schoolId], references: [id])
+  alumnoId     String
+  alumno       Alumno     @relation(fields: [alumnoId], references: [id])
+  incidenciaId String
+  incidencia   Incidencia @relation(fields: [incidenciaId], references: [id])
+
+  tutorId     String
+  tutor       User @relation("ExpedienteTutor", fields: [tutorId], references: [id])
+  creadoPorId String
+  creadoPor   User @relation("ExpedienteCreador", fields: [creadoPorId], references: [id])
+
+  numero String
+  estado EstadoExpediente @default(BORRADOR)
+
+  fechaInicio           DateTime
+  fets                  String
+  testimonis            String
+  informeTutor          String
+  audienciaResumen      String
+  valoracionComision    String
+  medidasProvisionales  String
+  sancionDias           Int
+  sancionMotivo         String
+  fechaAplicacionInicio DateTime
+  fechaAplicacionFin    DateTime
+  recursoEstado         String
+  direccionNombre       String
+  coordinadorNombre     String
+
+  enviadoEn DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -210,7 +252,8 @@ model User {
   incidenciasCreadas     Incidencia[] @relation("IncidenciaCreador")
   incidenciasComoTutor   Incidencia[] @relation("IncidenciaTutor")
   incidenciaEventos      IncidenciaEvento[]
-  incidenciasSancionadas Incidencia[] @relation("IncidenciaSancionador")
+  expedientesComoTutor   Expediente[] @relation("ExpedienteTutor")
+  expedientesCreados     Expediente[] @relation("ExpedienteCreador")
   notificaciones     Notificacion[]
 }
 
@@ -274,6 +317,7 @@ model Alumno {
   tutorias   Tutoria[]
   practicas  PracticaAlumno[]
   incidencias Incidencia[]
+  expedientes Expediente[]
 }
 
 model AlumnoContacto {

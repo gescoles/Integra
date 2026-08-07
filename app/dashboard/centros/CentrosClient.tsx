@@ -187,7 +187,7 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
                 setPage(1);
               }}
               placeholder={translate(locale, "centros.buscarPlaceholder")}
-              className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-xs outline-none focus:border-[#2F6FED]"
+              className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-xs outline-none focus:border-[#FD5249]"
             />
           </div>
 
@@ -197,7 +197,7 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
               setEstadoFilter(e.target.value);
               setPage(1);
             }}
-            className="rounded-lg border border-slate-200 px-2 py-2 text-xs outline-none focus:border-[#2F6FED]"
+            className="rounded-lg border border-slate-200 px-2 py-2 text-xs outline-none focus:border-[#FD5249]"
           >
             <option>Todos</option>
             {Object.entries(STATUS_LABELS).map(([value, label]) => (
@@ -213,7 +213,7 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
               setPlanFilter(e.target.value);
               setPage(1);
             }}
-            className="rounded-lg border border-slate-200 px-2 py-2 text-xs outline-none focus:border-[#2F6FED]"
+            className="rounded-lg border border-slate-200 px-2 py-2 text-xs outline-none focus:border-[#FD5249]"
           >
             <option>Todos</option>
             {Object.entries(PLAN_LABELS).map(([value, label]) => (
@@ -229,7 +229,7 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
               setModuloFilter(e.target.value);
               setPage(1);
             }}
-            className="rounded-lg border border-slate-200 px-2 py-2 text-xs outline-none focus:border-[#2F6FED]"
+            className="rounded-lg border border-slate-200 px-2 py-2 text-xs outline-none focus:border-[#FD5249]"
           >
             <option>Todos</option>
             {MODULES.map((m) => (
@@ -246,7 +246,7 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
                 setCiudadFilter(e.target.value);
                 setPage(1);
               }}
-              className="w-full rounded-lg border border-slate-200 px-2 py-2 text-xs outline-none focus:border-[#2F6FED]"
+              className="w-full rounded-lg border border-slate-200 px-2 py-2 text-xs outline-none focus:border-[#FD5249]"
             >
               <option>Todas</option>
               {cities.map((c) => (
@@ -266,7 +266,7 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
               onClick={() => setBlurNames((v) => !v)}
               title="Difuminar nombres de los centros"
               className={`shrink-0 rounded-lg border p-2 ${
-                blurNames ? "border-[#2F6FED] bg-blue-50 text-[#2F6FED]" : "border-slate-200 text-slate-500 hover:bg-slate-50"
+                blurNames ? "border-[#FD5249] bg-blue-50 text-[#FD5249]" : "border-slate-200 text-slate-500 hover:bg-slate-50"
               }`}
             >
               {blurNames ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
@@ -335,7 +335,7 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
                         </div>
                         <div className="mt-1 h-1.5 w-24 rounded-full bg-slate-100">
                           <div
-                            className="h-1.5 rounded-full bg-[#2F6FED]"
+                            className="h-1.5 rounded-full bg-[#FD5249]"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
@@ -355,13 +355,13 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
                               setSaveError(null);
                             }}
                             title="Edición rápida"
-                            className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#2F6FED]"
+                            className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#FD5249]"
                           >
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
                           <button
                             title="Ver detalle"
-                            className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#2F6FED]"
+                            className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#FD5249]"
                           >
                             <Eye className="h-3.5 w-3.5" />
                           </button>
@@ -375,7 +375,7 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
                           </button>
                           <button
                             title="Más opciones"
-                            className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#2F6FED]"
+                            className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#FD5249]"
                           >
                             <MoreVertical className="h-3.5 w-3.5" />
                           </button>
@@ -409,7 +409,7 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
                   key={n}
                   onClick={() => setPage(n)}
                   className={`h-6 w-6 rounded-md ${
-                    page === n ? "bg-[#2F6FED] text-white" : "border border-slate-200"
+                    page === n ? "bg-[#FD5249] text-white" : "border border-slate-200"
                   }`}
                 >
                   {n}
@@ -441,7 +441,7 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
       {/* Edición rápida */}
       <div className="h-fit rounded-2xl border border-slate-200 bg-white p-5">
         <div className="mb-4 flex items-center gap-2">
-          <Zap className="h-4 w-4 text-[#2F6FED]" />
+          <Zap className="h-4 w-4 text-[#FD5249]" />
           <h3 className="text-sm font-bold text-[#0B1D4D]">Edición rápida</h3>
         </div>
 
@@ -469,7 +469,7 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
                     <ImageIcon className="h-5 w-5 text-slate-300" />
                   )}
                 </div>
-                <label className="flex-1 cursor-pointer rounded-lg border border-dashed border-slate-300 px-3 py-2 text-center text-xs font-medium text-slate-500 hover:border-[#2F6FED] hover:text-[#2F6FED]">
+                <label className="flex-1 cursor-pointer rounded-lg border border-dashed border-slate-300 px-3 py-2 text-center text-xs font-medium text-slate-500 hover:border-[#FD5249] hover:text-[#FD5249]">
                   {isUploadingLogo ? (
                     <span className="inline-flex items-center justify-center gap-1.5">
                       <ButtonSpinner light={false} /> Subiendo...
@@ -504,7 +504,7 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
               <select
                 name="plan"
                 defaultValue={selected.plan}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
               >
                 {Object.entries(PLAN_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>
@@ -521,7 +521,7 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
               <select
                 name="cursoAcademico"
                 defaultValue={selected.cursoAcademico ?? ""}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
               >
                 <option value="">—</option>
                 {(() => {
@@ -552,7 +552,7 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
                 type="number"
                 min={1}
                 defaultValue={selected.userLimit}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
               />
             </div>
 
@@ -583,7 +583,7 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
               <select
                 name="status"
                 defaultValue={selected.status}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
               >
                 {Object.entries(STATUS_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>
@@ -596,7 +596,7 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
             <button
               type="submit"
               disabled={pending}
-              className="w-full rounded-lg bg-[#2F6FED] py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+              className="w-full rounded-lg bg-[#FD5249] py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
             >
               {pending ? (
                 <span className="inline-flex items-center justify-center gap-1.5">

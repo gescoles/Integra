@@ -3,7 +3,7 @@ import { Megaphone, Calendar, AlertTriangle } from "lucide-react";
 import { NuevoAvisoButton } from "./NuevoAvisoButton";
 
 const CATEGORIA_CONFIG: Record<string, { label: string; color: string; icon: typeof Megaphone }> = {
-  GENERAL: { label: "General", color: "bg-blue-50 text-[#2F6FED]", icon: Megaphone },
+  GENERAL: { label: "General", color: "bg-blue-50 text-[#FD5249]", icon: Megaphone },
   ACADEMICO: { label: "Académico", color: "bg-emerald-50 text-emerald-600", icon: Calendar },
   CONVIVENCIA: { label: "Convivencia", color: "bg-amber-50 text-amber-600", icon: AlertTriangle },
 };

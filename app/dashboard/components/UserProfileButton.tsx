@@ -64,7 +64,7 @@ export function UserProfileButton({
         onClick={() => setOpen(true)}
         className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-white/5"
       >
-        <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#2F6FED] text-[11px] font-bold text-white">
+        <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#FD5249] text-[11px] font-bold text-white">
           <span>{initials}</span>
           {avatarUrl && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -114,7 +114,7 @@ export function UserProfileButton({
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-[#2F6FED] text-2xl font-bold text-white">
+                  <div className="flex h-full w-full items-center justify-center bg-[#FD5249] text-2xl font-bold text-white">
                     {initials}
                   </div>
                 )}
@@ -151,7 +151,7 @@ export function UserProfileButton({
               <button
                 onClick={handleUpload}
                 disabled={!file || pending}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
               >
                 {pending && <ButtonSpinner />}
                 {pending ? translate(locale, "common.guardando") : translate(locale, "common.guardar")}

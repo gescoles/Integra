@@ -19,6 +19,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { HexLogo } from "../components/Logo";
+import { AssemblingLogo } from "../dashboard/components/AssemblingLogo";
 
 function NetworkBackground() {
   return (
@@ -28,7 +29,7 @@ function NetworkBackground() {
       fill="none"
       preserveAspectRatio="xMidYMid slice"
     >
-      <g stroke="#2F6FED" strokeOpacity="0.25" strokeWidth="1">
+      <g stroke="#FD5249" strokeOpacity="0.25" strokeWidth="1">
         <line x1="40" y1="330" x2="130" y2="410" />
         <line x1="130" y1="410" x2="90" y2="520" />
         <line x1="90" y1="520" x2="180" y2="590" />
@@ -39,7 +40,7 @@ function NetworkBackground() {
         <line x1="180" y1="590" x2="290" y2="620" />
         <line x1="130" y1="410" x2="230" y2="450" />
       </g>
-      <g fill="#2F6FED" fillOpacity="0.45">
+      <g fill="#FD5249" fillOpacity="0.45">
         <circle cx="40" cy="330" r="4" />
         <circle cx="130" cy="410" r="4" />
         <circle cx="90" cy="520" r="4" />
@@ -66,7 +67,7 @@ function BadgeIcon({
     <div
       className={`absolute flex h-14 w-14 items-center justify-center rounded-full border border-blue-200 bg-white/60 backdrop-blur-sm ${className}`}
     >
-      <Icon className="h-6 w-6 text-[#2F6FED]" strokeWidth={1.75} />
+      <Icon className="h-6 w-6 text-[#FD5249]" strokeWidth={1.75} />
     </div>
   );
 }
@@ -107,11 +108,7 @@ export default function LoginPage() {
     <main className="flex min-h-screen flex-col bg-white">
       {loading && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-white/90 backdrop-blur-sm">
-          <HexLogo size={48} />
-          <div className="relative h-10 w-10">
-            <div className="absolute inset-0 rounded-full border-4 border-slate-200" />
-            <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-[#2F6FED]" />
-          </div>
+          <AssemblingLogo size={56} />
           <p className="text-sm font-medium text-slate-500">Entrando a tu panel…</p>
         </div>
       )}
@@ -147,7 +144,7 @@ export default function LoginPage() {
         <div className="flex flex-col px-6 py-8 lg:px-16 lg:py-12">
           <Link
             href="/"
-            className="flex items-center gap-2 text-sm font-semibold text-[#2F6FED] hover:underline"
+            className="flex items-center gap-2 text-sm font-semibold text-[#FD5249] hover:underline"
           >
             <ArrowLeft className="h-4 w-4" /> Volver al inicio
           </Link>
@@ -172,7 +169,7 @@ export default function LoginPage() {
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                     Correo electrónico
                   </label>
-                  <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 focus-within:border-[#2F6FED]">
+                  <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 focus-within:border-[#FD5249]">
                     <Mail className="h-4 w-4 text-slate-400" />
                     <input
                       type="email"
@@ -189,7 +186,7 @@ export default function LoginPage() {
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                     Contraseña
                   </label>
-                  <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 focus-within:border-[#2F6FED]">
+                  <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 focus-within:border-[#FD5249]">
                     <Lock className="h-4 w-4 text-slate-400" />
                     <input
                       type={showPassword ? "text" : "password"}
@@ -218,7 +215,7 @@ export default function LoginPage() {
                   <input
                     type="checkbox"
                     defaultChecked
-                    className="h-4 w-4 rounded border-slate-300 accent-[#2F6FED]"
+                    className="h-4 w-4 rounded border-slate-300 accent-[#FD5249]"
                   />
                   Recordarme
                 </label>
@@ -226,7 +223,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#2F6FED] py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#255ed1] disabled:opacity-70"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#FD5249] py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#D7463E] disabled:opacity-70"
                 >
                   {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                   {loading ? "Entrando..." : "Iniciar sesión"}
@@ -240,8 +237,8 @@ export default function LoginPage() {
               </div>
 
               <div className="mt-4 flex items-center justify-center gap-2 text-sm">
-                <Headphones className="h-4 w-4 text-[#2F6FED]" />
-                <a href="#" className="font-medium text-[#2F6FED] hover:underline">
+                <Headphones className="h-4 w-4 text-[#FD5249]" />
+                <a href="#" className="font-medium text-[#FD5249] hover:underline">
                   Contacta con soporte o consulta nuestra guía de ayuda
                 </a>
               </div>
@@ -251,7 +248,7 @@ export default function LoginPage() {
       </div>
 
       <div className="flex items-center justify-center gap-2 border-t border-slate-100 py-4 text-xs text-slate-500">
-        <ShieldCheck className="h-4 w-4 text-[#2F6FED]" />
+        <ShieldCheck className="h-4 w-4 text-[#FD5249]" />
         Tu información está protegida con los más altos estándares de seguridad.
       </div>
     </main>

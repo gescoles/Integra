@@ -15,7 +15,7 @@ export const GUARDIA_STATUS_LABELS: Record<string, string> = {
 };
 
 export const GUARDIA_STATUS_COLORS: Record<string, string> = {
-  PROGRAMADA: "bg-blue-50 text-[#2F6FED]",
+  PROGRAMADA: "bg-blue-50 text-[#FD5249]",
   CUBIERTA: "bg-emerald-50 text-emerald-600",
   PENDIENTE: "bg-amber-50 text-amber-600",
 };
@@ -28,7 +28,7 @@ export const MATERIAL_CATEGORIA_LABELS: Record<string, string> = {
 };
 
 export const MATERIAL_CATEGORIA_COLORS: Record<string, string> = {
-  ELECTRONICA: "bg-blue-50 text-[#2F6FED]",
+  ELECTRONICA: "bg-blue-50 text-[#FD5249]",
   COMPONENTES: "bg-violet-50 text-violet-600",
   HERRAMIENTAS: "bg-amber-50 text-amber-600",
   OTROS: "bg-slate-100 text-slate-500",

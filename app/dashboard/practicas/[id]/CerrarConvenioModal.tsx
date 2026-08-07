@@ -105,7 +105,7 @@ export function CerrarConvenioModal({
             <form ref={formRef} action={handleSubmit} className="space-y-4">
               {error && <div className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600">{error}</div>}
 
-              <p className="rounded-lg bg-blue-50 px-3 py-2.5 text-xs text-[#2F6FED]">
+              <p className="rounded-lg bg-blue-50 px-3 py-2.5 text-xs text-[#FD5249]">
                 {translate(locale, "practicas.avisoNotaConvenio")}
               </p>
 
@@ -115,7 +115,7 @@ export function CerrarConvenioModal({
                   name="fechaCierre"
                   type="date"
                   defaultValue={fechaCierre ? fechaCierre.slice(0, 10) : new Date().toISOString().slice(0, 10)}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 />
               </div>
 
@@ -125,7 +125,7 @@ export function CerrarConvenioModal({
                   name="notaFinal"
                   defaultValue={notaFinal ?? ""}
                   placeholder={translate(locale, "practicas.notaFinalPlaceholder")}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 />
               </div>
 

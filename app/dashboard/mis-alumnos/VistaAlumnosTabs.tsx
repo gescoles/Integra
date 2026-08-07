@@ -11,7 +11,7 @@ export function VistaAlumnosTabs({ vistaCentro }: { vistaCentro: boolean }) {
       <Link
         href="/dashboard/mis-alumnos"
         className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-          !vistaCentro ? "bg-white text-[#2F6FED] shadow-sm" : "text-slate-500"
+          !vistaCentro ? "bg-white text-[#FD5249] shadow-sm" : "text-slate-500"
         }`}
       >
         {translate(locale, "misAlumnos.tabMisAlumnos")}
@@ -19,7 +19,7 @@ export function VistaAlumnosTabs({ vistaCentro }: { vistaCentro: boolean }) {
       <Link
         href="/dashboard/mis-alumnos?vista=centro"
         className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-          vistaCentro ? "bg-white text-[#2F6FED] shadow-sm" : "text-slate-500"
+          vistaCentro ? "bg-white text-[#FD5249] shadow-sm" : "text-slate-500"
         }`}
       >
         {translate(locale, "misAlumnos.tabAlumnosCentro")}

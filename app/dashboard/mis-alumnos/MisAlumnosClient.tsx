@@ -71,14 +71,14 @@ export function MisAlumnosClient({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={translate(locale, "misAlumnos.buscarPlaceholder")}
-            className="w-full rounded-lg border border-slate-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#2F6FED]"
+            className="w-full rounded-lg border border-slate-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#FD5249]"
           />
         </div>
         {showFiltroCiclo && (
           <select
             value={cicloFilter}
             onChange={(e) => setCicloFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+            className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
           >
             <option value="Todos">{translate(locale, "misAlumnos.todosCiclos")}</option>
             {ciclos.map((c) => (
@@ -131,7 +131,7 @@ export function MisAlumnosClient({
                   {showProfesorColumn && <td className="py-3 pr-4 text-slate-500">{a.profesorNombre}</td>}
                   <td className="py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => setEditando(a)} className="rounded-md p-1.5 text-slate-400 hover:bg-blue-50 hover:text-[#2F6FED]">
+                      <button onClick={() => setEditando(a)} className="rounded-md p-1.5 text-slate-400 hover:bg-blue-50 hover:text-[#FD5249]">
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
                       <button onClick={() => handleDelete(a)} disabled={isPending} className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600">
@@ -195,19 +195,19 @@ function EditarAlumnoModal({ alumno, onClose }: { alumno: Alumno; onClose: () =>
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
               <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "misAlumnos.nombre")}</label>
-              <input name="nombre" defaultValue={alumno.nombre} required className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+              <input name="nombre" defaultValue={alumno.nombre} required className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "misAlumnos.colCiclo")}</label>
-              <input name="curso" defaultValue={alumno.curso} required className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+              <input name="curso" defaultValue={alumno.curso} required className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "misAlumnos.colEdad")}</label>
-              <input name="edad" type="number" defaultValue={alumno.edad ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+              <input name="edad" type="number" defaultValue={alumno.edad ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
             </div>
             <div className="col-span-2">
               <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "misAlumnos.colRiesgo")}</label>
-              <select name="riesgo" defaultValue={alumno.riesgo} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]">
+              <select name="riesgo" defaultValue={alumno.riesgo} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]">
                 {Object.keys(RIESGO_LABELS).map((v) => (
                   <option key={v} value={v}>{RIESGO_LABELS[v]}</option>
                 ))}
@@ -218,10 +218,10 @@ function EditarAlumnoModal({ alumno, onClose }: { alumno: Alumno; onClose: () =>
           <div className="border-t border-slate-100 pt-4">
             <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-400">Contactos</h3>
             <div className="grid grid-cols-2 gap-3">
-              <input name="madreTelefono" placeholder="Teléfono madre" defaultValue={madre?.telefono ?? ""} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
-              <input name="madreEmail" placeholder="Email madre" defaultValue={madre?.email ?? ""} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
-              <input name="padreTelefono" placeholder="Teléfono padre" defaultValue={padre?.telefono ?? ""} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
-              <input name="padreEmail" placeholder="Email padre" defaultValue={padre?.email ?? ""} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+              <input name="madreTelefono" placeholder="Teléfono madre" defaultValue={madre?.telefono ?? ""} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+              <input name="madreEmail" placeholder="Email madre" defaultValue={madre?.email ?? ""} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+              <input name="padreTelefono" placeholder="Teléfono padre" defaultValue={padre?.telefono ?? ""} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+              <input name="padreEmail" placeholder="Email padre" defaultValue={padre?.email ?? ""} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
             </div>
           </div>
 
@@ -232,7 +232,7 @@ function EditarAlumnoModal({ alumno, onClose }: { alumno: Alumno; onClose: () =>
             <button
               type="submit"
               disabled={pending}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
             >
               {pending && <ButtonSpinner />}
               {translate(locale, "common.guardar")}

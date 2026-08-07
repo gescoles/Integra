@@ -161,7 +161,7 @@ export function Sidebar({
                 href={item.href}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   active
-                    ? "bg-[#2F6FED] text-white"
+                    ? "bg-[#FD5249] text-white"
                     : "text-slate-300 hover:bg-white/5 hover:text-white"
                 }`}
               >
@@ -176,7 +176,7 @@ export function Sidebar({
             href="/dashboard"
             className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
               pathname === "/dashboard"
-                ? "bg-[#2F6FED] text-white"
+                ? "bg-[#FD5249] text-white"
                 : "text-slate-300 hover:bg-white/5 hover:text-white"
             }`}
           >
@@ -199,7 +199,7 @@ export function Sidebar({
               href="/dashboard/mis-alumnos"
               className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                 pathname === "/dashboard/mis-alumnos"
-                  ? "bg-[#2F6FED] text-white"
+                  ? "bg-[#FD5249] text-white"
                   : "text-slate-300 hover:bg-white/5 hover:text-white"
               }`}
             >
@@ -221,7 +221,7 @@ export function Sidebar({
             href="/dashboard/mis-alumnos"
             className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
               pathname === "/dashboard/mis-alumnos"
-                ? "bg-[#2F6FED] text-white"
+                ? "bg-[#FD5249] text-white"
                 : "text-slate-300 hover:bg-white/5 hover:text-white"
             }`}
           >
@@ -257,7 +257,7 @@ export function Sidebar({
                   href={item.href}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     active
-                      ? "bg-[#2F6FED] text-white"
+                      ? "bg-[#FD5249] text-white"
                       : "text-slate-300 hover:bg-white/5 hover:text-white"
                   }`}
                 >
@@ -273,7 +273,7 @@ export function Sidebar({
                     href="/dashboard/salidas/aprobaciones"
                     className={`ml-6 flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors ${
                       pathname === "/dashboard/salidas/aprobaciones"
-                        ? "bg-[#2F6FED] text-white"
+                        ? "bg-[#FD5249] text-white"
                         : "text-slate-400 hover:bg-white/5 hover:text-white"
                     }`}
                   >
@@ -316,7 +316,7 @@ export function Sidebar({
                   href={item.href}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     active
-                      ? "bg-[#2F6FED] text-white"
+                      ? "bg-[#FD5249] text-white"
                       : "text-slate-300 hover:bg-white/5 hover:text-white"
                   }`}
                 >

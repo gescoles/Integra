@@ -13,7 +13,7 @@ export async function createEvento(formData: FormData) {
   const fecha = formData.get("fecha") as string;
   const horaInicio = formData.get("horaInicio") as string;
   const horaFin = formData.get("horaFin") as string;
-  const color = (formData.get("color") as string) || "#2F6FED";
+  const color = (formData.get("color") as string) || "#FD5249";
 
   if (!title) throw new Error("El título del evento es obligatorio.");
   if (!fecha) throw new Error("Indica la fecha.");

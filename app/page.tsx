@@ -39,11 +39,11 @@ function Header() {
       <div className="flex items-center gap-3">
         <Link
           href="/login"
-          className="rounded-lg border border-[#2F6FED] px-4 py-2 text-sm font-semibold text-[#2F6FED] hover:bg-blue-50"
+          className="rounded-lg border border-[#FD5249] px-4 py-2 text-sm font-semibold text-[#FD5249] hover:bg-blue-50"
         >
           Iniciar sesión
         </Link>
-        <button className="rounded-lg bg-[#2F6FED] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#255ed1]">
+        <button className="rounded-lg bg-[#FD5249] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#D7463E]">
           Registrar mi centro
         </button>
       </div>
@@ -92,7 +92,7 @@ function DashboardMock() {
                   key={item.label}
                   className={`rounded-lg px-3 py-2 text-[13px] ${
                     item.active
-                      ? "bg-[#2F6FED] font-semibold text-white"
+                      ? "bg-[#FD5249] font-semibold text-white"
                       : "text-slate-300"
                   }`}
                 >
@@ -130,7 +130,7 @@ function DashboardMock() {
               <div key={s.label} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
                 <div className="text-[11px] text-slate-500">{s.label}</div>
                 <div className="text-xl font-bold text-[#0B1D4D]">{s.value}</div>
-                <div className="mt-1 text-[10px] font-medium text-[#2F6FED]">{s.cta}</div>
+                <div className="mt-1 text-[10px] font-medium text-[#FD5249]">{s.cta}</div>
               </div>
             ))}
           </div>
@@ -144,7 +144,7 @@ function DashboardMock() {
               <svg viewBox="0 0 300 90" className="h-20 w-full">
                 <polyline
                   fill="none"
-                  stroke="#2F6FED"
+                  stroke="#FD5249"
                   strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -172,7 +172,7 @@ function DashboardMock() {
                   </div>
                 ))}
               </div>
-              <div className="mt-3 text-[10px] font-semibold text-[#2F6FED]">
+              <div className="mt-3 text-[10px] font-semibold text-[#FD5249]">
                 Ver agenda completa →
               </div>
             </div>
@@ -194,12 +194,12 @@ function Hero() {
   return (
     <section className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-10 lg:grid-cols-2">
       <div>
-        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-[#2F6FED]">
+        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-[#FD5249]">
           + Todo lo que necesitas, en un solo lugar
         </span>
         <h1 className="mt-5 text-5xl font-extrabold leading-tight text-[#0B1D4D]">
           Toda la gestión <br /> de tu centro, <br />
-          <span className="text-[#2F6FED]">conectada</span>
+          <span className="text-[#FD5249]">conectada</span>
         </h1>
         <p className="mt-5 max-w-md text-[15px] text-slate-500">
           Integra tutorías, prácticas, guardias y material didáctico en una
@@ -210,16 +210,16 @@ function Hero() {
           <button className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
             Solicitar demo
           </button>
-          <button className="flex items-center gap-2 rounded-lg bg-[#2F6FED] px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#255ed1]">
+          <button className="flex items-center gap-2 rounded-lg bg-[#FD5249] px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#D7463E]">
             <ShieldCheck className="h-4 w-4" /> Registrar mi centro
           </button>
         </div>
         <div className="mt-5 flex items-center gap-5 text-xs text-slate-500">
           <span className="flex items-center gap-1">
-            <CheckCircle2 className="h-4 w-4 text-[#2F6FED]" /> Prueba gratis 14 días
+            <CheckCircle2 className="h-4 w-4 text-[#FD5249]" /> Prueba gratis 14 días
           </span>
           <span className="flex items-center gap-1">
-            <CheckCircle2 className="h-4 w-4 text-[#2F6FED]" /> Sin tarjeta de crédito
+            <CheckCircle2 className="h-4 w-4 text-[#FD5249]" /> Sin tarjeta de crédito
           </span>
         </div>
       </div>
@@ -257,7 +257,7 @@ function FeatureStrip() {
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-6 sm:grid-cols-2 lg:grid-cols-4">
         {items.map((it) => (
           <div key={it.title} className="flex gap-3">
-            <it.icon className="mt-0.5 h-5 w-5 shrink-0 text-[#2F6FED]" />
+            <it.icon className="mt-0.5 h-5 w-5 shrink-0 text-[#FD5249]" />
             <div>
               <div className="text-sm font-semibold text-[#0B1D4D]">{it.title}</div>
               <p className="mt-1 text-[13px] text-slate-500">{it.text}</p>
@@ -322,11 +322,11 @@ function ManageCards() {
               </span>
             )}
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
-              <c.icon className="h-5 w-5 text-[#2F6FED]" />
+              <c.icon className="h-5 w-5 text-[#FD5249]" />
             </div>
             <h3 className="mt-4 text-sm font-bold text-[#0B1D4D]">{c.title}</h3>
             <p className="mt-2 text-[13px] text-slate-500">{c.text}</p>
-            <ArrowRight className="mt-4 h-4 w-4 rounded-full border border-[#2F6FED] p-0.5 text-[#2F6FED]" />
+            <ArrowRight className="mt-4 h-4 w-4 rounded-full border border-[#FD5249] p-0.5 text-[#FD5249]" />
           </div>
         ))}
       </div>
@@ -360,8 +360,8 @@ function HowItWorks() {
         {steps.map((s, i) => (
           <div key={s.title} className="flex flex-1 flex-col items-center text-center">
             <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm">
-              <s.icon className="h-6 w-6 text-[#2F6FED]" />
-              <span className="absolute -top-2 -left-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#2F6FED] text-[11px] font-bold text-white">
+              <s.icon className="h-6 w-6 text-[#FD5249]" />
+              <span className="absolute -top-2 -left-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#FD5249] text-[11px] font-bold text-white">
                 {i + 1}
               </span>
             </div>
@@ -407,11 +407,11 @@ function Testimonials() {
       <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
         {items.map((t) => (
           <div key={t.name} className="rounded-xl border border-slate-200 p-6">
-            <div className="text-3xl text-[#2F6FED]">&ldquo;</div>
+            <div className="text-3xl text-[#FD5249]">&ldquo;</div>
             <p className="text-[13px] text-slate-600">{t.quote}</p>
             <div className="mt-5 flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-50">
-                <t.icon className="h-4 w-4 text-[#2F6FED]" />
+                <t.icon className="h-4 w-4 text-[#FD5249]" />
               </div>
               <div>
                 <div className="text-sm font-bold text-[#0B1D4D]">{t.name}</div>
@@ -477,12 +477,12 @@ function Pricing() {
               key={p.name}
               className={`relative rounded-2xl border p-6 text-left ${
                 p.highlight
-                  ? "border-[#2F6FED] bg-white shadow-lg"
+                  ? "border-[#FD5249] bg-white shadow-lg"
                   : "border-slate-200 bg-white"
               }`}
             >
               {p.highlight && (
-                <span className="absolute -top-3 left-6 rounded-full bg-[#2F6FED] px-3 py-1 text-[11px] font-semibold text-white">
+                <span className="absolute -top-3 left-6 rounded-full bg-[#FD5249] px-3 py-1 text-[11px] font-semibold text-white">
                   Más popular
                 </span>
               )}
@@ -501,7 +501,7 @@ function Pricing() {
               <ul className="mt-4 space-y-2">
                 {p.features.map((f) => (
                   <li key={f} className="flex items-center gap-2 text-[13px] text-slate-600">
-                    <CheckCircle2 className="h-4 w-4 text-[#2F6FED]" /> {f}
+                    <CheckCircle2 className="h-4 w-4 text-[#FD5249]" /> {f}
                   </li>
                 ))}
               </ul>
@@ -511,8 +511,8 @@ function Pricing() {
                   p.soon
                     ? "cursor-not-allowed bg-slate-200 text-slate-400"
                     : p.highlight
-                    ? "bg-[#2F6FED] text-white hover:bg-[#255ed1]"
-                    : "border border-[#2F6FED] text-[#2F6FED] hover:bg-blue-50"
+                    ? "bg-[#FD5249] text-white hover:bg-[#D7463E]"
+                    : "border border-[#FD5249] text-[#FD5249] hover:bg-blue-50"
                 }`}
               >
                 {p.cta}
@@ -544,7 +544,7 @@ function CTABanner() {
           <button className="rounded-lg border border-white px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10">
             Conocer funciones
           </button>
-          <button className="rounded-lg bg-[#2F6FED] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]">
+          <button className="rounded-lg bg-[#FD5249] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]">
             Registrar mi centro
           </button>
         </div>
@@ -590,7 +590,7 @@ function Footer() {
             <div className="text-sm font-semibold text-[#0B1D4D]">{col.title}</div>
             <ul className="mt-3 space-y-2">
               {col.links.map((l) => (
-                <li key={l} className="text-[13px] text-slate-500 hover:text-[#2F6FED]">
+                <li key={l} className="text-[13px] text-slate-500 hover:text-[#FD5249]">
                   {l}
                 </li>
               ))}

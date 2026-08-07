@@ -247,7 +247,7 @@ export function CentroTutoriasClient({
       <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50">
-            <Calendar className="h-5 w-5 text-[#2F6FED]" />
+            <Calendar className="h-5 w-5 text-[#FD5249]" />
           </div>
           <div>
             <div className="text-xs font-semibold text-slate-500">{translate(locale, "tutorias.statHoy")}</div>
@@ -297,7 +297,7 @@ export function CentroTutoriasClient({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={translate(locale, "tutorias.buscarPlaceholder")}
-            className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#2F6FED]"
+            className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#FD5249]"
           />
         </div>
 
@@ -307,7 +307,7 @@ export function CentroTutoriasClient({
             setProfesorFilter(e.target.value);
             setSelectedAlumnoId(null);
           }}
-          className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+          className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
         >
           <option value="">{translate(locale, "tutorias.todosProfesores")}</option>
           {profesores.map((p) => (
@@ -320,7 +320,7 @@ export function CentroTutoriasClient({
         <select
           value={estadoFilter}
           onChange={(e) => setEstadoFilter(e.target.value)}
-          className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+          className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
         >
           <option value="Todos">{translate(locale, "tutorias.todosEstados")}</option>
           {Object.keys(TUTORIA_STATUS_LABELS).map((value) => (
@@ -333,7 +333,7 @@ export function CentroTutoriasClient({
         <select
           value={cursoFilter}
           onChange={(e) => setCursoFilter(e.target.value)}
-          className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+          className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
         >
           <option value="Todos">{translate(locale, "tutorias.todosCursos")}</option>
           {cursos.map((c) => (
@@ -345,7 +345,7 @@ export function CentroTutoriasClient({
 
         <button
           onClick={clearFilters}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#2F6FED] hover:underline"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#FD5249] hover:underline"
         >
           <RefreshCw className="h-3.5 w-3.5" /> {translate(locale, "tutorias.limpiarFiltros")}
         </button>
@@ -362,7 +362,7 @@ export function CentroTutoriasClient({
             onClick={() => setVistaResumen((v) => !v)}
             className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold ${
               vistaResumen
-                ? "border-[#2F6FED] bg-blue-50 text-[#2F6FED]"
+                ? "border-[#FD5249] bg-blue-50 text-[#FD5249]"
                 : "border-slate-200 text-slate-500 hover:bg-slate-50"
             }`}
           >
@@ -507,7 +507,7 @@ export function CentroTutoriasClient({
                             setViewingTutoria(t);
                           }}
                           title={translate(locale, "tutorias.verResumenCompleto")}
-                          className="rounded-md p-1.5 text-slate-400 hover:bg-blue-50 hover:text-[#2F6FED]"
+                          className="rounded-md p-1.5 text-slate-400 hover:bg-blue-50 hover:text-[#FD5249]"
                         >
                           <Eye className="h-3.5 w-3.5" />
                         </button>
@@ -521,7 +521,7 @@ export function CentroTutoriasClient({
                 <div className="mt-4 text-center">
                   <button
                     onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
-                    className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-[#2F6FED] hover:bg-blue-50"
+                    className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-[#FD5249] hover:bg-blue-50"
                   >
                     Cargar más
                   </button>
@@ -628,7 +628,7 @@ export function CentroTutoriasClient({
                   </div>
                   <button
                     onClick={() => setSearch(selectedAlumno.nombre)}
-                    className="mt-1.5 text-[11px] font-semibold text-[#2F6FED] hover:underline"
+                    className="mt-1.5 text-[11px] font-semibold text-[#FD5249] hover:underline"
                   >
                     Ver todas las notas en la tabla →
                   </button>
@@ -713,7 +713,7 @@ export function CentroTutoriasClient({
           <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50">
-                <Users className="h-5 w-5 text-[#2F6FED]" />
+                <Users className="h-5 w-5 text-[#FD5249]" />
               </div>
               <div>
                 <div className="text-xs font-semibold text-slate-500">{translate(locale, "tutorias.alumnosAsignados")}</div>
@@ -731,7 +731,7 @@ export function CentroTutoriasClient({
             </div>
             <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50">
-                <Users className="h-5 w-5 text-[#2F6FED]" />
+                <Users className="h-5 w-5 text-[#FD5249]" />
               </div>
               <div>
                 <div className="text-xs font-semibold text-slate-500">{translate(locale, "tutorias.tutoriasConAlumnos")}</div>
@@ -810,7 +810,7 @@ export function CentroTutoriasClient({
                         </td>
                         <td className="py-3 pr-3 text-slate-500">{r.alumno.curso}</td>
                         <td className="py-3 pr-3 text-slate-500">{r.alumno.profesorName}</td>
-                        <td className="py-3 pr-3 font-semibold text-[#2F6FED]">{r.conFamilia}</td>
+                        <td className="py-3 pr-3 font-semibold text-[#FD5249]">{r.conFamilia}</td>
                         <td className="py-3 pr-3 font-semibold text-emerald-600">{r.conAlumno}</td>
                         <td className="py-3 pr-3 font-semibold text-violet-600">{r.conAmbos}</td>
                         <td className="py-3 pr-3 font-bold text-[#0B1D4D]">{r.total}</td>
@@ -914,7 +914,7 @@ export function CentroTutoriasClient({
                         rows={3}
                         maxLength={1000}
                         placeholder={translate(locale, "tutorias.resumenPlaceholder")}
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
                       />
                     </div>
                     <div>
@@ -926,7 +926,7 @@ export function CentroTutoriasClient({
                         value={cerrarFecha}
                         min={new Date().toISOString().slice(0, 10)}
                         onChange={(e) => setCerrarFecha(e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
                       />
                     </div>
                     <div className="flex justify-end gap-2">
@@ -977,7 +977,7 @@ export function CentroTutoriasClient({
                   setCerrandoModo(false);
                   setAdminError(null);
                 }}
-                className="rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
+                className="rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]"
               >
                 {translate(locale, "common.cerrar")}
               </button>

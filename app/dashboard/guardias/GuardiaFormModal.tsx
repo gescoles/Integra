@@ -55,7 +55,7 @@ export function GuardiaFormModal({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
+        className="inline-flex items-center gap-1.5 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]"
       >
         <Plus className="h-4 w-4" /> {translate(locale, "guardias.nuevaGuardia")}
       </button>
@@ -99,7 +99,7 @@ export function GuardiaFormModal({
                 </div>
                 <button
                   onClick={handleClose}
-                  className="w-full rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
+                  className="w-full rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]"
                 >
                   {translate(locale, "common.cerrar")}
                 </button>
@@ -120,7 +120,7 @@ export function GuardiaFormModal({
                     name="profesorId"
                     required
                     defaultValue=""
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   >
                     <option value="" disabled>
                       {translate(locale, "guardias.elegirProfesor")}
@@ -143,7 +143,7 @@ export function GuardiaFormModal({
                       type="date"
                       required
                       defaultValue={new Date().toISOString().slice(0, 10)}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                     />
                   </div>
                   <div>
@@ -155,7 +155,7 @@ export function GuardiaFormModal({
                       type="time"
                       required
                       defaultValue="09:00"
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                     />
                   </div>
                 </div>
@@ -168,7 +168,7 @@ export function GuardiaFormModal({
                     name="turno"
                     required
                     placeholder={translate(locale, "guardias.turnoPlaceholder")}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
 
@@ -180,7 +180,7 @@ export function GuardiaFormModal({
                     <input
                       name="ubicacion"
                       placeholder={translate(locale, "guardias.aulaPlaceholder")}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                     />
                   </div>
                   <div>
@@ -190,7 +190,7 @@ export function GuardiaFormModal({
                     <input
                       name="grupo"
                       placeholder={translate(locale, "guardias.grupoPlaceholder")}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                     />
                   </div>
                 </div>
@@ -203,11 +203,11 @@ export function GuardiaFormModal({
                     name="tarea"
                     rows={3}
                     placeholder={translate(locale, "guardias.tareaPlaceholder")}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
 
-                <p className="flex items-start gap-2 rounded-lg bg-blue-50 px-3 py-2.5 text-xs text-[#2F6FED]">
+                <p className="flex items-start gap-2 rounded-lg bg-blue-50 px-3 py-2.5 text-xs text-[#FD5249]">
                   <Mail className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   {translate(locale, "guardias.avisoAutomatico")}
                 </p>
@@ -223,7 +223,7 @@ export function GuardiaFormModal({
                   <button
                     type="submit"
                     disabled={pending}
-                    className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
                   >
                     {pending && <ButtonSpinner />}
                     {pending ? translate(locale, "common.creando") : translate(locale, "guardias.crearYAvisar")}

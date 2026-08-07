@@ -45,7 +45,7 @@ export function TutoriasActivityChart({ data }: { data: Point[] }) {
           }}
         />
         <Line type="monotone" dataKey="nuevas" stroke="#8B5CF6" strokeWidth={2} dot={{ r: 3 }} />
-        <Line type="monotone" dataKey="seguimiento" stroke="#2F6FED" strokeWidth={2} dot={{ r: 3 }} />
+        <Line type="monotone" dataKey="seguimiento" stroke="#FD5249" strokeWidth={2} dot={{ r: 3 }} />
         <Line type="monotone" dataKey="completadas" stroke="#22C55E" strokeWidth={2} dot={{ r: 3 }} />
         <Line type="monotone" dataKey="pendientes" stroke="#EF4444" strokeWidth={2} dot={{ r: 3 }} />
       </LineChart>

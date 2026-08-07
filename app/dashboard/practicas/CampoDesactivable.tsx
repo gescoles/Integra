@@ -39,7 +39,7 @@ export function CampoDesactivable({
         type={type}
         disabled={desactivado}
         defaultValue={desactivado ? "" : defaultValue}
-        className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED] disabled:bg-slate-50 disabled:text-slate-300"
+        className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249] disabled:bg-slate-50 disabled:text-slate-300"
       />
     </div>
   );

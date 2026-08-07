@@ -64,7 +64,7 @@ export function LanguageSwitcher({ variant = "dark" }: { variant?: "dark" | "lig
               type="button"
               onClick={() => handleSelect(opt)}
               className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${
-                opt === locale ? "bg-blue-50/60 font-semibold text-[#2F6FED]" : "text-slate-600"
+                opt === locale ? "bg-blue-50/60 font-semibold text-[#FD5249]" : "text-slate-600"
               }`}
             >
               <span className="flex h-4 w-5 shrink-0 items-center justify-center overflow-hidden rounded-[3px] shadow-sm ring-1 ring-black/10">

@@ -67,7 +67,7 @@ export default async function CalendarioPage({
                 <Link
                   key={u.id}
                   href={`/dashboard/calendario?school=${searchParams.school}&user=${u.id}`}
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:border-[#2F6FED] hover:text-[#2F6FED]"
+                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:border-[#FD5249] hover:text-[#FD5249]"
                 >
                   {u.name ?? u.email}
                 </Link>
@@ -212,11 +212,11 @@ export default async function CalendarioPage({
       />
       {isSuperAdmin && (
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50/50 p-3">
-          <Landmark className="h-4 w-4 text-[#2F6FED]" />
+          <Landmark className="h-4 w-4 text-[#FD5249]" />
           <span className="text-xs font-semibold text-slate-500">{translate(locale, "modoSupervision")}</span>
           <Link
             href="/dashboard/calendario"
-            className="ml-auto text-xs font-semibold text-[#2F6FED] hover:underline"
+            className="ml-auto text-xs font-semibold text-[#FD5249] hover:underline"
           >
             {translate(locale, "cambiarCentroUsuario")}
           </Link>

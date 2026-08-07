@@ -6,7 +6,7 @@ export const ROLE_LABELS: Record<string, string> = {
 };
 
 export const ROLE_COLORS: Record<string, string> = {
-  PROFESOR: "bg-blue-50 text-[#2F6FED]",
+  PROFESOR: "bg-blue-50 text-[#FD5249]",
   COORDINADOR: "bg-violet-50 text-violet-600",
   ADMIN_CENTRO: "bg-amber-50 text-amber-600",
   SUPERADMIN: "bg-slate-100 text-slate-600",

@@ -97,7 +97,7 @@ export function NotificationBell() {
             {noLeidas > 0 && (
               <button
                 onClick={handleMarcarTodas}
-                className="flex items-center gap-1 text-xs font-semibold text-[#2F6FED] hover:underline"
+                className="flex items-center gap-1 text-xs font-semibold text-[#FD5249] hover:underline"
               >
                 <CheckCheck className="h-3.5 w-3.5" />
                 {translate(locale, "notif.marcarTodas")}
@@ -118,7 +118,7 @@ export function NotificationBell() {
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    {!n.leida && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#2F6FED]" />}
+                    {!n.leida && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#FD5249]" />}
                     <span className="text-sm font-semibold text-slate-700">{n.titulo}</span>
                   </div>
                   <p className="text-xs text-slate-500">{n.mensaje}</p>

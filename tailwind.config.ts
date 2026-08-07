@@ -10,7 +10,7 @@ const config: Config = {
     extend: {
       colors: {
         navy: "#0B1D4D",
-        brand: "#2F6FED",
+        brand: "#FD5249",
       },
       keyframes: {
         float: {

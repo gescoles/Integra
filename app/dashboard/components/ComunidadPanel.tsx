@@ -6,7 +6,7 @@ import { useLocale } from "../SchoolContext";
 import { translate } from "../i18n";
 
 const CATEGORIA_CONFIG: Record<string, { label: string; color: string; icon: typeof Megaphone }> = {
-  GENERAL: { label: "General", color: "bg-blue-50 text-[#2F6FED]", icon: Megaphone },
+  GENERAL: { label: "General", color: "bg-blue-50 text-[#FD5249]", icon: Megaphone },
   ACADEMICO: { label: "Académico", color: "bg-emerald-50 text-emerald-600", icon: Calendar },
   CONVIVENCIA: { label: "Convivencia", color: "bg-amber-50 text-amber-600", icon: AlertTriangle },
 };
@@ -33,7 +33,7 @@ export function ComunidadPanel({ avisos }: { avisos: Aviso[] }) {
             <button
               onClick={() => setTab("foro")}
               className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
-                tab === "foro" ? "bg-white text-[#2F6FED] shadow-sm" : "text-slate-500"
+                tab === "foro" ? "bg-white text-[#FD5249] shadow-sm" : "text-slate-500"
               }`}
             >
               {translate(locale, "comunidad.foro")}
@@ -41,7 +41,7 @@ export function ComunidadPanel({ avisos }: { avisos: Aviso[] }) {
             <button
               onClick={() => setTab("noticias")}
               className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
-                tab === "noticias" ? "bg-white text-[#2F6FED] shadow-sm" : "text-slate-500"
+                tab === "noticias" ? "bg-white text-[#FD5249] shadow-sm" : "text-slate-500"
               }`}
             >
               {translate(locale, "comunidad.noticias")}

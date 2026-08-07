@@ -67,14 +67,14 @@ export function MaterialFormModal({
         <button
           onClick={() => setOpen(true)}
           title="Editar"
-          className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#2F6FED]"
+          className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#FD5249]"
         >
           <Pencil className="h-3.5 w-3.5" />
         </button>
       ) : (
         <button
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
+          className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]"
         >
           <Plus className="h-4 w-4" /> Añadir material
         </button>
@@ -85,8 +85,8 @@ export function MaterialFormModal({
           <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
             <div className="mb-5 flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center gap-2">
-                <ClipboardList className="h-5 w-5 text-[#2F6FED]" />
-                <h2 className="text-lg font-bold text-[#2F6FED]">
+                <ClipboardList className="h-5 w-5 text-[#FD5249]" />
+                <h2 className="text-lg font-bold text-[#FD5249]">
                   {isEdit ? "Editar material" : "Información del material"}
                 </h2>
               </div>
@@ -123,7 +123,7 @@ export function MaterialFormModal({
                   required
                   defaultValue={material?.nombre}
                   placeholder="Ej.: Kit Arduino Starter UNO"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 />
               </div>
 
@@ -137,7 +137,7 @@ export function MaterialFormModal({
                     required
                     defaultValue={material?.curso}
                     placeholder="Ej.: 1º DAM"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
                 <div>
@@ -149,7 +149,7 @@ export function MaterialFormModal({
                     required
                     defaultValue={material?.asignatura}
                     placeholder="Ej.: Programación"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
                 <div>
@@ -163,7 +163,7 @@ export function MaterialFormModal({
                     required
                     defaultValue={material?.cantidad}
                     placeholder="Ej.: 15"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
               </div>
@@ -173,7 +173,7 @@ export function MaterialFormModal({
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                     Precio por unidad <span className="text-red-500">*</span>
                   </label>
-                  <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 focus-within:border-[#2F6FED]">
+                  <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 focus-within:border-[#FD5249]">
                     <Euro className="h-4 w-4 text-slate-400" />
                     <input
                       name="precioUnidad"
@@ -196,7 +196,7 @@ export function MaterialFormModal({
                     required
                     defaultValue={material?.proveedor}
                     placeholder="Ej.: PCComponentes"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
               </div>
@@ -205,7 +205,7 @@ export function MaterialFormModal({
                 <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                   Enlace más barato <span className="text-red-500">*</span>
                 </label>
-                <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 focus-within:border-[#2F6FED]">
+                <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 focus-within:border-[#FD5249]">
                   <Link2 className="h-4 w-4 text-slate-400" />
                   <input
                     name="enlace"
@@ -229,7 +229,7 @@ export function MaterialFormModal({
                   name="categoria"
                   required
                   defaultValue={material?.categoria ?? "OTROS"}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 >
                   {Object.keys(MATERIAL_CATEGORIA_LABELS).map((value) => (
                     <option key={value} value={value}>
@@ -251,7 +251,7 @@ export function MaterialFormModal({
                   defaultValue={material?.justificacion}
                   onChange={(e) => setJustLength(e.target.value.length)}
                   placeholder="Explica brevemente por qué es necesario este material para la asignatura o el curso."
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 />
                 <p className="mt-1 text-right text-xs text-slate-400">Máx. 500 caracteres · {justLength}/500</p>
               </div>
@@ -267,7 +267,7 @@ export function MaterialFormModal({
                 <button
                   type="submit"
                   disabled={pending}
-                  className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
                 >
                   {pending && <ButtonSpinner />}
                   {pending ? "Guardando..." : isEdit ? "Guardar cambios" : "Guardar material"}

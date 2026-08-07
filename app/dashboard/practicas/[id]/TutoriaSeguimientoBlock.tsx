@@ -94,7 +94,7 @@ function TutoriaSlot({
           <span className="text-xs font-bold uppercase tracking-wide text-slate-500">{translate(locale, labelKey)}</span>
         </div>
         {!bloqueado && (
-          <button onClick={() => setOpen(true)} className="text-slate-400 hover:text-[#2F6FED]">
+          <button onClick={() => setOpen(true)} className="text-slate-400 hover:text-[#FD5249]">
             <Pencil className="h-3 w-3" />
           </button>
         )}
@@ -133,7 +133,7 @@ function TutoriaSlot({
                   min={fechaMinima ? new Date(new Date(fechaMinima).getTime() + 86400000).toISOString().slice(0, 10) : undefined}
                   max={fechaMaxima ? new Date(new Date(fechaMaxima).getTime() - 86400000).toISOString().slice(0, 10) : undefined}
                   defaultValue={fmtDate(tutoria?.fecha)}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
                 />
               </div>
 
@@ -145,7 +145,7 @@ function TutoriaSlot({
                   name="medioContacto"
                   required
                   defaultValue={tutoria?.medioContacto ?? ""}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
                 >
                   <option value="" disabled>
                     —
@@ -164,7 +164,7 @@ function TutoriaSlot({
                   rows={3}
                   required
                   defaultValue={tutoria?.resumen ?? ""}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
                 />
               </div>
               <div className="flex justify-end gap-2 pt-1">
@@ -174,7 +174,7 @@ function TutoriaSlot({
                 <button
                   type="submit"
                   disabled={pending}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#2F6FED] px-3 py-2 text-xs font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#FD5249] px-3 py-2 text-xs font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
                 >
                   {pending && <ButtonSpinner />}
                   {translate(locale, "common.guardar")}

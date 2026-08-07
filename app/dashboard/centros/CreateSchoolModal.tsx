@@ -37,7 +37,7 @@ export function CreateSchoolModal() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
+        className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]"
       >
         <Plus className="h-4 w-4" /> Nuevo centro
       </button>
@@ -70,7 +70,7 @@ export function CreateSchoolModal() {
                   name="name"
                   required
                   placeholder="Ej. IES Joan Maragall"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 />
               </div>
 
@@ -82,7 +82,7 @@ export function CreateSchoolModal() {
                   <select
                     name="type"
                     defaultValue="PRIVADO"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   >
                     {Object.entries(TYPE_LABELS).map(([value, label]) => (
                       <option key={value} value={value}>
@@ -98,7 +98,7 @@ export function CreateSchoolModal() {
                   <input
                     name="city"
                     placeholder="Ej. Barcelona"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
               </div>
@@ -111,7 +111,7 @@ export function CreateSchoolModal() {
                   <select
                     name="plan"
                     defaultValue="BASICO"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   >
                     {Object.entries(PLAN_LABELS).map(([value, label]) => (
                       <option key={value} value={value}>
@@ -129,7 +129,7 @@ export function CreateSchoolModal() {
                     type="number"
                     min={1}
                     defaultValue={50}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
               </div>
@@ -141,7 +141,7 @@ export function CreateSchoolModal() {
                 <select
                   name="cursoAcademico"
                   defaultValue=""
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 >
                   <option value="">—</option>
                   {(() => {
@@ -189,7 +189,7 @@ export function CreateSchoolModal() {
                 <button
                   type="submit"
                   disabled={pending}
-                  className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
                 >
                   {pending && <ButtonSpinner />}
                   {pending ? "Creando..." : "Crear centro"}

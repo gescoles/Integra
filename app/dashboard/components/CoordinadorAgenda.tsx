@@ -38,7 +38,7 @@ export function CoordinadorAgenda({
           <select
             value={profesorFilter}
             onChange={(e) => setProfesorFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs outline-none focus:border-[#2F6FED]"
+            className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs outline-none focus:border-[#FD5249]"
           >
             <option value="Todos">Todos los profesores</option>
             {profesores.map((p) => (

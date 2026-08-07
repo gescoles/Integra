@@ -68,18 +68,17 @@ export function HistoriasBar({
   }, []);
 
   if (!cargado) return null;
-  if (grupos.length === 0 && !puedeSubir) return null;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-sm font-bold text-[#0B1D4D]">{translate(locale, "historias.tituloPanel")}</h3>
         {grupos.length > 0 && (
-          <span className="text-xs font-semibold text-[#2F6FED]">{translate(locale, "historias.verTodas")}</span>
+          <span className="text-xs font-semibold text-[#FD5249]">{translate(locale, "historias.verTodas")}</span>
         )}
       </div>
 
-      {grupos.length === 0 && !puedeSubir ? (
+      {grupos.length === 0 ? (
         <p className="text-sm text-slate-400">{translate(locale, "historias.sinHistorias")}</p>
       ) : (
         <div className="flex gap-4 overflow-x-auto pb-1">
@@ -89,7 +88,7 @@ export function HistoriasBar({
               <button key={g.schoolId} onClick={() => setViendoGrupo(i)} className="flex shrink-0 flex-col items-center gap-1.5">
                 <div
                   className={`flex h-16 w-16 items-center justify-center rounded-full p-[2px] ${
-                    hayNoVistas ? "bg-gradient-to-tr from-[#2F6FED] to-violet-500" : "bg-slate-200"
+                    hayNoVistas ? "bg-gradient-to-tr from-[#FD5249] to-violet-500" : "bg-slate-200"
                   }`}
                 >
                   <div className="h-full w-full overflow-hidden rounded-full border-2 border-white bg-slate-100">
@@ -123,7 +122,7 @@ export function HistoriasBar({
           </div>
           <button
             onClick={() => setSubiendoAbierto(true)}
-            className="shrink-0 rounded-lg bg-[#2F6FED] px-3 py-2 text-xs font-semibold text-white hover:bg-[#255ed1]"
+            className="shrink-0 rounded-lg bg-[#FD5249] px-3 py-2 text-xs font-semibold text-white hover:bg-[#D7463E]"
           >
             {translate(locale, "historias.subir")}
           </button>
@@ -195,7 +194,7 @@ function SubirHistoriaModal({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex h-64 w-full items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 hover:border-[#2F6FED]"
+              className="flex h-64 w-full items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 hover:border-[#FD5249]"
             >
               {preview ? (
                 esVideo ? (
@@ -230,7 +229,7 @@ function SubirHistoriaModal({ onClose }: { onClose: () => void }) {
             <input
               name="texto"
               placeholder={translate(locale, "historias.textoPlaceholder")}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
             />
           </div>
 
@@ -243,7 +242,7 @@ function SubirHistoriaModal({ onClose }: { onClose: () => void }) {
             <button
               type="submit"
               disabled={pending}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
             >
               {pending && <ButtonSpinner />}
               {translate(locale, "historias.publicar")}

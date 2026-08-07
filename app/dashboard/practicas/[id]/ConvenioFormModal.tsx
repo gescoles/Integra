@@ -71,13 +71,13 @@ export function ConvenioFormModal({
   return (
     <>
       {isEdit ? (
-        <button onClick={() => setOpen(true)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#2F6FED]">
+        <button onClick={() => setOpen(true)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#FD5249]">
           <Pencil className="h-3.5 w-3.5" />
         </button>
       ) : (
         <button
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]"
         >
           <Plus className="h-4 w-4" /> {translate(locale, "practicas.nuevoConvenio")}
         </button>
@@ -101,7 +101,7 @@ export function ConvenioFormModal({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.tipologia")}</label>
-                  <select name="tipologia" defaultValue={convenio?.tipologia ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]">
+                  <select name="tipologia" defaultValue={convenio?.tipologia ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]">
                     <option value="">—</option>
                     <option value="FCT">FCT</option>
                     <option value="Formación dual">Formación dual</option>
@@ -111,7 +111,7 @@ export function ConvenioFormModal({
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.estadoAcuerdo")}</label>
-                  <select name="estadoAcuerdo" defaultValue={convenio?.estadoAcuerdo ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]">
+                  <select name="estadoAcuerdo" defaultValue={convenio?.estadoAcuerdo ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]">
                     <option value="">—</option>
                     <option value="Pendiente de firma">Pendiente de firma</option>
                     <option value="Firmado">Firmado</option>
@@ -121,15 +121,15 @@ export function ConvenioFormModal({
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.fechaInicio")}</label>
-                  <input name="fechaInicio" type="date" defaultValue={fmtDate(convenio?.fechaInicio ?? null)} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                  <input name="fechaInicio" type="date" defaultValue={fmtDate(convenio?.fechaInicio ?? null)} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.fechaFin")}</label>
-                  <input name="fechaFin" type="date" defaultValue={fmtDate(convenio?.fechaFin ?? null)} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                  <input name="fechaFin" type="date" defaultValue={fmtDate(convenio?.fechaFin ?? null)} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.periodo")}</label>
-                  <select name="periodo" defaultValue={convenio?.periodo ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]">
+                  <select name="periodo" defaultValue={convenio?.periodo ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]">
                     <option value="">—</option>
                     <option value="1r trimestre">1r trimestre</option>
                     <option value="2n trimestre">2n trimestre</option>
@@ -140,12 +140,12 @@ export function ConvenioFormModal({
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.quienAltaBaja")}</label>
-                  <input name="quienAltaBajaSS" defaultValue={convenio?.quienAltaBajaSS ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                  <input name="quienAltaBajaSS" defaultValue={convenio?.quienAltaBajaSS ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
                 </div>
               </div>
 
               <label className="flex items-center gap-2 text-sm text-slate-600">
-                <input type="checkbox" name="convalida" defaultChecked={convenio?.convalida} className="rounded border-slate-300 accent-[#2F6FED]" />
+                <input type="checkbox" name="convalida" defaultChecked={convenio?.convalida} className="rounded border-slate-300 accent-[#FD5249]" />
                 {translate(locale, "practicas.convalida")}
               </label>
 
@@ -154,30 +154,30 @@ export function ConvenioFormModal({
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.empresaNombre")}</label>
-                    <input name="empresaNombre" defaultValue={convenio?.empresaNombre ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                    <input name="empresaNombre" defaultValue={convenio?.empresaNombre ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
                   </div>
                   <div>
                     <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.empresaCif")}</label>
-                    <input name="empresaCif" defaultValue={convenio?.empresaCif ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                    <input name="empresaCif" defaultValue={convenio?.empresaCif ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
                   </div>
                   <div>
                     <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.tutorEmpresaNombre")}</label>
-                    <input name="tutorEmpresaNombre" defaultValue={convenio?.tutorEmpresaNombre ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                    <input name="tutorEmpresaNombre" defaultValue={convenio?.tutorEmpresaNombre ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
                   </div>
                   <div>
                     <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.tutorEmpresaTelefono")}</label>
-                    <input name="tutorEmpresaTelefono" defaultValue={convenio?.tutorEmpresaTelefono ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                    <input name="tutorEmpresaTelefono" defaultValue={convenio?.tutorEmpresaTelefono ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
                   </div>
                   <div className="col-span-2">
                     <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.tutorEmpresaCorreo")}</label>
-                    <input name="tutorEmpresaCorreo" type="email" defaultValue={convenio?.tutorEmpresaCorreo ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                    <input name="tutorEmpresaCorreo" type="email" defaultValue={convenio?.tutorEmpresaCorreo ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
                   </div>
                 </div>
               </div>
 
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "salidas.observaciones")}</label>
-                <textarea name="observaciones" rows={3} defaultValue={convenio?.observaciones ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]" />
+                <textarea name="observaciones" rows={3} defaultValue={convenio?.observaciones ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
@@ -187,7 +187,7 @@ export function ConvenioFormModal({
                 <button
                   type="submit"
                   disabled={pending}
-                  className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
                 >
                   {pending && <ButtonSpinner />}
                   {pending ? translate(locale, "common.guardando") : translate(locale, "common.guardar")}

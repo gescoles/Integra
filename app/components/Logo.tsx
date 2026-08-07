@@ -28,8 +28,8 @@ export function HexLogo({ size = 36 }: { size?: number }) {
     >
       <defs>
         <linearGradient id={gradientId} x1="2" y1="2" x2="38" y2="38" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#3B82F6" />
-          <stop offset="1" stopColor="#8B5CF6" />
+          <stop offset="0" stopColor="#FD5249" />
+          <stop offset="1" stopColor="#E0453D" />
         </linearGradient>
       </defs>
 

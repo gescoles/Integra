@@ -33,7 +33,7 @@ export function NuevoAlumnoModal() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1]"
+        className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]"
       >
         <Plus className="h-4 w-4" /> Nuevo alumno
       </button>
@@ -66,7 +66,7 @@ export function NuevoAlumnoModal() {
                   name="nombre"
                   required
                   placeholder="Ej. Adrián López Martín"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 />
               </div>
 
@@ -79,7 +79,7 @@ export function NuevoAlumnoModal() {
                     name="curso"
                     required
                     placeholder="Ej. 2º ESO B"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
                 <div>
@@ -92,7 +92,7 @@ export function NuevoAlumnoModal() {
                     min={0}
                     max={99}
                     placeholder="Ej. 14"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
               </div>
@@ -104,7 +104,7 @@ export function NuevoAlumnoModal() {
                 <select
                   name="riesgo"
                   defaultValue="BAJO"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#2F6FED]"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                 >
                   {Object.entries(RIESGO_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>
@@ -123,13 +123,13 @@ export function NuevoAlumnoModal() {
                       <input
                         name="madreTelefono"
                         placeholder="Teléfono"
-                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
                       />
                       <input
                         name="madreEmail"
                         type="email"
                         placeholder="Email"
-                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
                       />
                     </div>
                   </div>
@@ -139,13 +139,13 @@ export function NuevoAlumnoModal() {
                       <input
                         name="padreTelefono"
                         placeholder="Teléfono"
-                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
                       />
                       <input
                         name="padreEmail"
                         type="email"
                         placeholder="Email"
-                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#2F6FED]"
+                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
                       />
                     </div>
                   </div>
@@ -163,7 +163,7 @@ export function NuevoAlumnoModal() {
                 <button
                   type="submit"
                   disabled={pending}
-                  className="inline-flex items-center gap-2 rounded-lg bg-[#2F6FED] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#255ed1] disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
                 >
                   {pending && <ButtonSpinner />}
                   {pending ? "Creando..." : "Crear alumno"}

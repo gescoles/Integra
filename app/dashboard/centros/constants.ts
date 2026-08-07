@@ -13,7 +13,7 @@ export const MODULES = [
   { key: "tutorias", label: "Tutorías", icon: Calendar, color: "bg-amber-50 text-amber-600 border-amber-200" },
   { key: "practicas", label: "Prácticas", icon: Briefcase, color: "bg-emerald-50 text-emerald-600 border-emerald-200" },
   { key: "guardias", label: "Guardias", icon: ShieldCheck, color: "bg-violet-50 text-violet-600 border-violet-200" },
-  { key: "material", label: "Material", icon: FolderOpen, color: "bg-blue-50 text-[#2F6FED] border-blue-200" },
+  { key: "material", label: "Material", icon: FolderOpen, color: "bg-blue-50 text-[#FD5249] border-blue-200" },
   { key: "salidas", label: "Salidas", icon: Bus, color: "bg-orange-50 text-orange-600 border-orange-200" },
   { key: "expedientes", label: "Expedientes (Incidencias)", icon: AlertTriangle, color: "bg-red-50 text-red-600 border-red-200" },
   { key: "comunicacion", label: "Comunicación", icon: MessageSquare, color: "bg-sky-50 text-sky-600 border-sky-200" },

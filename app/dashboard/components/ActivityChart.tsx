@@ -39,9 +39,9 @@ export function ActivityChart({ data }: { data: Point[] }) {
         <Line
           type="monotone"
           dataKey="value"
-          stroke="#2F6FED"
+          stroke="#FD5249"
           strokeWidth={2.5}
-          dot={{ r: 3, fill: "#2F6FED" }}
+          dot={{ r: 3, fill: "#FD5249" }}
           activeDot={{ r: 5 }}
         />
       </LineChart>

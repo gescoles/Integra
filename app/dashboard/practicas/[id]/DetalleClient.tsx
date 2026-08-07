@@ -168,7 +168,7 @@ function ConvenioCard({ convenio, fichaId, esDirectivo }: { convenio: Convenio; 
               )}
               <span
                 className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                  convenio.cerrado ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-[#2F6FED]"
+                  convenio.cerrado ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-[#FD5249]"
                 }`}
               >
                 {convenio.cerrado ? translate(locale, "practicas.cerradoEstado") : translate(locale, "practicas.enCurso")}
@@ -287,7 +287,7 @@ export function DetalleClient({
 
   return (
     <div className="space-y-6">
-      <Link href="/dashboard/practicas" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-[#2F6FED]">
+      <Link href="/dashboard/practicas" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-[#FD5249]">
         <ArrowLeft className="h-3.5 w-3.5" /> {translate(locale, "practicas.title")}
       </Link>
 
@@ -305,7 +305,7 @@ export function DetalleClient({
               <h2 className="text-base font-bold text-[#0B1D4D]">{ficha.alumnoNombre}</h2>
               <p className="text-xs text-slate-400">{ficha.alumnoCurso}</p>
             </div>
-            <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${ficha.promocion === "PRIMERA" ? "bg-blue-50 text-[#2F6FED]" : "bg-violet-50 text-violet-600"}`}>
+            <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${ficha.promocion === "PRIMERA" ? "bg-blue-50 text-[#FD5249]" : "bg-violet-50 text-violet-600"}`}>
               {ficha.promocion === "PRIMERA" ? translate(locale, "practicas.primeraPromocion") : translate(locale, "practicas.segundaPromocion")}
             </span>
           </div>
