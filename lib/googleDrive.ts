@@ -85,3 +85,31 @@ export async function uploadXlsxToDrive(folderId: string, filename: string, buff
     media,
   });
 }
+
+/**
+ * Igual que uploadXlsxToDrive, pero para PDFs (usado por los expedientes
+ * sancionadores). Si ya existe un archivo con el mismo nombre en esa
+ * carpeta, lo sobrescribe en vez de duplicarlo.
+ */
+export async function uploadPdfToDrive(folderId: string, filename: string, buffer: Buffer) {
+  const drive = getDriveClient();
+  const mimeType = "application/pdf";
+
+  const existing = await drive.files.list({
+    q: `'${folderId}' in parents and name = '${filename.replace(/'/g, "\\'")}' and trashed = false`,
+    fields: "files(id)",
+    spaces: "drive",
+  });
+
+  const media = { mimeType, body: Readable.from(buffer) };
+
+  if (existing.data.files && existing.data.files.length > 0 && existing.data.files[0].id) {
+    await drive.files.update({ fileId: existing.data.files[0].id, media });
+    return;
+  }
+
+  await drive.files.create({
+    requestBody: { name: filename, parents: [folderId], mimeType },
+    media,
+  });
+}

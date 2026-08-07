@@ -261,14 +261,9 @@ function fechaRequerida(formData: FormData, campo: string, etiqueta: string) {
   return new Date(`${raw}T00:00:00`);
 }
 
-async function generarNumeroExpediente(schoolId: string) {
-  const anyo = new Date().getFullYear().toString().slice(-2);
-  const inicioAnyo = new Date(new Date().getFullYear(), 0, 1);
-  const totalEsteAnyo = await prisma.expediente.count({
-    where: { schoolId, createdAt: { gte: inicioAnyo } },
-  });
-  const siguiente = (totalEsteAnyo + 1).toString().padStart(4, "0");
-  return `${anyo}${siguiente}`;
+async function generarNumeroExpediente() {
+  const total = await prisma.expediente.count();
+  return (total + 1).toString().padStart(6, "0");
 }
 
 function extraerCamposExpediente(formData: FormData) {
@@ -307,7 +302,7 @@ export async function crearExpediente(formData: FormData) {
   if (!incidencia) throw new Error("No se ha encontrado la incidencia.");
 
   const campos = extraerCamposExpediente(formData);
-  const numero = await generarNumeroExpediente(incidencia.schoolId);
+  const numero = await generarNumeroExpediente();
 
   const expediente = await prisma.expediente.create({
     data: {
@@ -391,6 +386,28 @@ export async function enviarExpediente(id: string) {
       data,
       pdfBuffer: Buffer.from(pdfBytes),
     });
+  }
+
+  // Se guarda también una copia en Google Drive, en Expedientes/, con el
+  // nombre nombre_apellido1_apellido2_curso_código (mejor esfuerzo: si
+  // Drive falla, no impide que el envío al tutor se complete igualmente).
+  try {
+    const rootFolderId = process.env.GOOGLE_DRIVE_BACKUP_FOLDER_ID;
+    if (rootFolderId) {
+      const { ensureSubfolder, uploadPdfToDrive } = await import("@/lib/googleDrive");
+      const { safeFileName } = await import("@/lib/exportWorkbooks");
+
+      const [nombre, apellido1 = "", ...resto] = data.alumnoNombre.trim().split(/\s+/);
+      const apellido2 = resto.join(" ");
+      const partes = [nombre, apellido1, apellido2, data.alumnoCurso, expediente.numero].filter(Boolean);
+      const filename = `${partes.map(safeFileName).join("_")}.pdf`;
+
+      const schoolFolderId = await ensureSubfolder(rootFolderId, safeFileName(data.schoolName));
+      const expedientesFolderId = await ensureSubfolder(schoolFolderId, "Expedientes");
+      await uploadPdfToDrive(expedientesFolderId, filename, Buffer.from(pdfBytes));
+    }
+  } catch {
+    // No pasa nada si falla Drive; el tutor ya tiene el PDF por email.
   }
 
   await notifyUsers([expediente.tutorId], {

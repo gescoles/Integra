@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
   const bytes = await buildExpedientePdf(data);
 
-  return new NextResponse(Buffer.from(bytes), {
+  return new NextResponse(new Uint8Array(bytes), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="Expedient_${data.numero}_${safeFileName(data.alumnoNombre)}.pdf"`,
