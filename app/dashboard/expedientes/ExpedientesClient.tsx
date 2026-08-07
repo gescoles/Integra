@@ -477,12 +477,39 @@ export function ExpedientesClient({
               </div>
             </div>
 
-            {/* Expedientes: a partir de la 3ª incidencia del alumno se
-                puede crear uno o varios, uno debajo del otro. */}
+            {/* Aviso de 3+ incidencias: siempre visible a partir de la 3ª,
+                pero ya NO es lo único que permite abrir un expediente. */}
             {(totalPorAlumno.get(seleccionada.alumnoId) ?? 0) >= 3 && (
-              <div className="mt-4 rounded-xl border border-red-200 bg-red-50/60 p-3">
-                <div className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-red-600">
+              <div className="mt-4 rounded-lg border border-red-200 bg-red-50/60 px-3 py-2.5">
+                <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-red-600">
                   <ShieldAlert className="h-3.5 w-3.5" /> {translate(locale, "expedientes.avisoTresIncidencias")}
+                </div>
+                {esDirectivo && (
+                  <div className="mt-2">
+                    <IncidenciaFormModal
+                      alumnos={alumnos}
+                      profesores={profesores}
+                      alumnoFijo={{
+                        id: seleccionada.alumnoId,
+                        nombre: seleccionada.alumnoNombre,
+                        curso: seleccionada.alumnoCurso,
+                        avatarUrl: seleccionada.alumnoAvatarUrl,
+                      }}
+                      etiquetaBoton={translate(locale, "expedientes.anadirOtraIncidencia")}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Expedientes: Coordinación/Dirección/SuperAdmin pueden abrir
+                uno cuando quieran, sin depender de llegar a las 3
+                incidencias. El resto de roles solo ven los que ya existan
+                (para descargarlos), sin poder crear ninguno. */}
+            {(esDirectivo || seleccionada.expedientes.length > 0) && (
+              <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+                <div className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">
+                  <ShieldAlert className="h-3.5 w-3.5" /> {translate(locale, "expedientes.expedientesTitulo")}
                 </div>
 
                 {seleccionada.expedientes.length > 0 && (
@@ -534,29 +561,12 @@ export function ExpedientesClient({
                   </div>
                 )}
 
-                {esDirectivo ? (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <ExpedienteFormModal
-                      incidenciaId={seleccionada.id}
-                      descripcionInicial={seleccionada.descripcion}
-                      modoCrear={seleccionada.expedientes.length > 0}
-                    />
-                    <IncidenciaFormModal
-                      alumnos={alumnos}
-                      profesores={profesores}
-                      alumnoFijo={{
-                        id: seleccionada.alumnoId,
-                        nombre: seleccionada.alumnoNombre,
-                        curso: seleccionada.alumnoCurso,
-                        avatarUrl: seleccionada.alumnoAvatarUrl,
-                      }}
-                      etiquetaBoton={translate(locale, "expedientes.anadirOtraIncidencia")}
-                    />
-                  </div>
-                ) : (
-                  seleccionada.expedientes.length === 0 && (
-                    <p className="text-xs text-slate-500">{translate(locale, "expedientes.avisoSoloDirectivo")}</p>
-                  )
+                {esDirectivo && (
+                  <ExpedienteFormModal
+                    incidenciaId={seleccionada.id}
+                    descripcionInicial={seleccionada.descripcion}
+                    modoCrear={seleccionada.expedientes.length > 0}
+                  />
                 )}
               </div>
             )}

@@ -233,6 +233,61 @@ export async function cambiarEstadoIncidencia(id: string, estado: "EN_SEGUIMIENT
 
   if (estado === "CERRADA") {
     await clearNotificationsFor(id);
+
+    // Aviso cada vez que se llega a un múltiplo de 3 incidencias CERRADAS
+    // de ese alumno (3, 6, 9...), tanto al equipo directivo como a los
+    // tutores que ha tenido: email + notificación.
+    const totalCerradas = await prisma.incidencia.count({
+      where: { alumnoId: permiso.incidencia.alumnoId, estado: "CERRADA" },
+    });
+
+    if (totalCerradas > 0 && totalCerradas % 3 === 0) {
+      const alumno = await prisma.alumno.findUnique({
+        where: { id: permiso.incidencia.alumnoId },
+        select: { nombre: true, curso: true },
+      });
+
+      const [tutoresPrevios, directivos] = await Promise.all([
+        prisma.incidencia.findMany({
+          where: { alumnoId: permiso.incidencia.alumnoId },
+          select: { tutor: { select: { id: true, email: true } } },
+          distinct: ["tutorId"],
+        }),
+        prisma.user.findMany({
+          where: { schoolId: permiso.incidencia.schoolId, role: { in: ["COORDINADOR", "ADMIN_CENTRO"] } },
+          select: { id: true, email: true },
+        }),
+      ]);
+
+      const idsAvisar = Array.from(new Set([...tutoresPrevios.map((t) => t.tutor.id), ...directivos.map((d) => d.id)]));
+
+      if (alumno) {
+        await notifyUsers(idsAvisar, {
+          schoolId: permiso.incidencia.schoolId,
+          tipo: "INCIDENCIAS_CERRADAS",
+          titulo: `${totalCerradas} incidencias cerradas`,
+          mensaje: `${alumno.nombre} (${alumno.curso}) ya lleva ${totalCerradas} incidencias cerradas.`,
+          link: "/dashboard/expedientes",
+          relatedId: permiso.incidencia.alumnoId,
+        });
+
+        const emails = new Set<string>();
+        directivos.forEach((d) => d.email && emails.add(d.email));
+        tutoresPrevios.forEach((t) => t.tutor.email && emails.add(t.tutor.email));
+
+        try {
+          const { sendIncidenciasCerradasEmail } = await import("@/lib/email");
+          await sendIncidenciasCerradasEmail({
+            to: Array.from(emails),
+            alumnoNombre: alumno.nombre,
+            curso: alumno.curso,
+            cantidad: totalCerradas,
+          });
+        } catch {
+          // El aviso en la app ya ha quedado registrado igualmente.
+        }
+      }
+    }
   }
 
   revalidatePath("/dashboard/expedientes");

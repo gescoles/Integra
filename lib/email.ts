@@ -344,3 +344,35 @@ export async function sendExpedienteEmail(params: {
     `,
   });
 }
+
+export async function sendIncidenciasCerradasEmail(params: {
+  to: string[];
+  alumnoNombre: string;
+  curso: string;
+  cantidad: number;
+}) {
+  if (params.to.length === 0) return;
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  await transporter.sendMail({
+    from: `Integra <${from}>`,
+    to: params.to.join(", "),
+    subject: `Aviso: ${params.alumnoNombre} ya lleva ${params.cantidad} incidencias cerradas`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#DC2626; margin-bottom: 8px;">Aviso de incidencias cerradas</h2>
+        <div style="background:#FEF2F2; border-radius:8px; padding:16px; margin:16px 0; border:1px solid #FECACA;">
+          <p style="margin:0;">
+            El alumno <strong>${params.alumnoNombre}</strong> (${params.curso}) ya tiene
+            <strong>${params.cantidad} incidencias cerradas</strong> registradas en Integra.
+          </p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Puedes revisar su historial completo y valorar si hace falta abrir un expediente
+          desde Integra, en Expedientes.
+        </p>
+      </div>
+    `,
+  });
+}

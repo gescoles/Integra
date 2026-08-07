@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Sidebar } from "./components/Sidebar";
 import { ChatWidget } from "./components/ChatWidget";
 import { SavingOverlay } from "./components/SavingOverlay";
+import { GlobalSavingListener } from "./components/GlobalSavingListener";
 import { SchoolProvider } from "./SchoolContext";
 
 export default async function DashboardLayout({
@@ -59,6 +60,7 @@ export default async function DashboardLayout({
         </div>
         <ChatWidget userName={userName} />
         <SavingOverlay />
+        <GlobalSavingListener />
       </div>
     </SchoolProvider>
   );
