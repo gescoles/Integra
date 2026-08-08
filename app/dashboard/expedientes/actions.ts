@@ -415,15 +415,30 @@ export async function actualizarExpediente(formData: FormData) {
 // Envía el expediente ya redactado al tutor: email con toda la información
 // + el PDF adjunto, y notificación en la app. Solo Coordinación, Dirección
 // o SuperAdmin pueden darle a enviar.
-export async function enviarExpediente(id: string) {
+export async function enviarExpediente(formData: FormData) {
+  const id = formData.get("id") as string;
   const session = await getServerSession(authOptions);
   if (!session?.user.id || !esDirectivo(session.user.role)) {
     throw new Error("Solo Coordinación, Dirección o SuperAdmin puede enviar el expediente al tutor.");
   }
 
+  const firmaDireccion = formData.get("firmaDireccion") as string;
+  const firmaTutor = formData.get("firmaTutor") as string;
+  const firmaCoordinador = formData.get("firmaCoordinador") as string;
+  const emailAlumno = (formData.get("emailAlumno") as string)?.trim() || null;
+
+  if (!firmaDireccion || !firmaTutor || !firmaCoordinador) {
+    throw new Error("Faltan firmas: hacen falta las de Dirección, Tutor/a y Coordinador/a antes de enviar.");
+  }
+
   const expediente = await prisma.expediente.findUnique({ where: { id } });
   if (!expediente) throw new Error("No se ha encontrado el expediente.");
   if (expediente.estado === "ENVIADO") throw new Error("Este expediente ya se había enviado.");
+
+  await prisma.expediente.update({
+    where: { id },
+    data: { firmaDireccion, firmaTutor, firmaCoordinador, emailAlumno },
+  });
 
   const { getExpedienteData, buildExpedientePdf } = await import("@/lib/expedienteDocs");
   const { sendExpedienteEmail } = await import("@/lib/email");
@@ -434,10 +449,11 @@ export async function enviarExpediente(id: string) {
   const tutor = await prisma.user.findUnique({ where: { id: expediente.tutorId }, select: { name: true, email: true } });
   const pdfBytes = await buildExpedientePdf(data);
 
-  if (tutor?.email) {
+  const destinatarios = [tutor?.email, emailAlumno].filter((e): e is string => Boolean(e));
+  if (destinatarios.length > 0) {
     await sendExpedienteEmail({
-      to: tutor.email,
-      tutorNombre: tutor.name ?? tutor.email,
+      to: destinatarios,
+      tutorNombre: tutor?.name ?? tutor?.email ?? "",
       data,
       pdfBuffer: Buffer.from(pdfBytes),
     });
@@ -499,4 +515,30 @@ export async function eliminarExpediente(id: string) {
 
   await prisma.expediente.delete({ where: { id } });
   revalidatePath("/dashboard/expedientes");
+}
+
+// Botón de "enviar" que aparece siempre que una incidencia está cerrada,
+// para poder mandar un resumen al email del alumno cuando haga falta
+// (independiente del flujo de expediente formal).
+export async function enviarResumenIncidencia(incidenciaId: string, email: string) {
+  const permiso = await puedeGestionar(incidenciaId);
+  if (!permiso.ok || !permiso.incidencia) throw new Error("No autorizado.");
+  if (!email?.trim()) throw new Error("Indica un email válido.");
+
+  const incidencia = await prisma.incidencia.findUnique({
+    where: { id: incidenciaId },
+    include: { alumno: { select: { nombre: true, curso: true } } },
+  });
+  if (!incidencia) throw new Error("No se ha encontrado la incidencia.");
+
+  const { sendResumenIncidenciaEmail } = await import("@/lib/email");
+  await sendResumenIncidenciaEmail({
+    to: email.trim(),
+    alumnoNombre: incidencia.alumno.nombre,
+    curso: incidencia.alumno.curso,
+    tipoIncidencia: incidencia.tipoIncidencia,
+    fecha: incidencia.fecha,
+    descripcion: incidencia.descripcion,
+    medidasAplicadas: incidencia.medidasAplicadas,
+  });
 }

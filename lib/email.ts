@@ -293,7 +293,7 @@ export async function sendTresIncidenciasEmail(params: {
 }
 
 export async function sendExpedienteEmail(params: {
-  to: string;
+  to: string[];
   tutorNombre: string;
   data: {
     numero: string;
@@ -314,7 +314,7 @@ export async function sendExpedienteEmail(params: {
 
   await transporter.sendMail({
     from: `Integra <${from}>`,
-    to: params.to,
+    to: params.to.join(", "),
     subject: `Expediente disciplinario ${params.data.numero} · ${params.data.alumnoNombre}`,
     attachments: [
       {
@@ -404,6 +404,82 @@ export async function sendOnboardingArchivoEmail(params: {
         </div>
         <p style="color:#64748B; font-size:13px;">
           Puedes verlo y descargarlo desde Integra, en OnBoarding.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendResumenIncidenciaEmail(params: {
+  to: string;
+  alumnoNombre: string;
+  curso: string;
+  tipoIncidencia: string;
+  fecha: Date;
+  descripcion: string;
+  medidasAplicadas?: string | null;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" });
+
+  await transporter.sendMail({
+    from: `Integra <${from}>`,
+    to: params.to,
+    subject: `Resumen de incidencia: ${params.alumnoNombre}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Resumen de incidencia cerrada</h2>
+        <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
+          <p style="margin:0;"><strong>Alumno:</strong> ${params.alumnoNombre} (${params.curso})</p>
+          <p style="margin:8px 0 0;"><strong>Tipo de incidencia:</strong> ${params.tipoIncidencia}</p>
+          <p style="margin:8px 0 0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0;"><strong>Descripción:</strong> ${params.descripcion}</p>
+          ${params.medidasAplicadas ? `<p style="margin:8px 0 0;"><strong>Medidas aplicadas:</strong> ${params.medidasAplicadas}</p>` : ""}
+        </div>
+        <p style="color:#64748B; font-size:13px;">Este correo es un resumen informativo enviado desde Integra.</p>
+      </div>
+    `,
+  });
+}
+
+export async function sendReservaConfirmadaEmail(params: {
+  to: string;
+  userNombre: string;
+  aulaNombre: string;
+  schoolName: string;
+  fecha: Date;
+  horaInicio: string;
+  horaFin: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  await transporter.sendMail({
+    from: `Integra <${from}>`,
+    to: params.to,
+    subject: `Reserva confirmada: ${params.aulaNombre}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">¡Reserva confirmada!</h2>
+        <p style="color:#64748B; font-size:13px; margin-top:0;">
+          Hola ${params.userNombre}, tu reserva en ${params.schoolName} ya está confirmada.
+        </p>
+        <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
+          <p style="margin:0;"><strong>Espacio:</strong> ${params.aulaNombre}</p>
+          <p style="margin:8px 0 0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0;"><strong>Hora:</strong> ${params.horaInicio} – ${params.horaFin}</p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Puedes consultar o cancelar tu reserva desde Integra, en Reserva de Espacios.
         </p>
       </div>
     `,

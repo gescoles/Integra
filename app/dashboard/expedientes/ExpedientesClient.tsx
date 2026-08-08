@@ -24,6 +24,7 @@ import { cambiarEstadoIncidencia, eliminarIncidencia } from "./actions";
 import { IncidenciaFormModal } from "./IncidenciaFormModal";
 import { ExpedienteFormModal } from "./ExpedienteFormModal";
 import { EnviarExpedienteButton } from "./EnviarExpedienteButton";
+import { EnviarResumenIncidenciaButton } from "./EnviarResumenIncidenciaButton";
 import { ButtonSpinner } from "../components/ButtonSpinner";
 import { useLocale } from "../SchoolContext";
 import { translate } from "../i18n";
@@ -639,6 +640,9 @@ export function ExpedientesClient({
                       {translate(locale, "expedientes.reabrir")}
                     </button>
                   )
+                )}
+                {seleccionada.estado === "CERRADA" && (
+                  <EnviarResumenIncidenciaButton incidenciaId={seleccionada.id} />
                 )}
                 {esDirectivo && (
                   <button

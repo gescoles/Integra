@@ -133,6 +133,7 @@ export async function deleteUser(id: string) {
   await prisma.salida.deleteMany({ where: { OR: [{ creadoPorId: id }, { responsableId: id }] } });
   await prisma.expediente.deleteMany({ where: { OR: [{ tutorId: id }, { creadoPorId: id }] } });
   await prisma.incidencia.deleteMany({ where: { OR: [{ creadorId: id }, { tutorId: id }] } });
+  await prisma.espacioReserva.deleteMany({ where: { OR: [{ userId: id }, { creadoPorId: id }] } });
 
   await prisma.user.delete({ where: { id } });
   revalidatePath("/dashboard/usuarios");

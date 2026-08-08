@@ -45,6 +45,9 @@ export async function getExpedienteData(expedienteId: string) {
     direccionNombre: exp.direccionNombre,
     coordinadorNombre: exp.coordinadorNombre,
     fechaTancament: fmt(exp.enviadoEn ?? exp.createdAt),
+    firmaDireccion: exp.firmaDireccion,
+    firmaTutor: exp.firmaTutor,
+    firmaCoordinador: exp.firmaCoordinador,
   };
 }
 
@@ -240,15 +243,31 @@ export async function buildExpedientePdf(data: ExpedienteData): Promise<Uint8Arr
   newPageIfNeeded(70);
   const colWidth = maxWidth / 3;
   const firmas = [
-    { label: "Direcció del centre", nombre: data.direccionNombre },
-    { label: "Tutor/a de l'alumne/a", nombre: data.tutorNombre },
-    { label: "Coordinador de Departament", nombre: data.coordinadorNombre },
+    { label: "Direcció del centre", nombre: data.direccionNombre, firma: data.firmaDireccion },
+    { label: "Tutor/a de l'alumne/a", nombre: data.tutorNombre, firma: data.firmaTutor },
+    { label: "Coordinador de Departament", nombre: data.coordinadorNombre, firma: data.firmaCoordinador },
   ];
-  firmas.forEach((f, i) => {
+  for (let i = 0; i < firmas.length; i++) {
+    const f = firmas[i];
     const x = margin + i * colWidth;
     page.drawText(f.label, { x, y, size: 9, font: fontBold, color: gris });
+
+    if (f.firma) {
+      try {
+        const base64 = f.firma.split(",")[1] ?? f.firma;
+        const bytes = Buffer.from(base64, "base64");
+        const image = await pdfDoc.embedPng(bytes);
+        const imgHeight = 30;
+        const imgWidth = (image.width / image.height) * imgHeight;
+        page.drawImage(image, { x, y: y - imgHeight - 4, width: Math.min(imgWidth, colWidth - 10), height: imgHeight });
+        page.drawText(f.nombre || "—", { x, y: y - imgHeight - 16, size: 9, font: fontRegular });
+        continue;
+      } catch {
+        // Si la firma no se puede incrustar, seguimos mostrando solo el nombre.
+      }
+    }
     page.drawText(f.nombre || "—", { x, y: y - 14, size: 9, font: fontRegular });
-  });
+  }
 
   return pdfDoc.save();
 }
@@ -278,6 +297,24 @@ export async function buildExpedienteDocx(data: ExpedienteData) {
         transformation: { width: 90, height: 45 },
       })
     : null;
+
+  function firmaRun(dataUrl: string | null) {
+    if (!dataUrl) return null;
+    try {
+      const base64 = dataUrl.split(",")[1] ?? dataUrl;
+      return new ImageRun({
+        data: Buffer.from(base64, "base64"),
+        type: "png",
+        transformation: { width: 110, height: 45 },
+      });
+    } catch {
+      return null;
+    }
+  }
+
+  const firmaDireccionRun = firmaRun(data.firmaDireccion);
+  const firmaTutorRun = firmaRun(data.firmaTutor);
+  const firmaCoordinadorRun = firmaRun(data.firmaCoordinador);
 
   const sectionHeader = (text: string) =>
     new Paragraph({
@@ -439,6 +476,11 @@ export async function buildExpedienteDocx(data: ExpedienteData) {
                   new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Tutor/a de l'alumne/a", bold: true, size: 20 })] })] }),
                   new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Coordinador de Departament", bold: true, size: 20 })] })] }),
                 ],
+              }),
+              new TableRow({
+                children: [firmaDireccionRun, firmaTutorRun, firmaCoordinadorRun].map(
+                  (run) => new TableCell({ children: [new Paragraph({ children: run ? [run] : [] })] })
+                ),
               }),
               new TableRow({
                 children: [

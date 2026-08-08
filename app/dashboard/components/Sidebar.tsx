@@ -12,6 +12,7 @@ import {
   X,
   AlertTriangle,
   FolderKanban,
+  Building2,
   GraduationCap,
   ShieldCheck,
   CreditCard,
@@ -48,6 +49,7 @@ const superadminNav: { href: string; labelKey: TranslationKey; icon: typeof Home
   { href: "/dashboard/practicas", labelKey: "nav.practicas", icon: Briefcase },
   { href: "/dashboard/expedientes", labelKey: "nav.expedientes", icon: AlertTriangle },
   { href: "/dashboard/onboarding", labelKey: "nav.onboarding", icon: FolderKanban },
+  { href: "/dashboard/espacios", labelKey: "nav.espacios", icon: Building2 },
   { href: "/dashboard/salidas", labelKey: "nav.salidas", icon: Bus },
   { href: "/dashboard/salidas/aprobaciones", labelKey: "nav.aprobaciones", icon: CheckSquare },
   { href: "/dashboard/calendario", labelKey: "nav.calendario", icon: CalendarDays },
@@ -69,6 +71,7 @@ const centroModulos: { key: string; href: string; labelKey: TranslationKey; icon
   { key: "practicas", href: "/dashboard/practicas", labelKey: "nav.practicas", icon: Briefcase },
   { key: "expedientes", href: "/dashboard/expedientes", labelKey: "nav.expedientes", icon: AlertTriangle },
   { key: "onboarding", href: "/dashboard/onboarding", labelKey: "nav.onboarding", icon: FolderKanban },
+  { key: "espacios", href: "/dashboard/espacios", labelKey: "nav.espacios", icon: Building2 },
 ];
 
 // Utilidades (Calendario y Horario): igual que los módulos de arriba, solo

@@ -72,6 +72,7 @@ model School {
   incidencias Incidencia[]
   expedientes Expediente[]
   onboardingCarpetas OnboardingCarpeta[]
+  plantas EspacioPlanta[]
 }
 
 // Una "historia" (como en Instagram) que un centro publica; la ven todos
@@ -169,6 +170,53 @@ model OnboardingArchivo {
   createdAt   DateTime          @default(now())
 }
 
+// Reserva de espacios: cada centro tiene sus plantas, cada planta sus
+// aulas (con su posición y tamaño para dibujarlas en 3D), y cada aula sus
+// reservas horarias.
+model EspacioPlanta {
+  id        String        @id @default(cuid())
+  schoolId  String
+  school    School        @relation(fields: [schoolId], references: [id])
+  numero    Int
+  nombre    String
+  aulas     EspacioAula[]
+  createdAt DateTime      @default(now())
+
+  @@unique([schoolId, numero])
+}
+
+model EspacioAula {
+  id         String            @id @default(cuid())
+  plantaId   String
+  planta     EspacioPlanta     @relation(fields: [plantaId], references: [id], onDelete: Cascade)
+  nombre     String
+  // Posición y tamaño en la cuadrícula del plano (unidades arbitrarias,
+  // coherentes con el boceto en cuadrícula), usadas para pintar la caja
+  // en 3D y para saber dónde colocarla.
+  x          Float
+  z          Float
+  ancho      Float
+  profundo   Float
+  alto       Float             @default(2.5)
+  color      String            @default("#94A3B8")
+  reservas   EspacioReserva[]
+  createdAt  DateTime          @default(now())
+}
+
+model EspacioReserva {
+  id          String      @id @default(cuid())
+  aulaId      String
+  aula        EspacioAula @relation(fields: [aulaId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User        @relation("EspacioReservaUsuario", fields: [userId], references: [id])
+  creadoPorId String
+  creadoPor   User        @relation("EspacioReservaCreador", fields: [creadoPorId], references: [id])
+  fecha       DateTime
+  horaInicio  String
+  horaFin     String
+  createdAt   DateTime    @default(now())
+}
+
 model Expediente {
   id           String     @id @default(cuid())
   schoolId     String
@@ -202,6 +250,13 @@ model Expediente {
   coordinadorNombre     String
 
   enviadoEn DateTime?
+
+  // Firmas capturadas antes de enviar (imagen en base64), y el email
+  // adicional (del alumno) al que también se manda copia.
+  firmaDireccion   String?
+  firmaTutor       String?
+  firmaCoordinador String?
+  emailAlumno      String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -283,6 +338,8 @@ model User {
   expedientesCreados     Expediente[] @relation("ExpedienteCreador")
   onboardingCarpetasCreadas OnboardingCarpeta[]
   onboardingArchivosSubidos OnboardingArchivo[]
+  espacioReservas        EspacioReserva[] @relation("EspacioReservaUsuario")
+  espacioReservasCreadas EspacioReserva[] @relation("EspacioReservaCreador")
   notificaciones     Notificacion[]
 }
 

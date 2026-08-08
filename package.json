@@ -26,12 +26,16 @@
     "exceljs": "^4.4.0",
     "googleapis": "^144.0.0",
     "docx": "^9.0.2",
-    "pdf-lib": "^1.17.1"
+    "pdf-lib": "^1.17.1",
+    "three": "^0.160.0",
+    "@react-three/fiber": "^8.15.19",
+    "@react-three/drei": "^9.99.0"
   },
   "devDependencies": {
     "typescript": "^5",
     "@types/node": "^20",
     "@types/react": "^18",
+    "@types/three": "^0.160.0",
     "@types/react-dom": "^18",
     "@types/bcryptjs": "^2.4.6",
     "@types/nodemailer": "^6.4.15",
