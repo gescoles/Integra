@@ -24,3 +24,4 @@ export function getSupabaseAdmin() {
 export const SCHOOL_LOGOS_BUCKET = "school-logos";
 export const USER_AVATARS_BUCKET = "user-avatars";
 export const HISTORIAS_BUCKET = "historias";
+export const ONBOARDING_BUCKET = "onboarding";

@@ -7,6 +7,7 @@ import {
   CalendarClock,
   Bus,
   AlertTriangle,
+  FolderKanban,
 } from "lucide-react";
 
 export const MODULES = [
@@ -16,6 +17,7 @@ export const MODULES = [
   { key: "material", label: "Material", icon: FolderOpen, color: "bg-blue-50 text-[#FD5249] border-blue-200" },
   { key: "salidas", label: "Salidas", icon: Bus, color: "bg-orange-50 text-orange-600 border-orange-200" },
   { key: "expedientes", label: "Expedientes (Incidencias)", icon: AlertTriangle, color: "bg-red-50 text-red-600 border-red-200" },
+  { key: "onboarding", label: "OnBoarding", icon: FolderKanban, color: "bg-teal-50 text-teal-600 border-teal-200" },
   { key: "comunicacion", label: "Comunicación", icon: MessageSquare, color: "bg-sky-50 text-sky-600 border-sky-200" },
   { key: "utilidades", label: "Utilidades (Calendario y Horario)", icon: CalendarClock, color: "bg-rose-50 text-rose-600 border-rose-200" },
 ] as const;

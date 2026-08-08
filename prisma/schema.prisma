@@ -71,6 +71,7 @@ model School {
   historias Historia[]
   incidencias Incidencia[]
   expedientes Expediente[]
+  onboardingCarpetas OnboardingCarpeta[]
 }
 
 // Una "historia" (como en Instagram) que un centro publica; la ven todos
@@ -142,6 +143,32 @@ enum EstadoExpediente {
 // con su propio número. Se crea como borrador, se puede editar mientras
 // esté en borrador, y Coordinación/Dirección/SuperAdmin lo envía al tutor
 // cuando está listo (por email, con el PDF adjunto, + notificación).
+// Carpetas de OnBoarding para nuevas incorporaciones. Solo Coordinación,
+// Dirección o SuperAdmin pueden crearlas, subir archivos o borrar.
+model OnboardingCarpeta {
+  id          String   @id @default(cuid())
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id])
+  nombre      String
+  creadoPorId String?
+  creadoPor   User?    @relation(fields: [creadoPorId], references: [id], onDelete: SetNull)
+  archivos    OnboardingArchivo[]
+  createdAt   DateTime @default(now())
+}
+
+model OnboardingArchivo {
+  id          String            @id @default(cuid())
+  carpetaId   String
+  carpeta     OnboardingCarpeta @relation(fields: [carpetaId], references: [id], onDelete: Cascade)
+  nombre      String
+  url         String
+  tipo        String?
+  tamano      Int?
+  subidoPorId String?
+  subidoPor   User?             @relation(fields: [subidoPorId], references: [id], onDelete: SetNull)
+  createdAt   DateTime          @default(now())
+}
+
 model Expediente {
   id           String     @id @default(cuid())
   schoolId     String
@@ -254,6 +281,8 @@ model User {
   incidenciaEventos      IncidenciaEvento[]
   expedientesComoTutor   Expediente[] @relation("ExpedienteTutor")
   expedientesCreados     Expediente[] @relation("ExpedienteCreador")
+  onboardingCarpetasCreadas OnboardingCarpeta[]
+  onboardingArchivosSubidos OnboardingArchivo[]
   notificaciones     Notificacion[]
 }
 

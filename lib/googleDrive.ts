@@ -113,3 +113,29 @@ export async function uploadPdfToDrive(folderId: string, filename: string, buffe
     media,
   });
 }
+
+/**
+ * Sube cualquier tipo de archivo a Drive (usado por OnBoarding), aceptando
+ * el mimeType que haga falta en cada caso.
+ */
+export async function uploadGenericFileToDrive(folderId: string, filename: string, buffer: Buffer, mimeType: string) {
+  const drive = getDriveClient();
+
+  const existing = await drive.files.list({
+    q: `'${folderId}' in parents and name = '${filename.replace(/'/g, "\\'")}' and trashed = false`,
+    fields: "files(id)",
+    spaces: "drive",
+  });
+
+  const media = { mimeType, body: Readable.from(buffer) };
+
+  if (existing.data.files && existing.data.files.length > 0 && existing.data.files[0].id) {
+    await drive.files.update({ fileId: existing.data.files[0].id, media });
+    return;
+  }
+
+  await drive.files.create({
+    requestBody: { name: filename, parents: [folderId], mimeType },
+    media,
+  });
+}

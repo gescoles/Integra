@@ -376,3 +376,36 @@ export async function sendIncidenciasCerradasEmail(params: {
     `,
   });
 }
+
+export async function sendOnboardingArchivoEmail(params: {
+  to: string[];
+  carpetaNombre: string;
+  archivoNombre: string;
+  subidoPorNombre: string;
+  schoolName: string;
+}) {
+  if (params.to.length === 0) return;
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  await transporter.sendMail({
+    from: `Integra <${from}>`,
+    bcc: params.to,
+    subject: `Nuevo documento de OnBoarding: ${params.archivoNombre}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Nuevo documento en OnBoarding</h2>
+        <p style="color:#64748B; font-size:13px; margin-top:0;">
+          ${params.subidoPorNombre} ha subido un archivo nuevo en ${params.schoolName}.
+        </p>
+        <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
+          <p style="margin:0;"><strong>Carpeta:</strong> ${params.carpetaNombre}</p>
+          <p style="margin:8px 0 0;"><strong>Archivo:</strong> ${params.archivoNombre}</p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Puedes verlo y descargarlo desde Integra, en OnBoarding.
+        </p>
+      </div>
+    `,
+  });
+}
