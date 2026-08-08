@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, X, Trash2, UserCog } from "lucide-react";
-import { crearReserva, eliminarReserva } from "./actions";
+import { Clock, X, Trash2, UserCog, Lock, Unlock } from "lucide-react";
+import { crearReserva, eliminarReserva, bloquearAula } from "./actions";
+import { SelectorHoras } from "./SelectorHoras";
 import { ButtonSpinner } from "../components/ButtonSpinner";
 import { useLocale } from "../SchoolContext";
 import { translate } from "../i18n";
@@ -37,6 +38,8 @@ export function ReservaPanel({
   currentUserId,
   esDirectivo,
   usuarios,
+  bloqueada,
+  motivoBloqueo,
   onClose,
   onReservaCreada,
 }: {
@@ -46,17 +49,21 @@ export function ReservaPanel({
   currentUserId: string;
   esDirectivo: boolean;
   usuarios: Usuario[];
+  bloqueada: boolean;
+  motivoBloqueo: string | null;
   onClose: () => void;
   onReservaCreada: () => void;
 }) {
   const router = useRouter();
   const { locale } = useLocale();
   const [fecha, setFecha] = useState(hoyISO());
-  const [horaInicio, setHoraInicio] = useState("09:00");
-  const [horaFin, setHoraFin] = useState("10:00");
+  const [horaInicio, setHoraInicio] = useState("");
+  const [horaFin, setHoraFin] = useState("");
   const [userIdReserva, setUserIdReserva] = useState(currentUserId);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingBloqueo, setPendingBloqueo] = useState(false);
+  const [motivoInput, setMotivoInput] = useState("");
 
   const reservasDelDia = useMemo(
     () => reservas.filter((r) => r.fecha.slice(0, 10) === fecha).sort((a, b) => a.horaInicio.localeCompare(b.horaInicio)),
@@ -65,6 +72,10 @@ export function ReservaPanel({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!horaInicio || !horaFin) {
+      setError(translate(locale, "espacios.avisoEligeHora"));
+      return;
+    }
     setError(null);
     setPending(true);
     const formData = new FormData();
@@ -90,6 +101,25 @@ export function ReservaPanel({
       .catch((err) => setError(err instanceof Error ? err.message : "No se pudo eliminar."));
   }
 
+  function handleToggleBloqueo() {
+    if (!bloqueada && !confirm(translate(locale, "espacios.confirmBloquear"))) return;
+    if (bloqueada && !confirm(translate(locale, "espacios.confirmDesbloquear"))) return;
+
+    setPendingBloqueo(true);
+    setError(null);
+    const formData = new FormData();
+    formData.set("id", aulaId);
+    formData.set("bloqueada", (!bloqueada).toString());
+    formData.set("motivo", motivoInput);
+    bloquearAula(formData)
+      .then(() => {
+        router.refresh();
+        setMotivoInput("");
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : "No se pudo actualizar."))
+      .finally(() => setPendingBloqueo(false));
+  }
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="mb-4 flex items-center justify-between">
@@ -104,8 +134,51 @@ export function ReservaPanel({
         </button>
       </div>
 
+      {esDirectivo && (
+        <div className="mb-4">
+          {bloqueada ? (
+            <button
+              onClick={handleToggleBloqueo}
+              disabled={pendingBloqueo}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 disabled:opacity-60"
+            >
+              {pendingBloqueo ? <ButtonSpinner light={false} /> : <Unlock className="h-3.5 w-3.5" />}
+              {translate(locale, "espacios.desbloquearAula")}
+            </button>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                value={motivoInput}
+                onChange={(e) => setMotivoInput(e.target.value)}
+                placeholder={translate(locale, "espacios.motivoBloqueoPlaceholder")}
+                className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-[#FD5249]"
+              />
+              <button
+                onClick={handleToggleBloqueo}
+                disabled={pendingBloqueo}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+              >
+                {pendingBloqueo ? <ButtonSpinner light={false} /> : <Lock className="h-3.5 w-3.5" />}
+                {translate(locale, "espacios.bloquearAula")}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {error && <div className="mb-4 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600">{error}</div>}
 
+      {bloqueada && (
+        <div className="mb-5 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5">
+          <Lock className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+          <div className="text-sm text-red-600">
+            <p className="font-semibold">{translate(locale, "espacios.aulaBloqueada")}</p>
+            {motivoBloqueo && <p className="text-xs text-red-500">{motivoBloqueo}</p>}
+          </div>
+        </div>
+      )}
+
+      {!bloqueada && (
       <form onSubmit={handleSubmit} className="mb-5 space-y-3">
         <div>
           <label className="mb-1 block text-xs font-semibold text-slate-600">{translate(locale, "espacios.fecha")}</label>
@@ -114,37 +187,27 @@ export function ReservaPanel({
             value={fecha}
             min={hoyISO()}
             max={limiteISO()}
-            onChange={(e) => setFecha(e.target.value)}
+            onChange={(e) => {
+              setFecha(e.target.value);
+              setHoraInicio("");
+              setHoraFin("");
+            }}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
           />
           <p className="mt-1 text-[11px] text-slate-400">{translate(locale, "espacios.avisoAntelacion")}</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-slate-600">{translate(locale, "espacios.desde")}</label>
-            <input
-              type="time"
-              value={horaInicio}
-              min={HORA_APERTURA}
-              max={HORA_CIERRE}
-              step={900}
-              onChange={(e) => setHoraInicio(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-slate-600">{translate(locale, "espacios.hasta")}</label>
-            <input
-              type="time"
-              value={horaFin}
-              min={HORA_APERTURA}
-              max={HORA_CIERRE}
-              step={900}
-              onChange={(e) => setHoraFin(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
-            />
-          </div>
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-slate-600">{translate(locale, "espacios.horaReserva")}</label>
+          <SelectorHoras
+            horaInicio={horaInicio}
+            horaFin={horaFin}
+            reservasDelDia={reservasDelDia}
+            onChange={(inicio, fin) => {
+              setHoraInicio(inicio);
+              setHoraFin(fin);
+            }}
+          />
         </div>
         <p className="text-[11px] text-slate-400">{translate(locale, "espacios.avisoMaxHoras")}</p>
 
@@ -177,6 +240,7 @@ export function ReservaPanel({
           {translate(locale, "espacios.reservar")}
         </button>
       </form>
+      )}
 
       <div className="border-t border-slate-100 pt-4">
         <h4 className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-400">

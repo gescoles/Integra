@@ -93,6 +93,29 @@ export async function eliminarAula(id: string) {
   revalidatePath("/dashboard/espacios");
 }
 
+// A diferencia del resto de la gestión del plano (que es solo de
+// SuperAdmin), bloquear/desbloquear un aula lo puede hacer también
+// Coordinación/Dirección de ese centro.
+export async function bloquearAula(formData: FormData) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user.id || !esDirectivo(session.user.role)) {
+    throw new Error("Solo Coordinación, Dirección o SuperAdmin puede bloquear un aula.");
+  }
+
+  const id = formData.get("id") as string;
+  const bloqueada = formData.get("bloqueada") === "true";
+  const motivo = (formData.get("motivo") as string)?.trim() || null;
+
+  if (!id) throw new Error("Falta indicar el aula.");
+
+  await prisma.espacioAula.update({
+    where: { id },
+    data: { bloqueada, motivoBloqueo: bloqueada ? motivo : null },
+  });
+
+  revalidatePath("/dashboard/espacios");
+}
+
 // ------------------- Reservas -------------------
 
 export async function crearReserva(formData: FormData) {
@@ -107,6 +130,16 @@ export async function crearReserva(formData: FormData) {
 
   if (!aulaId || !fechaRaw || !horaInicio || !horaFin) throw new Error("Faltan datos de la reserva.");
 
+  const aula = await prisma.espacioAula.findUnique({ where: { id: aulaId }, select: { bloqueada: true, motivoBloqueo: true } });
+  if (!aula) throw new Error("No se ha encontrado el aula.");
+  if (aula.bloqueada) {
+    throw new Error(
+      aula.motivoBloqueo
+        ? `Este espacio está bloqueado y no se puede reservar: ${aula.motivoBloqueo}`
+        : "Este espacio está bloqueado y no se puede reservar."
+    );
+  }
+
   const userId = userIdSolicitado && esDirectivo(session.user.role) ? userIdSolicitado : session.user.id;
 
   const inicioMin = minutosDesdeMedianoche(horaInicio);
@@ -120,11 +153,15 @@ export async function crearReserva(formData: FormData) {
     throw new Error(`Como mucho se pueden reservar ${MAX_HORAS_RESERVA} horas seguidas.`);
   }
 
-  const fecha = new Date(`${fechaRaw}T00:00:00`);
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
+  // OJO: siempre en UTC explícito. Si se crea la fecha sin la "Z", Node la
+  // interpreta con la zona horaria local del servidor (p. ej. España,
+  // UTC+1/+2), y "8 de agosto" se guarda como "7 de agosto" por la noche
+  // en UTC — el mismo lío que causaba que las franjas no se vieran bien
+  // bloqueadas.
+  const fecha = new Date(`${fechaRaw}T00:00:00Z`);
+  const hoy = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`);
   const limite = new Date(hoy);
-  limite.setDate(limite.getDate() + MAX_DIAS_ANTELACION);
+  limite.setUTCDate(limite.getUTCDate() + MAX_DIAS_ANTELACION);
 
   if (fecha < hoy) throw new Error("No puedes reservar para una fecha que ya ha pasado.");
   if (fecha > limite) {
@@ -138,6 +175,20 @@ export async function crearReserva(formData: FormData) {
     return inicioMin < rFin && finMin > rInicio;
   });
   if (solapa) throw new Error("Ese horario ya está reservado. Elige otra franja.");
+
+  // Máximo 3 horas al día por usuario, sumando TODAS sus reservas de ese
+  // día en cualquier aula (no solo esta incidencia en concreto).
+  const reservasDelUsuarioEseDia = await prisma.espacioReserva.findMany({
+    where: { userId, fecha },
+    select: { horaInicio: true, horaFin: true },
+  });
+  const minutosYaReservados = reservasDelUsuarioEseDia.reduce(
+    (total, r) => total + (minutosDesdeMedianoche(r.horaFin) - minutosDesdeMedianoche(r.horaInicio)),
+    0
+  );
+  if (minutosYaReservados + (finMin - inicioMin) > MAX_HORAS_RESERVA * 60) {
+    throw new Error(`Como mucho puedes reservar ${MAX_HORAS_RESERVA} horas al día en total, entre todos los espacios.`);
+  }
 
   const reserva = await prisma.espacioReserva.create({
     data: { aulaId, userId, creadoPorId: session.user.id, fecha, horaInicio, horaFin },
@@ -203,13 +254,13 @@ export async function sembrarPlanoEjemplo(schoolId: string) {
     data: [
       // Planta 1
       { plantaId: planta1.id, nombre: "E11", x: 4, z: 0, ancho: 2, profundo: 2, color: "#60A5FA" },
-      { plantaId: planta1.id, nombre: "Baño", x: 4, z: 2.3, ancho: 1.3, profundo: 1, color: "#94A3B8" },
+      { plantaId: planta1.id, nombre: "Baño", x: 4, z: 2.3, ancho: 1.3, profundo: 1, color: "#94A3B8", bloqueada: true, motivoBloqueo: "No es un espacio reservable." },
       { plantaId: planta1.id, nombre: "E13", x: 0, z: 2, ancho: 3, profundo: 4.5, color: "#60A5FA" },
       { plantaId: planta1.id, nombre: "E12", x: 4, z: 3.6, ancho: 2.6, profundo: 2.6, color: "#60A5FA" },
       // Planta 0
-      { plantaId: planta0.id, nombre: "Sala de tutorías", x: 2, z: 1, ancho: 1.2, profundo: 2.8, color: "#34D399" },
-      { plantaId: planta0.id, nombre: "Dirección", x: 5, z: 0.5, ancho: 1.8, profundo: 2.8, color: "#FBBF24" },
-      { plantaId: planta0.id, nombre: "Administración", x: 7.2, z: 0.5, ancho: 1.8, profundo: 2.8, color: "#FBBF24" },
+      { plantaId: planta0.id, nombre: "Sala de tutorías", x: 2, z: 1, ancho: 2.6, profundo: 2.8, color: "#34D399" },
+      { plantaId: planta0.id, nombre: "Dirección", x: 5, z: 0.5, ancho: 1.8, profundo: 2.8, color: "#FBBF24", bloqueada: true, motivoBloqueo: "No es un espacio reservable." },
+      { plantaId: planta0.id, nombre: "Administración", x: 7.2, z: 0.5, ancho: 1.8, profundo: 2.8, color: "#FBBF24", bloqueada: true, motivoBloqueo: "No es un espacio reservable." },
       { plantaId: planta0.id, nombre: "Teatro", x: 4.5, z: 4.2, ancho: 5.5, profundo: 2.2, color: "#F472B6" },
     ],
   });

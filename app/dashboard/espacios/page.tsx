@@ -46,6 +46,8 @@ async function getPlantasData(schoolId: string) {
       profundo: a.profundo,
       alto: a.alto,
       color: a.color,
+      bloqueada: a.bloqueada,
+      motivoBloqueo: a.motivoBloqueo,
       reservas: a.reservas.map((r) => ({
         id: r.id,
         fecha: r.fecha.toISOString(),

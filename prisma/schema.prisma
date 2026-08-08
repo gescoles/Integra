@@ -199,6 +199,8 @@ model EspacioAula {
   profundo   Float
   alto       Float             @default(2.5)
   color      String            @default("#94A3B8")
+  bloqueada       Boolean       @default(false)
+  motivoBloqueo   String?
   reservas   EspacioReserva[]
   createdAt  DateTime          @default(now())
 }

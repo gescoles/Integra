@@ -1,9 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Text, Environment } from "@react-three/drei";
-import * as THREE from "three";
+import { useMemo } from "react";
 
 type Aula = {
   id: string;
@@ -15,62 +12,57 @@ type Aula = {
   alto: number;
   color: string;
   tieneReservaHoy: boolean;
+  bloqueada: boolean;
 };
 
-function Sala({ aula, onSelect, seleccionada }: { aula: Aula; onSelect: (id: string) => void; seleccionada: boolean }) {
-  const [hover, setHover] = useState(false);
-  const cx = aula.x + aula.ancho / 2;
-  const cz = aula.z + aula.profundo / 2;
+const ESCALA = 46;
+
+function Sala({
+  aula,
+  onSelect,
+  seleccionada,
+}: {
+  aula: Aula;
+  onSelect: (id: string) => void;
+  seleccionada: boolean;
+}) {
+  const x = aula.x * ESCALA;
+  const z = aula.z * ESCALA;
+  const w = aula.ancho * ESCALA;
+  const h = aula.profundo * ESCALA;
+  const colorBase = aula.bloqueada ? "#94A3B8" : aula.color;
+  const trazo = aula.bloqueada ? "#DC2626" : seleccionada ? "#FD5249" : "#1E293B";
+  const grosorTrazo = seleccionada ? 3 : 1.5;
 
   return (
-    <group>
-      {/* Caja de la sala, extruida en altura para dar sensación de 3D real */}
-      <mesh
-        position={[cx, aula.alto / 2, cz]}
-        onClick={(e) => {
-          e.stopPropagation();
-          onSelect(aula.id);
-        }}
-        onPointerOver={(e) => {
-          e.stopPropagation();
-          setHover(true);
-        }}
-        onPointerOut={() => setHover(false)}
-      >
-        <boxGeometry args={[aula.ancho, aula.alto, aula.profundo]} />
-        <meshStandardMaterial
-          color={aula.color}
-          transparent
-          opacity={seleccionada ? 0.95 : hover ? 0.85 : 0.65}
-          emissive={seleccionada ? new THREE.Color(aula.color) : undefined}
-          emissiveIntensity={seleccionada ? 0.3 : 0}
-        />
-      </mesh>
-      {/* Contorno para que se distinga bien cada sala */}
-      <lineSegments position={[cx, aula.alto / 2, cz]}>
-        <edgesGeometry args={[new THREE.BoxGeometry(aula.ancho, aula.alto, aula.profundo)]} />
-        <lineBasicMaterial color={seleccionada ? "#FD5249" : "#334155"} linewidth={seleccionada ? 2 : 1} />
-      </lineSegments>
-
-      <Text position={[cx, aula.alto + 0.35, cz]} fontSize={0.32} color="#0B1D4D" anchorX="center" anchorY="middle">
-        {aula.nombre}
-      </Text>
-      {aula.tieneReservaHoy && (
-        <mesh position={[cx + aula.ancho / 2 - 0.2, aula.alto + 0.1, cz - aula.profundo / 2 + 0.2]}>
-          <sphereGeometry args={[0.12, 16, 16]} />
-          <meshStandardMaterial color="#FD5249" emissive="#FD5249" emissiveIntensity={0.5} />
-        </mesh>
+    <g
+      onClick={() => onSelect(aula.id)}
+      className="cursor-pointer transition-opacity hover:opacity-90"
+      style={{ opacity: aula.bloqueada ? 0.6 : 1 }}
+    >
+      <rect
+        x={x}
+        y={z}
+        width={w}
+        height={h}
+        rx={4}
+        fill={colorBase}
+        fillOpacity={seleccionada ? 0.85 : 0.55}
+        stroke={trazo}
+        strokeWidth={grosorTrazo}
+      />
+      <foreignObject x={x + 2} y={z + 2} width={Math.max(w - 4, 0)} height={Math.max(h - 4, 0)}>
+        <div
+          className="flex h-full w-full items-center justify-center overflow-hidden px-1 text-center font-bold leading-tight text-[#0B1D4D]"
+          style={{ fontSize: Math.max(11, Math.min(13, w / 7)) }}
+        >
+          <span className="w-full min-w-0 truncate">{aula.bloqueada ? `🔒 ${aula.nombre}` : aula.nombre}</span>
+        </div>
+      </foreignObject>
+      {aula.tieneReservaHoy && !aula.bloqueada && (
+        <circle cx={x + w - 10} cy={z + 10} r={5} fill="#FD5249" stroke="white" strokeWidth={1.5} />
       )}
-    </group>
-  );
-}
-
-function Suelo({ ancho, profundo }: { ancho: number; profundo: number }) {
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[ancho / 2, 0, profundo / 2]} receiveShadow>
-      <planeGeometry args={[ancho + 2, profundo + 2]} />
-      <meshStandardMaterial color="#F1F5F9" />
-    </mesh>
+    </g>
   );
 }
 
@@ -83,31 +75,21 @@ export function Plano3D({
   onSelectAula: (id: string) => void;
   aulaSeleccionadaId: string | null;
 }) {
-  const bounds = useMemo(() => {
-    const maxX = Math.max(...aulas.map((a) => a.x + a.ancho), 8);
-    const maxZ = Math.max(...aulas.map((a) => a.z + a.profundo), 6);
-    return { maxX, maxZ };
+  const viewBox = useMemo(() => {
+    if (aulas.length === 0) return "0 0 400 300";
+    const maxX = Math.max(...aulas.map((a) => a.x + a.ancho)) * ESCALA;
+    const maxZ = Math.max(...aulas.map((a) => a.z + a.profundo)) * ESCALA;
+    const pad = 30;
+    return `${-pad} ${-pad} ${maxX + pad * 2} ${maxZ + pad * 2}`;
   }, [aulas]);
 
   return (
-    <div className="h-[420px] w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-      <Canvas shadows camera={{ position: [bounds.maxX * 0.9, bounds.maxX * 0.9, bounds.maxZ * 1.3], fov: 45 }}>
-        <Suspense fallback={null}>
-          <ambientLight intensity={0.7} />
-          <directionalLight position={[10, 15, 8]} intensity={1} castShadow />
-          <Suelo ancho={bounds.maxX} profundo={bounds.maxZ} />
-          {aulas.map((aula) => (
-            <Sala key={aula.id} aula={aula} onSelect={onSelectAula} seleccionada={aula.id === aulaSeleccionadaId} />
-          ))}
-          <OrbitControls
-            enablePan
-            minDistance={4}
-            maxDistance={30}
-            maxPolarAngle={Math.PI / 2.1}
-          />
-          <Environment preset="city" />
-        </Suspense>
-      </Canvas>
+    <div className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+      <svg viewBox={viewBox} className="h-[420px] w-full">
+        {aulas.map((aula) => (
+          <Sala key={aula.id} aula={aula} onSelect={onSelectAula} seleccionada={aula.id === aulaSeleccionadaId} />
+        ))}
+      </svg>
     </div>
   );
 }

@@ -27,6 +27,8 @@ type Aula = {
   profundo: number;
   alto: number;
   color: string;
+  bloqueada: boolean;
+  motivoBloqueo: string | null;
   reservas: Reserva[];
 };
 type Planta = {
@@ -74,6 +76,7 @@ export function EspaciosClient({
         alto: a.alto,
         color: a.color,
         tieneReservaHoy: a.reservas.some((r) => r.fecha.slice(0, 10) === hoy),
+        bloqueada: a.bloqueada,
       })),
     [plantaActiva, hoy]
   );
@@ -271,6 +274,8 @@ export function EspaciosClient({
               currentUserId={currentUserId}
               esDirectivo={esDirectivo}
               usuarios={usuarios}
+              bloqueada={aulaSeleccionada.bloqueada}
+              motivoBloqueo={aulaSeleccionada.motivoBloqueo}
               onClose={() => setAulaSeleccionadaId(null)}
               onReservaCreada={handleReservaCreada}
             />
