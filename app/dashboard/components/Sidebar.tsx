@@ -237,7 +237,14 @@ export function Sidebar({
         )}
 
         {!isSuperAdmin &&
-          centroModulos.map((item) => {
+          [...centroModulos]
+            .sort((a, b) => {
+              const aContratado = contractedModules.includes(a.key);
+              const bContratado = contractedModules.includes(b.key);
+              if (aContratado === bContratado) return 0;
+              return aContratado ? -1 : 1;
+            })
+            .map((item) => {
             const contratado = contractedModules.includes(item.key);
             const active = pathname === item.href;
 
@@ -296,7 +303,14 @@ export function Sidebar({
             <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
               {translate(locale, "nav.utilidades")}
             </div>
-            {utilidadesModulos.map((item) => {
+            {[...utilidadesModulos]
+              .sort((a, b) => {
+                const aContratado = contractedModules.includes(a.key);
+                const bContratado = contractedModules.includes(b.key);
+                if (aContratado === bContratado) return 0;
+                return aContratado ? -1 : 1;
+              })
+              .map((item) => {
               const contratado = contractedModules.includes(item.key);
               const active = pathname === item.href;
 
