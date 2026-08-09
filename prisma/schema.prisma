@@ -288,6 +288,7 @@ model Historia {
   tipo         TipoHistoria @default(IMAGEN)
   imagenUrl    String
   texto        String?
+  ciclo        String?
   createdAt    DateTime     @default(now())
   expiraEn     DateTime
   vistas       HistoriaVista[]

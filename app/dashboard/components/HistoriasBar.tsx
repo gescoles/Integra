@@ -8,9 +8,10 @@ import {
   marcarHistoriaVista,
   obtenerEspectadores,
   eliminarHistoria,
+  obtenerCiclosDelCentro,
 } from "../historiasActions";
 import { ButtonSpinner } from "./ButtonSpinner";
-import { useLocale } from "../SchoolContext";
+import { useLocale, useSavingOverlay } from "../SchoolContext";
 import { translate } from "../i18n";
 
 type HistoriaItem = {
@@ -18,6 +19,7 @@ type HistoriaItem = {
   tipo: string;
   imagenUrl: string;
   texto: string | null;
+  ciclo: string | null;
   autorId: string;
   autorNombre: string;
   createdAt: string;
@@ -157,16 +159,23 @@ export function HistoriasBar({
 
 function SubirHistoriaModal({ onClose }: { onClose: () => void }) {
   const { locale } = useLocale();
+  const { empezarGuardado, terminarGuardado } = useSavingOverlay();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [esVideo, setEsVideo] = useState(false);
+  const [ciclos, setCiclos] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    obtenerCiclosDelCentro().then(setCiclos);
+  }, []);
 
   async function handleSubmit(formData: FormData) {
     setPending(true);
     setError(null);
+    empezarGuardado(translate(locale, "historias.publicando"));
     try {
       await crearHistoria(formData);
       onClose();
@@ -174,6 +183,7 @@ function SubirHistoriaModal({ onClose }: { onClose: () => void }) {
       setError(e instanceof Error ? e.message : "No se pudo publicar la historia.");
     } finally {
       setPending(false);
+      terminarGuardado();
     }
   }
 
@@ -226,11 +236,31 @@ function SubirHistoriaModal({ onClose }: { onClose: () => void }) {
           </div>
 
           <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-600">{translate(locale, "historias.textoPlaceholder")}</label>
             <input
               name="texto"
+              required
               placeholder={translate(locale, "historias.textoPlaceholder")}
               className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
             />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-600">{translate(locale, "historias.deQueCiclo")}</label>
+            <input
+              name="ciclo"
+              required
+              list="lista-ciclos"
+              placeholder={translate(locale, "historias.elegirCiclo")}
+              autoComplete="off"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+            />
+            <datalist id="lista-ciclos">
+              {ciclos.map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
+            <p className="mt-1 text-[11px] text-slate-400">{translate(locale, "historias.cicloAyuda")}</p>
           </div>
 
           <p className="text-xs text-slate-400">{translate(locale, "historias.avisoExpira")}</p>
@@ -274,6 +304,7 @@ function StoryViewer({
   const [slideIdx, setSlideIdx] = useState(0);
   const [progreso, setProgreso] = useState(0);
   const [espectadores, setEspectadores] = useState<{ nombre: string; avatarUrl: string | null; vistoEn: string }[] | null>(null);
+  const [errorCarga, setErrorCarga] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const grupo = grupos[grupoIdx];
@@ -290,6 +321,7 @@ function StoryViewer({
     marcarHistoriaVista(historia.id);
     setProgreso(0);
     setEspectadores(null);
+    setErrorCarga(false);
 
     // Los vídeos marcan su propio progreso según van reproduciéndose (ver
     // el <video onTimeUpdate>); las imágenes usan un cronómetro fijo.
@@ -392,17 +424,30 @@ function StoryViewer({
                 if (v.duration) setProgreso((v.currentTime / v.duration) * 100);
               }}
               onEnded={avanzar}
+              onError={() => setErrorCarga(true)}
             />
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={historia.imagenUrl} alt="" className="h-full w-full object-contain" />
+            <img src={historia.imagenUrl} alt="" className="h-full w-full object-contain" onError={() => setErrorCarga(true)} />
+          )}
+          {errorCarga && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center text-sm text-white/70">
+              <span>{translate(locale, "historias.errorCarga")}</span>
+            </div>
           )}
           <button onClick={retroceder} className="absolute left-0 top-0 h-full w-1/3" aria-label="anterior" />
           <button onClick={avanzar} className="absolute right-0 top-0 h-full w-2/3" aria-label="siguiente" />
         </div>
 
         {historia.texto && (
-          <div className="absolute bottom-16 left-0 right-0 px-4 text-center text-sm text-white">{historia.texto}</div>
+          <div className="absolute bottom-16 left-0 right-0 px-4 text-center text-sm text-white">
+            {historia.ciclo && (
+              <span className="mb-1.5 inline-block rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-semibold backdrop-blur">
+                {historia.ciclo}
+              </span>
+            )}
+            <div>{historia.texto}</div>
+          </div>
         )}
 
         <div className="absolute bottom-3 left-0 right-0 flex items-center justify-between px-4">

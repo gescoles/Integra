@@ -27,6 +27,30 @@ function getDriveClient() {
 }
 
 /**
+ * Descarga un archivo de Drive del lado del servidor (autenticado con
+ * nuestra propia cuenta), para poder servirlo nosotros mismos desde una
+ * ruta API en vez de pedirle al navegador que lo cargue directamente
+ * desde Drive. Las URLs públicas de Drive (uc?export=view, thumbnail...)
+ * no son fiables para incrustarlas en <img>: a veces Google las bloquea o
+ * devuelve una página HTML en vez del archivo. Así nos aseguramos de que
+ * siempre funciona, sin depender de eso.
+ */
+export async function downloadFileFromDrive(fileId: string) {
+  const drive = getDriveClient();
+
+  const meta = await drive.files.get({ fileId, fields: "mimeType, name" });
+  const res = await drive.files.get(
+    { fileId, alt: "media" },
+    { responseType: "arraybuffer" }
+  );
+
+  return {
+    mimeType: meta.data.mimeType || "application/octet-stream",
+    bytes: Buffer.from(res.data as ArrayBuffer),
+  };
+}
+
+/**
  * Busca una subcarpeta por nombre dentro de otra carpeta de Drive; si no
  * existe, la crea. Así cada día se agrupan los backups en su propia carpeta
  * con la fecha, dentro de la carpeta principal que compartiste con la
@@ -118,7 +142,7 @@ export async function uploadPdfToDrive(folderId: string, filename: string, buffe
  * Sube cualquier tipo de archivo a Drive (usado por OnBoarding), aceptando
  * el mimeType que haga falta en cada caso.
  */
-export async function uploadGenericFileToDrive(folderId: string, filename: string, buffer: Buffer, mimeType: string) {
+export async function uploadGenericFileToDrive(folderId: string, filename: string, buffer: Buffer, mimeType: string, description?: string) {
   const drive = getDriveClient();
 
   const existing = await drive.files.list({
@@ -130,12 +154,63 @@ export async function uploadGenericFileToDrive(folderId: string, filename: strin
   const media = { mimeType, body: Readable.from(buffer) };
 
   if (existing.data.files && existing.data.files.length > 0 && existing.data.files[0].id) {
-    await drive.files.update({ fileId: existing.data.files[0].id, media });
+    await drive.files.update({ fileId: existing.data.files[0].id, media, requestBody: { description } });
     return;
   }
 
   await drive.files.create({
-    requestBody: { name: filename, parents: [folderId], mimeType },
+    requestBody: { name: filename, parents: [folderId], mimeType, description },
     media,
   });
+}
+
+/**
+ * Igual que uploadGenericFileToDrive, pero además hace el archivo público
+ * ("cualquiera con el enlace puede verlo") y devuelve una URL que se puede
+ * usar directamente en una etiqueta <img>. Pensado para contenido que hay
+ * que mostrar dentro de la app (como las fotos de Historias), no solo para
+ * copias de seguridad.
+ */
+export async function uploadPublicImageToDrive(
+  folderId: string,
+  filename: string,
+  buffer: Buffer,
+  mimeType: string,
+  description?: string
+) {
+  const drive = getDriveClient();
+
+  const existing = await drive.files.list({
+    q: `'${folderId}' in parents and name = '${filename.replace(/'/g, "\\'")}' and trashed = false`,
+    fields: "files(id)",
+    spaces: "drive",
+  });
+
+  const media = { mimeType, body: Readable.from(buffer) };
+  let fileId: string | null | undefined;
+
+  if (existing.data.files && existing.data.files.length > 0 && existing.data.files[0].id) {
+    fileId = existing.data.files[0].id;
+    await drive.files.update({ fileId, media, requestBody: { description } });
+  } else {
+    const created = await drive.files.create({
+      requestBody: { name: filename, parents: [folderId], mimeType, description },
+      media,
+      fields: "id",
+    });
+    fileId = created.data.id;
+  }
+
+  if (!fileId) throw new Error("No se pudo obtener el identificador del archivo subido a Drive.");
+
+  // Lo hacemos público como respaldo (por si se quiere abrir directamente
+  // en Drive desde fuera de la app), aunque para mostrarlo dentro de
+  // Integra usamos nuestra propia ruta /api/drive-image, que es fiable de
+  // verdad porque no depende de las URLs públicas de Drive.
+  await drive.permissions.create({
+    fileId,
+    requestBody: { role: "reader", type: "anyone" },
+  });
+
+  return `/api/drive-image/${fileId}`;
 }

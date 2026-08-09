@@ -24,7 +24,8 @@ type DashboardMeta = {
   locale: AppLocale;
   setLocale: (locale: AppLocale) => void;
   guardando: boolean;
-  empezarGuardado: () => void;
+  guardandoMensaje: string | null;
+  empezarGuardado: (mensaje?: string) => void;
   terminarGuardado: () => void;
 };
 
@@ -35,6 +36,7 @@ const DashboardMetaContext = createContext<DashboardMeta>({
   locale: "ES",
   setLocale: () => {},
   guardando: false,
+  guardandoMensaje: null,
   empezarGuardado: () => {},
   terminarGuardado: () => {},
 });
@@ -59,10 +61,12 @@ export function SchoolProvider({
   const mostradoDesdeRef = useRef<number | null>(null);
   const timerOcultarRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [guardandoVisible, setGuardandoVisible] = useState(false);
+  const [guardandoMensaje, setGuardandoMensaje] = useState<string | null>(null);
   const router = useRouter();
 
-  function empezarGuardado() {
+  function empezarGuardado(mensaje?: string) {
     contadorRef.current += 1;
+    if (mensaje) setGuardandoMensaje(mensaje);
     if (timerOcultarRef.current) {
       clearTimeout(timerOcultarRef.current);
       timerOcultarRef.current = null;
@@ -82,10 +86,14 @@ export function SchoolProvider({
 
     if (restante > 0) {
       timerOcultarRef.current = setTimeout(() => {
-        if (contadorRef.current === 0) setGuardandoVisible(false);
+        if (contadorRef.current === 0) {
+          setGuardandoVisible(false);
+          setGuardandoMensaje(null);
+        }
       }, restante);
     } else {
       setGuardandoVisible(false);
+      setGuardandoMensaje(null);
     }
   }
 
@@ -109,7 +117,7 @@ export function SchoolProvider({
 
   return (
     <DashboardMetaContext.Provider
-      value={{ school, avatarUrl, setAvatarUrl, locale, setLocale, guardando: guardandoVisible, empezarGuardado, terminarGuardado }}
+      value={{ school, avatarUrl, setAvatarUrl, locale, setLocale, guardando: guardandoVisible, guardandoMensaje, empezarGuardado, terminarGuardado }}
     >
       {children}
     </DashboardMetaContext.Provider>
@@ -131,8 +139,8 @@ export function useLocale() {
 }
 
 export function useSavingOverlay() {
-  const { guardando, empezarGuardado, terminarGuardado } = useContext(DashboardMetaContext);
-  return { guardando, empezarGuardado, terminarGuardado };
+  const { guardando, guardandoMensaje, empezarGuardado, terminarGuardado } = useContext(DashboardMetaContext);
+  return { guardando, guardandoMensaje, empezarGuardado, terminarGuardado };
 }
 
 /**
