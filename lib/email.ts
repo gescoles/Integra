@@ -485,3 +485,49 @@ export async function sendReservaConfirmadaEmail(params: {
     `,
   });
 }
+
+export async function sendCoberturaEmail(params: {
+  to: string;
+  sustitutoNombre: string;
+  ausenteNombre: string;
+  asignatura: string | null;
+  grupo: string | null;
+  ubicacion: string | null;
+  fecha: Date;
+  horaInicio: string;
+  horaFin: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  });
+
+  await transporter.sendMail({
+    from: `Integra <${from}>`,
+    to: params.to,
+    subject: `Guardia: cubre la clase de ${params.ausenteNombre}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Se te necesita para cubrir una clase</h2>
+        <p style="color:#64748B; font-size:13px; margin-top:0;">
+          Hola ${params.sustitutoNombre}, ${params.ausenteNombre} no puede dar su clase y,
+          como estás de guardia en ese horario, te han asignado para cubrirla.
+        </p>
+        <div style="background:#FEF2F2; border-radius:8px; padding:16px; margin:16px 0; border:1px solid #FECACA;">
+          <p style="margin:0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0;"><strong>Hora:</strong> ${params.horaInicio} – ${params.horaFin}</p>
+          ${params.asignatura ? `<p style="margin:8px 0 0;"><strong>Asignatura:</strong> ${params.asignatura}</p>` : ""}
+          ${params.grupo ? `<p style="margin:8px 0 0;"><strong>Grupo:</strong> ${params.grupo}</p>` : ""}
+          ${params.ubicacion ? `<p style="margin:8px 0 0;"><strong>Aula/Ubicación:</strong> ${params.ubicacion}</p>` : ""}
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Este aviso se ha generado automáticamente desde Integra, en Guardias.
+        </p>
+      </div>
+    `,
+  });
+}

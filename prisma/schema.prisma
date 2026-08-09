@@ -73,6 +73,7 @@ model School {
   expedientes Expediente[]
   onboardingCarpetas OnboardingCarpeta[]
   plantas EspacioPlanta[]
+  coberturas CoberturaGuardia[]
 }
 
 // Una "historia" (como en Instagram) que un centro publica; la ven todos
@@ -342,6 +343,9 @@ model User {
   onboardingArchivosSubidos OnboardingArchivo[]
   espacioReservas        EspacioReserva[] @relation("EspacioReservaUsuario")
   espacioReservasCreadas EspacioReserva[] @relation("EspacioReservaCreador")
+  coberturasComoAusente     CoberturaGuardia[] @relation("CoberturaAusente")
+  coberturasComoSustituto   CoberturaGuardia[] @relation("CoberturaSustituto")
+  coberturasCreadas         CoberturaGuardia[] @relation("CoberturaCreador")
   notificaciones     Notificacion[]
 }
 
@@ -679,6 +683,29 @@ model HorarioBloque {
 }
 
 // Eventos libres del calendario personal de cada usuario, con fecha concreta
+
+// Cuando un profesor falta, Coordinación/Dirección/SuperAdmin buscan quién
+// está de guardia en esa franja concreta y le piden que cubra la clase.
+// Queda constancia de quién cubrió a quién y cuándo.
+model CoberturaGuardia {
+  id                  String   @id @default(cuid())
+  schoolId            String
+  school              School   @relation(fields: [schoolId], references: [id])
+  profesorAusenteId   String
+  profesorAusente     User     @relation("CoberturaAusente", fields: [profesorAusenteId], references: [id])
+  profesorSustitutoId String
+  profesorSustituto   User     @relation("CoberturaSustituto", fields: [profesorSustitutoId], references: [id])
+  fecha               DateTime
+  horaInicio          String
+  horaFin             String
+  asignatura          String?
+  grupo               String?
+  ubicacion           String?
+  creadoPorId         String
+  creadoPor           User     @relation("CoberturaCreador", fields: [creadoPorId], references: [id])
+  createdAt           DateTime @default(now())
+}
+
 model CalendarEvento {
   id         String   @id @default(cuid())
   userId     String
