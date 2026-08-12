@@ -72,7 +72,7 @@ export function AgendaTimeline({ titulo, items, verMasHref }: { titulo: string; 
                     {item.label}
                   </div>
                   <div className="mt-0.5 text-xs text-slate-300">
-                    {item.disponible ? "Nada para hoy" : "Módulo no contratado"}
+                    {item.disponible ? "Nada programado" : "Módulo no contratado"}
                   </div>
                 </div>
               )}

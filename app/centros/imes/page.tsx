@@ -109,7 +109,7 @@ export default function CentroIMESPage() {
           <div className="absolute inset-0 flex items-end">
             <div className="mx-auto w-full max-w-7xl px-6 pb-12">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
-                <Sparkles className="h-3.5 w-3.5 text-[#FD5249]" /> Centro que confía en Integra
+                <Sparkles className="h-3.5 w-3.5 text-[#FD5249]" /> Centro que confía en Docentium
               </span>
               <h1 className="mt-4 text-4xl font-extrabold leading-tight text-white sm:text-5xl">
                 iMES Maresme
@@ -299,7 +299,7 @@ export default function CentroIMESPage() {
         </div>
 
         <p className="mt-6 text-center text-xs text-slate-400">
-          Esta página presenta información pública de iMES Maresme como centro cliente de Integra.
+          Esta página presenta información pública de iMES Maresme como centro cliente de Docentium.
           Para preinscripcions, matrícula i informació oficial, consulta{" "}
           <a href="https://imesmaresme.com/" target="_blank" rel="noopener noreferrer" className="font-semibold text-[#FD5249]">imesmaresme.com</a>.
         </p>

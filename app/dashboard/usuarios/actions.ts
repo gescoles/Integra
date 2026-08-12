@@ -39,6 +39,7 @@ export async function createUser(formData: FormData) {
 
   const passwordHash = await bcrypt.hash(plainPassword, 10);
   const avatarUrl = generateAvatarUrl(name);
+  const departamentoIds = formData.getAll("departamentoIds") as string[];
 
   await prisma.user.create({
     data: {
@@ -49,6 +50,15 @@ export async function createUser(formData: FormData) {
       role,
       schoolId,
       avatarUrl,
+      // Los departamentos se guardan en el lado que corresponda según el
+      // rol: como profesor perteneciente a ellos, o como coordinador que
+      // los lleva.
+      ...(role === "PROFESOR" && departamentoIds.length > 0
+        ? { departamentos: { connect: departamentoIds.map((id) => ({ id })) } }
+        : {}),
+      ...(role === "COORDINADOR" && departamentoIds.length > 0
+        ? { departamentosCoordinados: { connect: departamentoIds.map((id) => ({ id })) } }
+        : {}),
     },
   });
 
@@ -71,12 +81,26 @@ export async function updateUser(formData: FormData) {
   const role = formData.get("role") as Role;
   const status = formData.get("status") as UserStatus;
   const schoolId = (formData.get("schoolId") as string) || null;
+  const departamentoIdsRaw = formData.getAll("departamentoIds") as string[];
+  const seEnviaronDepartamentos = formData.has("departamentoIds");
 
   if (!id) throw new Error("Falta el identificador del usuario.");
 
   await prisma.user.update({
     where: { id },
-    data: { role, status, schoolId },
+    data: {
+      role,
+      status,
+      schoolId,
+      // "set" reemplaza toda la lista de golpe; solo se toca si el
+      // formulario ha mandado explícitamente el campo de departamentos.
+      ...(seEnviaronDepartamentos && role === "PROFESOR"
+        ? { departamentos: { set: departamentoIdsRaw.map((did) => ({ id: did })) } }
+        : {}),
+      ...(seEnviaronDepartamentos && role === "COORDINADOR"
+        ? { departamentosCoordinados: { set: departamentoIdsRaw.map((did) => ({ id: did })) } }
+        : {}),
+    },
   });
 
   revalidatePath("/dashboard/usuarios");

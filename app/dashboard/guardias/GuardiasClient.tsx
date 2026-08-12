@@ -17,6 +17,7 @@ type Row = {
   fecha: string;
   profesorId: string;
   profesorName: string;
+  origen: "guardia" | "cobertura";
 };
 
 type ProfesorOption = { id: string; name: string };
@@ -124,18 +125,24 @@ export function GuardiasClient({
                     {new Date(r.fecha).toLocaleDateString("es-ES")}
                   </td>
                   <td className="py-3">
-                    <select
-                      defaultValue={r.status}
-                      disabled={isPending}
-                      onChange={(e) => handleStatusChange(r.id, e.target.value)}
-                      className={`rounded-full border-0 px-2.5 py-1 text-[11px] font-semibold outline-none ${GUARDIA_STATUS_COLORS[r.status]}`}
-                    >
-                      {Object.keys(GUARDIA_STATUS_LABELS).map((value) => (
-                        <option key={value} value={value}>
-                          {translate(locale, `status.${value}` as never)}
-                        </option>
-                      ))}
-                    </select>
+                    {r.origen === "guardia" ? (
+                      <select
+                        defaultValue={r.status}
+                        disabled={isPending}
+                        onChange={(e) => handleStatusChange(r.id, e.target.value)}
+                        className={`rounded-full border-0 px-2.5 py-1 text-[11px] font-semibold outline-none ${GUARDIA_STATUS_COLORS[r.status]}`}
+                      >
+                        {Object.keys(GUARDIA_STATUS_LABELS).map((value) => (
+                          <option key={value} value={value}>
+                            {translate(locale, `status.${value}` as never)}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${GUARDIA_STATUS_COLORS[r.status]}`}>
+                        {GUARDIA_STATUS_LABELS[r.status]}
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}

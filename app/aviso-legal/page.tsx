@@ -6,7 +6,7 @@ export default function AvisoLegalPage() {
       <p>
         En cumplimiento de la legislación aplicable a los servicios de la
         sociedad de la información, se facilita la siguiente información
-        relativa al titular de Integra.
+        relativa al titular de Docentium.
       </p>
 
       <h2 className="pt-2 text-lg font-bold text-[#0B1D4D]">1. Titular del sitio web</h2>
@@ -14,7 +14,7 @@ export default function AvisoLegalPage() {
         <table className="w-full text-sm">
           <tbody>
             {[
-              ["Nombre comercial", "Integra"],
+              ["Nombre comercial", "Docentium"],
               ["Titular", "Jass R"],
               ["NIF/CIF", "4616****E"],
               ["Domicilio", "Carrer Plini el Vell"],
@@ -37,7 +37,7 @@ export default function AvisoLegalPage() {
 
       <h2 className="pt-2 text-lg font-bold text-[#0B1D4D]">2. Finalidad</h2>
       <p>
-        Integra es una plataforma tecnológica orientada a facilitar la
+        Docentium es una plataforma tecnológica orientada a facilitar la
         gestión y coordinación de procesos internos en centros educativos.
       </p>
 
@@ -48,12 +48,12 @@ export default function AvisoLegalPage() {
       </p>
       <p>
         No se permite utilizar el sitio con fines ilícitos o que puedan
-        causar daños a Integra, sus usuarios o terceros.
+        causar daños a Docentium, sus usuarios o terceros.
       </p>
 
       <h2 className="pt-2 text-lg font-bold text-[#0B1D4D]">4. Propiedad intelectual e industrial</h2>
       <p>
-        Todos los contenidos propios de Integra, incluyendo diseños,
+        Todos los contenidos propios de Docentium, incluyendo diseños,
         logotipos, interfaces, textos, elementos gráficos y software, están
         protegidos por la normativa aplicable.
       </p>
@@ -65,13 +65,13 @@ export default function AvisoLegalPage() {
       <h2 className="pt-2 text-lg font-bold text-[#0B1D4D]">5. Enlaces externos</h2>
       <p>El sitio web podrá incluir enlaces a páginas de terceros.</p>
       <p>
-        Integra no controla necesariamente dichos sitios y no se
+        Docentium no controla necesariamente dichos sitios y no se
         responsabiliza de sus contenidos, políticas o servicios.
       </p>
 
       <h2 className="pt-2 text-lg font-bold text-[#0B1D4D]">6. Responsabilidad</h2>
       <p>
-        Integra adoptará medidas razonables para mantener actualizada y
+        Docentium adoptará medidas razonables para mantener actualizada y
         disponible la información publicada.
       </p>
       <p>

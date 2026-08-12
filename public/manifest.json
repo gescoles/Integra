@@ -1,6 +1,6 @@
 {
-  "name": "Integra — Gestión inteligente para centros educativos",
-  "short_name": "Integra",
+  "name": "Docentium — Gestión inteligente para centros educativos",
+  "short_name": "Docentium",
   "description": "Tutorías, guardias, material, salidas, prácticas y comunicación de centro en una sola app.",
   "start_url": "/dashboard",
   "scope": "/",

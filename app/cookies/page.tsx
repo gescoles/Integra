@@ -5,7 +5,7 @@ export default function CookiesPage() {
     <LegalLayout titulo="Política de cookies" actualizado="agosto de 2026">
       <p>
         La presente Política de Cookies explica qué son las cookies y cómo
-        pueden utilizarse en la web y plataforma de Integra.
+        pueden utilizarse en la web y plataforma de Docentium.
       </p>
 
       <h2 className="pt-2 text-lg font-bold text-[#0B1D4D]">1. ¿Qué son las cookies?</h2>
@@ -20,7 +20,7 @@ export default function CookiesPage() {
       </p>
 
       <h2 className="pt-2 text-lg font-bold text-[#0B1D4D]">2. Cookies utilizadas</h2>
-      <p>Integra podrá utilizar las siguientes categorías:</p>
+      <p>Docentium podrá utilizar las siguientes categorías:</p>
 
       <h3 className="text-base font-bold text-[#0B1D4D]">Cookies técnicas o necesarias</h3>
       <p>
@@ -53,7 +53,7 @@ export default function CookiesPage() {
 
       <h3 className="text-base font-bold text-[#0B1D4D]">Cookies publicitarias</h3>
       <p>
-        En caso de que Integra utilice en el futuro tecnologías destinadas a
+        En caso de que Docentium utilice en el futuro tecnologías destinadas a
         mostrar publicidad personalizada o medir campañas publicitarias, se
         solicitará previamente el consentimiento correspondiente.
       </p>

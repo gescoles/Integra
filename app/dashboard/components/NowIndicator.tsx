@@ -26,9 +26,10 @@ export function NowIndicator({
   if (minutesNow === null) return null;
 
   const totalMinutes = (hourEnd - hourStart) * 60;
-  if (minutesNow < 0 || minutesNow > totalMinutes) return null;
-
-  const top = (minutesNow / 60) * rowHeight;
+  // En vez de ocultarla del todo fuera del rango visible, la dejamos
+  // pegada arriba o abajo, para que siempre se sepa si "ahora" está antes
+  // o después del horario que se ve en pantalla.
+  const top = Math.min(Math.max((minutesNow / 60) * rowHeight, 0), totalMinutes * (rowHeight / 60));
 
   return (
     <>

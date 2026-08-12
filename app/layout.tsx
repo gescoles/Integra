@@ -3,21 +3,21 @@ import "./globals.css";
 import { ServiceWorkerRegister } from "./components/ServiceWorkerRegister";
 
 export const metadata: Metadata = {
-  title: "Integra — Gestión inteligente para centros educativos",
+  title: "Docentium — Gestión inteligente para centros educativos",
   description:
-    "Integra tutorías, prácticas, guardias y material didáctico en una plataforma intuitiva para tu centro educativo.",
+    "Docentium integra tutorías, prácticas, guardias y material didáctico en una plataforma intuitiva para tu centro educativo.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Integra",
+    title: "Docentium",
   },
   icons: {
     icon: [
-      { url: "/icons/icon-192.png?v=3", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512.png?v=3", sizes: "512x512", type: "image/png" },
+      { url: "/icons/icon-192.png?v=4", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png?v=4", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/apple-touch-icon.png?v=3", sizes: "180x180", type: "image/png" }],
+    apple: [{ url: "/apple-touch-icon.png?v=4", sizes: "180x180", type: "image/png" }],
   },
 };
 

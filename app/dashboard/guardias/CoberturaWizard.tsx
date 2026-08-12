@@ -9,7 +9,7 @@ import { useLocale } from "../SchoolContext";
 import { translate } from "../i18n";
 
 type Profesor = { id: string; name: string };
-type Horario = { id: string; profesorId: string; diaSemana: number; horaInicio: string; horaFin: string; asignatura: string; grupo: string | null };
+type Horario = { id: string; profesorId: string; diaSemana: number; horaInicio: string; horaFin: string; asignatura: string; grupo: string | null; esGuardia?: boolean };
 type GuardiaProgramada = { profesorId: string; fecha: string; turno: string; ubicacion: string | null };
 
 function diaSemanaDe(fechaISO: string) {
@@ -59,20 +59,30 @@ export function CoberturaWizard({
     if (!bloqueSeleccionado) return [];
     const inicioMin = minutos(bloqueSeleccionado.horaInicio);
     const finMin = minutos(bloqueSeleccionado.horaFin);
-    const idsQueEstanDeGuardia = new Set(
-      guardias
-        .filter((g) => g.fecha.slice(0, 10) === fecha && g.profesorId !== ausenteId)
-        .filter((g) => {
-          const match = g.turno.match(/(\d{1,2}:\d{2}).*?(\d{1,2}:\d{2})/);
-          if (!match) return true;
-          const gInicio = minutos(match[1]);
-          const gFin = minutos(match[2]);
-          return inicioMin < gFin && finMin > gInicio;
-        })
-        .map((g) => g.profesorId)
-    );
+
+    // Profesores con una guardia puntual programada para esa fecha (el
+    // sistema de guardias por calendario que ya existía).
+    const idsDesdeGuardiasCalendario = guardias
+      .filter((g) => g.fecha.slice(0, 10) === fecha && g.profesorId !== ausenteId)
+      .filter((g) => {
+        const match = g.turno.match(/(\d{1,2}:\d{2}).*?(\d{1,2}:\d{2})/);
+        if (!match) return true;
+        const gInicio = minutos(match[1]);
+        const gFin = minutos(match[2]);
+        return inicioMin < gFin && finMin > gInicio;
+      })
+      .map((g) => g.profesorId);
+
+    // Profesores que tienen esa franja marcada como "Guardia" en su
+    // horario semanal habitual, ese mismo día de la semana.
+    const idsDesdeHorario = horarios
+      .filter((h) => h.esGuardia && h.diaSemana === diaSemana && h.profesorId !== ausenteId)
+      .filter((h) => inicioMin < minutos(h.horaFin) && finMin > minutos(h.horaInicio))
+      .map((h) => h.profesorId);
+
+    const idsQueEstanDeGuardia = new Set([...idsDesdeGuardiasCalendario, ...idsDesdeHorario]);
     return profesores.filter((p) => idsQueEstanDeGuardia.has(p.id));
-  }, [bloqueSeleccionado, guardias, fecha, ausenteId, profesores]);
+  }, [bloqueSeleccionado, guardias, horarios, diaSemana, fecha, ausenteId, profesores]);
 
   function reiniciar() {
     setAusenteId(null);

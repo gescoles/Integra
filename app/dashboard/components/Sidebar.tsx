@@ -18,6 +18,7 @@ import {
   CreditCard,
   Clock,
   Settings,
+  DatabaseBackup,
   LogOut,
   BookOpen,
   Briefcase,
@@ -38,27 +39,60 @@ import { UserProfileButton } from "./UserProfileButton";
 import { useLocale } from "../SchoolContext";
 import { translate, TranslationKey } from "../i18n";
 
-const superadminNav: { href: string; labelKey: TranslationKey; icon: typeof Home }[] = [
-  { href: "/dashboard", labelKey: "nav.inicio", icon: Home },
-  { href: "/dashboard/mis-alumnos", labelKey: "nav.alumnos", icon: GraduationCap },
-  { href: "/dashboard/centros", labelKey: "nav.centros", icon: Landmark },
-  { href: "/dashboard/usuarios", labelKey: "nav.usuarios", icon: Users },
-  { href: "/dashboard/tutorias", labelKey: "nav.tutorias", icon: Users },
-  { href: "/dashboard/guardias", labelKey: "nav.guardias", icon: ShieldCheck },
-  { href: "/dashboard/material", labelKey: "nav.material", icon: BookOpen },
-  { href: "/dashboard/practicas", labelKey: "nav.practicas", icon: Briefcase },
-  { href: "/dashboard/expedientes", labelKey: "nav.expedientes", icon: AlertTriangle },
-  { href: "/dashboard/onboarding", labelKey: "nav.onboarding", icon: FolderKanban },
-  { href: "/dashboard/espacios", labelKey: "nav.espacios", icon: Building2 },
-  { href: "/dashboard/salidas", labelKey: "nav.salidas", icon: Bus },
-  { href: "/dashboard/salidas/aprobaciones", labelKey: "nav.aprobaciones", icon: CheckSquare },
-  { href: "/dashboard/calendario", labelKey: "nav.calendario", icon: CalendarDays },
-  { href: "/dashboard/horario", labelKey: "nav.horario", icon: CalendarClock },
-  { href: "/dashboard/roles", labelKey: "nav.roles", icon: ShieldCheck },
-  { href: "/dashboard/planes", labelKey: "nav.planes", icon: CreditCard },
-  { href: "/dashboard/auditoria", labelKey: "nav.auditoria", icon: Clock },
-  { href: "/dashboard/chatbot-admin", labelKey: "nav.chatbotAdmin", icon: Bot },
-  { href: "/dashboard/configuracion", labelKey: "nav.configuracion", icon: Settings },
+const superadminSections: {
+  titulo: string;
+  descripcion: string;
+  items: { href: string; labelKey: TranslationKey; icon: typeof Home }[];
+}[] = [
+  {
+    titulo: "General",
+    descripcion: "Tu resumen y, si tienes, tus propios alumnos asignados.",
+    items: [
+      { href: "/dashboard", labelKey: "nav.inicio", icon: Home },
+      { href: "/dashboard/mis-alumnos", labelKey: "nav.alumnos", icon: GraduationCap },
+    ],
+  },
+  {
+    titulo: "Centros y usuarios",
+    descripcion: "Da de alta centros nuevos y gestiona quién trabaja en cada uno.",
+    items: [
+      { href: "/dashboard/centros", labelKey: "nav.centros", icon: Landmark },
+      { href: "/dashboard/usuarios", labelKey: "nav.usuarios", icon: Users },
+    ],
+  },
+  {
+    titulo: "Módulos de los centros",
+    descripcion: "Las mismas herramientas del día a día que usan los centros, vistas desde aquí.",
+    items: [
+      { href: "/dashboard/tutorias", labelKey: "nav.tutorias", icon: Users },
+      { href: "/dashboard/guardias", labelKey: "nav.guardias", icon: ShieldCheck },
+      { href: "/dashboard/material", labelKey: "nav.material", icon: BookOpen },
+      { href: "/dashboard/practicas", labelKey: "nav.practicas", icon: Briefcase },
+      { href: "/dashboard/expedientes", labelKey: "nav.expedientes", icon: AlertTriangle },
+      { href: "/dashboard/onboarding", labelKey: "nav.onboarding", icon: FolderKanban },
+      { href: "/dashboard/espacios", labelKey: "nav.espacios", icon: Building2 },
+      { href: "/dashboard/salidas", labelKey: "nav.salidas", icon: Bus },
+      { href: "/dashboard/salidas/aprobaciones", labelKey: "nav.aprobaciones", icon: CheckSquare },
+      { href: "/dashboard/calendario", labelKey: "nav.calendario", icon: CalendarDays },
+      { href: "/dashboard/horario", labelKey: "nav.horario", icon: CalendarClock },
+    ],
+  },
+  {
+    titulo: "Plataforma",
+    descripcion: "Ajustes generales de Docentium, no de un centro en concreto.",
+    items: [
+      { href: "/dashboard/roles", labelKey: "nav.roles", icon: ShieldCheck },
+      { href: "/dashboard/planes", labelKey: "nav.planes", icon: CreditCard },
+      { href: "/dashboard/auditoria", labelKey: "nav.auditoria", icon: Clock },
+      { href: "/dashboard/chatbot-admin", labelKey: "nav.chatbotAdmin", icon: Bot },
+      { href: "/dashboard/configuracion", labelKey: "nav.configuracion", icon: Settings },
+    ],
+  },
+  {
+    titulo: "Copia de seguridad",
+    descripcion: "Genera una copia de toda la base de datos, o restaura una anterior si hace falta.",
+    items: [{ href: "/dashboard/backup", labelKey: "nav.backup", icon: DatabaseBackup }],
+  },
 ];
 
 // Módulos reales, construidos y ya funcionando — su visibilidad depende de si
@@ -114,7 +148,7 @@ export function Sidebar({
       <div className="fixed inset-x-0 top-0 z-30 flex items-center justify-between bg-[#0B1D4D] px-4 py-3 lg:hidden">
         <div className="flex items-center gap-2">
           <HexLogo size={26} />
-          <span className="text-sm font-bold text-white">Integra</span>
+          <span className="text-sm font-bold text-white">Docentium</span>
         </div>
         <button
           onClick={() => setMobileOpen(true)}
@@ -140,9 +174,9 @@ export function Sidebar({
       >
         <div className="flex items-center justify-between gap-2.5 px-6 py-4">
           <div className="flex items-center gap-2.5">
-            <HexLogo size={32} />
+            <HexLogo size={44} />
             <div className="leading-tight">
-              <div className="text-base font-bold text-white">Integra</div>
+              <div className="text-base font-bold text-white">Docentium</div>
               <div className="text-[10px] text-slate-400">
                 Gestión inteligente para centros educativos
               </div>
@@ -159,23 +193,30 @@ export function Sidebar({
 
       <nav className="no-scrollbar min-h-0 flex-1 space-y-0.5 overflow-y-auto px-4">
         {isSuperAdmin &&
-          superadminNav.map((item) => {
-            const active = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  active
-                    ? "bg-[#FD5249] text-white"
-                    : "text-slate-300 hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                <item.icon className="h-4 w-4" />
-                {translate(locale, item.labelKey)}
-              </Link>
-            );
-          })}
+          superadminSections.map((seccion, i) => (
+            <div key={seccion.titulo} className={i > 0 ? "mt-4" : undefined}>
+              <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                {seccion.titulo}
+              </div>
+              {seccion.items.map((item) => {
+                const active = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      active
+                        ? "bg-[#FD5249] text-white"
+                        : "text-slate-300 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {translate(locale, item.labelKey)}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
 
         {!isSuperAdmin && (
           <Link
@@ -222,6 +263,20 @@ export function Sidebar({
           </div>
         )}
 
+        {!isSuperAdmin && role === "COORDINADOR" && (
+          <Link
+            href="/dashboard/mi-departamento"
+            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              pathname === "/dashboard/mi-departamento"
+                ? "bg-[#FD5249] text-white"
+                : "text-slate-300 hover:bg-white/5 hover:text-white"
+            }`}
+          >
+            <Building2 className="h-4 w-4" />
+            {translate(locale, "nav.miDepartamento")}
+          </Link>
+        )}
+
         {!isSuperAdmin && role === "PROFESOR" && (
           <Link
             href="/dashboard/mis-alumnos"
@@ -236,6 +291,11 @@ export function Sidebar({
           </Link>
         )}
 
+        {!isSuperAdmin && (
+          <div className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            {translate(locale, "nav.modulosDelCentro")}
+          </div>
+        )}
         {!isSuperAdmin &&
           [...centroModulos]
             .sort((a, b) => {

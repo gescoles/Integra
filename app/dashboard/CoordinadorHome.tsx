@@ -1,11 +1,20 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { contarGuardiasPendientesDeCubrir } from "@/lib/guardiaHelpers";
+import {
+  proximoBloqueSemanal,
+  fechaDeProximoBloque,
+  obtenerProximaTutoria,
+  obtenerProximaGuardia,
+  obtenerProximoEvento,
+} from "@/lib/homeAgenda";
 import { DashboardHeader } from "./components/DashboardHeader";
 import { translate, AppLocale } from "./i18n";
 import { HistoriasBar } from "./components/HistoriasBar";
 import { BienvenidaCard } from "./components/BienvenidaCard";
 import { AgendaTimeline, type AgendaItem } from "./components/AgendaTimeline";
 import { ComunidadPanel } from "./components/ComunidadPanel";
+import { GuardiaAlerta } from "./components/GuardiaAlerta";
 import {
   ShieldCheck,
   BookOpen,
@@ -28,6 +37,12 @@ function endOfToday() {
 function combineTodayTime(hhmm: string) {
   const [h, m] = hhmm.split(":").map(Number);
   const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+function combineFechaHora(fecha: Date, hhmm: string) {
+  const [h, m] = hhmm.split(":").map(Number);
+  const d = new Date(fecha);
   d.setHours(h, m, 0, 0);
   return d;
 }
@@ -97,6 +112,11 @@ export async function CoordinadorHome({
     ? await prisma.salida.count({ where: { schoolId, estado: "PENDIENTE" } })
     : 0;
 
+  const solicitudesGuardiaPendientes = hasGuardias
+    ? await prisma.coberturaGuardia.count({ where: { schoolId, estado: "PENDIENTE" } })
+    : 0;
+  const guardiasQueDebeCubrir = hasGuardias ? await contarGuardiasPendientesDeCubrir(schoolId, userId) : 0;
+
   const hoy = startOfToday();
   const finHoy = endOfToday();
   const diaSemanaHoy = (() => {
@@ -131,6 +151,23 @@ export async function CoordinadorHome({
         orderBy: [{ diaSemana: "asc" }, { horaInicio: "asc" }],
       }),
     ]);
+
+  // Los widgets "Próxima/o X" del inicio no se limitan a hoy: buscan la
+  // próxima ocurrencia real aunque caiga otro día, para que siempre haya
+  // algo que mostrar (un "recordatorio" de verdad, no solo para hoy).
+  const ahora = new Date();
+  const [proximaTutoriaRaw, proximaGuardiaRaw, proximoEventoRaw] = await Promise.all([
+    hasTutorias ? obtenerProximaTutoria(userId, ahora) : Promise.resolve(null),
+    hasGuardias ? obtenerProximaGuardia(userId, ahora) : Promise.resolve(null),
+    obtenerProximoEvento(userId, ahora),
+  ]);
+  // La "próxima clase" sale del horario semanal recurrente (no tiene fecha
+  // propia), así que se calcula en memoria a partir de día+hora. Se
+  // excluyen los bloques de guardia: para eso ya está el widget de arriba.
+  const proximoBloqueClase = proximoBloqueSemanal(
+    horarioSemanal.filter((b) => !b.esGuardia),
+    ahora
+  );
 
   // "Agenda del día": todo lo de hoy, combinado y ordenado por hora
   const agenda = [
@@ -172,10 +209,14 @@ export async function CoordinadorHome({
     })),
   ].sort((a, b) => a.time.getTime() - b.time.getTime());
 
-  const nextTutoria = tutoriasHoyList[0] ?? null;
-  const nextGuardia = guardiasHoyList[0] ?? null;
-  const nextEvento = eventosHoyList[0] ?? null;
-  const nextClase = horarioHoyList[0] ?? null;
+  const nextTutoria = proximaTutoriaRaw;
+  const nextGuardia = proximaGuardiaRaw;
+  const nextEvento = proximoEventoRaw;
+  const nextClase = proximoBloqueClase;
+  const nextClaseFecha = proximoBloqueClase
+    ? fechaDeProximoBloque(proximoBloqueClase.diaSemana, proximoBloqueClase.horaInicio, ahora)
+    : null;
+  const nextEventoFecha = nextEvento ? combineFechaHora(nextEvento.fecha, nextEvento.horaInicio) : null;
 
   const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
 
@@ -205,7 +246,7 @@ export async function CoordinadorHome({
     {
       key: "clase",
       label: "Próxima clase",
-      time: nextClase ? combineTodayTime(nextClase.horaInicio) : null,
+      time: nextClaseFecha,
       detailLinea1: nextClase?.asignatura ?? "",
       detailLinea2: nextClase?.grupo ?? undefined,
       href: "/dashboard/horario",
@@ -216,7 +257,7 @@ export async function CoordinadorHome({
     {
       key: "evento",
       label: "Próximo evento",
-      time: nextEvento ? combineTodayTime(nextEvento.horaInicio) : null,
+      time: nextEventoFecha,
       detailLinea1: nextEvento?.title ?? "",
       href: "/dashboard/calendario",
       colorClase: "bg-pink-500",
@@ -261,6 +302,26 @@ export async function CoordinadorHome({
             {translate(locale, "home.revisarAhora")}
           </span>
         </Link>
+      )}
+
+      {solicitudesGuardiaPendientes > 0 && (
+        <GuardiaAlerta
+          mensaje={
+            solicitudesGuardiaPendientes === 1
+              ? translate(locale, "home.guardiaPendienteGestionarSingular")
+              : `${solicitudesGuardiaPendientes} ${translate(locale, "home.guardiaPendienteGestionarPlural")}`
+          }
+        />
+      )}
+
+      {guardiasQueDebeCubrir > 0 && (
+        <GuardiaAlerta
+          mensaje={
+            guardiasQueDebeCubrir === 1
+              ? translate(locale, "home.guardiaPropiaSingular")
+              : `${guardiasQueDebeCubrir} ${translate(locale, "home.guardiaPropiaPlural")}`
+          }
+        />
       )}
 
       <div className="mb-5">

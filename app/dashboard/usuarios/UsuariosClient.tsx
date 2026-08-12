@@ -28,6 +28,7 @@ type UserRow = {
   status: string;
   schoolId: string | null;
   schoolName: string | null;
+  departamentos: string[];
   lastAccessAt: string | null;
   avatarUrl: string | null;
   locale: string;
@@ -234,6 +235,7 @@ export function UsuariosClient({
                 <th className="pb-2 pr-3 font-medium">{translate(locale, "usuarios.colEmail")}</th>
                 <th className="pb-2 pr-3 font-medium">{translate(locale, "usuarios.colRol")}</th>
                 <th className="pb-2 pr-3 font-medium">{translate(locale, "usuarios.colCentro")}</th>
+                <th className="pb-2 pr-3 font-medium">{translate(locale, "usuarios.colDepartamento")}</th>
                 <th className="pb-2 pr-3 font-medium">{translate(locale, "usuarios.colEstado")}</th>
                 <th className="pb-2 pr-3 font-medium">{translate(locale, "usuarios.colUltimoAcceso")}</th>
                 <th className="pb-2 font-medium">{translate(locale, "usuarios.colAcciones")}</th>
@@ -284,6 +286,19 @@ export function UsuariosClient({
                     </span>
                   </td>
                   <td className="py-3 pr-3 text-slate-500">{u.schoolName ?? "—"}</td>
+                  <td className="py-3 pr-3">
+                    {u.departamentos.length === 0 ? (
+                      <span className="text-slate-400">—</span>
+                    ) : (
+                      <div className="flex flex-wrap gap-1">
+                        {u.departamentos.map((d) => (
+                          <span key={d} className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                            {d}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </td>
                   <td className="py-3 pr-3">
                     <span className="flex items-center gap-1.5 text-slate-500">
                       <span className={`h-2 w-2 rounded-full ${STATUS_COLORS[u.status]}`} />

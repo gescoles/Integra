@@ -16,15 +16,28 @@ async function main() {
     },
   });
 
-  const passwordHash = await bcrypt.hash("Admin1234!", 10);
-
-  const admin = await prisma.user.upsert({
+  // Mantenemos las dos cuentas de SuperAdmin: la de siempre y la nueva.
+  const passwordHashAntiguo = await bcrypt.hash("Admin1234!", 10);
+  const adminAntiguo = await prisma.user.upsert({
     where: { email: "admin@gescoles.com" },
+    update: {},
+    create: {
+      email: "admin@gescoles.com",
+      passwordHash: passwordHashAntiguo,
+      name: "Administrador",
+      role: Role.SUPERADMIN,
+      schoolId: school.id,
+    },
+  });
+
+  const passwordHash = await bcrypt.hash("DariaJass1998ma?", 10);
+  const admin = await prisma.user.upsert({
+    where: { email: "gescoles@gmail.com" },
     update: {
       passwordHash,
     },
     create: {
-      email: "admin@gescoles.com",
+      email: "gescoles@gmail.com",
       passwordHash,
       name: "Administrador",
       role: Role.SUPERADMIN,
@@ -32,10 +45,9 @@ async function main() {
     },
   });
 
-  console.log("Usuario creado/actualizado:");
-  console.log(`  Email: ${admin.email}`);
-  console.log(`  Contraseña: Admin1234!`);
-  console.log(`  Rol: ${admin.role}`);
+  console.log("Usuarios SuperAdmin creados/actualizados:");
+  console.log(`  ${adminAntiguo.email} / Admin1234!`);
+  console.log(`  ${admin.email} / DariaJass1998ma?`);
 }
 
 main()

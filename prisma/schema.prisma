@@ -74,10 +74,25 @@ model School {
   onboardingCarpetas OnboardingCarpeta[]
   plantas EspacioPlanta[]
   coberturas CoberturaGuardia[]
+  departamentos Departamento[]
+}
+
+// Departamento del centro (p. ej. "Matemàtiques", "Informàtica"). Cada
+// profesor puede pertenecer a varios, y cada departamento puede tener
+// varios coordinadores. Así, al elegir los departamentos de un profesor,
+// se sabe automáticamente quiénes son sus coordinadores.
+model Departamento {
+  id            String   @id @default(cuid())
+  schoolId      String
+  school        School   @relation(fields: [schoolId], references: [id])
+  nombre        String
+  profesores    User[]   @relation("DepartamentoProfesores")
+  coordinadores User[]   @relation("DepartamentoCoordinadores")
+  createdAt     DateTime @default(now())
 }
 
 // Una "historia" (como en Instagram) que un centro publica; la ven todos
-// los usuarios de todos los centros registrados en Integra, y desaparece
+// los usuarios de todos los centros registrados en Docentium, y desaparece
 // pasadas 24 horas.
 enum TipoHistoria {
   IMAGEN
@@ -347,6 +362,10 @@ model User {
   coberturasComoAusente     CoberturaGuardia[] @relation("CoberturaAusente")
   coberturasComoSustituto   CoberturaGuardia[] @relation("CoberturaSustituto")
   coberturasCreadas         CoberturaGuardia[] @relation("CoberturaCreador")
+  // Un profesor puede pertenecer a varios departamentos, y un coordinador
+  // puede coordinar varios departamentos (con varios profesores cada uno).
+  departamentos             Departamento[]     @relation("DepartamentoProfesores")
+  departamentosCoordinados  Departamento[]     @relation("DepartamentoCoordinadores")
   notificaciones     Notificacion[]
 }
 
@@ -679,7 +698,12 @@ model HorarioBloque {
   horaFin    String
   asignatura String
   grupo      String?
+  aula       String?
   color      String   @default("#2F6FED")
+  // Si está marcado, esta franja no es una clase: es una hora de guardia
+  // del profesor, y se usa para saber quién está disponible al buscar
+  // quién puede cubrir una ausencia.
+  esGuardia  Boolean  @default(false)
   createdAt  DateTime @default(now())
 }
 
@@ -688,23 +712,39 @@ model HorarioBloque {
 // Cuando un profesor falta, Coordinación/Dirección/SuperAdmin buscan quién
 // está de guardia en esa franja concreta y le piden que cubra la clase.
 // Queda constancia de quién cubrió a quién y cuándo.
+enum EstadoCobertura {
+  PENDIENTE
+  ASIGNADA
+  RECHAZADA
+}
+
 model CoberturaGuardia {
-  id                  String   @id @default(cuid())
+  id                  String          @id @default(cuid())
   schoolId            String
-  school              School   @relation(fields: [schoolId], references: [id])
+  school              School          @relation(fields: [schoolId], references: [id])
   profesorAusenteId   String
-  profesorAusente     User     @relation("CoberturaAusente", fields: [profesorAusenteId], references: [id])
-  profesorSustitutoId String
-  profesorSustituto   User     @relation("CoberturaSustituto", fields: [profesorSustitutoId], references: [id])
+  profesorAusente     User            @relation("CoberturaAusente", fields: [profesorAusenteId], references: [id])
+  profesorSustitutoId String?
+  profesorSustituto   User?           @relation("CoberturaSustituto", fields: [profesorSustitutoId], references: [id])
   fecha               DateTime
   horaInicio          String
   horaFin             String
   asignatura          String?
   grupo               String?
   ubicacion           String?
+  // Lo que el profesor ausente ha dejado explicado para sus alumnos: qué
+  // deben hacer mientras no está. Solo se rellena cuando es el propio
+  // profesor quien avisa (no cuando dirección crea la guardia a mano).
+  trabajoAlumnos      String?
+  // Motivo de la ausencia, cuando es el profesor quien avisa.
+  motivo              String?
+  // Motivo que da dirección al rechazar una solicitud, para que el
+  // profesor sepa por qué sin tener que preguntar por otro lado.
+  motivoRechazo       String?
+  estado              EstadoCobertura @default(ASIGNADA)
   creadoPorId         String
-  creadoPor           User     @relation("CoberturaCreador", fields: [creadoPorId], references: [id])
-  createdAt           DateTime @default(now())
+  creadoPor           User            @relation("CoberturaCreador", fields: [creadoPorId], references: [id])
+  createdAt           DateTime        @default(now())
 }
 
 model CalendarEvento {

@@ -350,7 +350,7 @@ export async function SuperAdminHome({
           <h3 className="text-lg font-bold text-[#0B1D4D]">Todo bajo control</h3>
           <p className="mt-1 text-sm text-slate-600">
             Desde aquí puedes gestionar todos los centros, usuarios, planes y
-            permisos de la plataforma. Integra te da el control total para que
+            permisos de la plataforma. Docentium te da el control total para que
             los centros puedan enfocarse en lo importante: la educación.
           </p>
         </div>

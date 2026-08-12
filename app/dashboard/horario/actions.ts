@@ -12,12 +12,17 @@ export async function addHorarioBloque(formData: FormData) {
   const diaSemana = Number(formData.get("diaSemana"));
   const horaInicio = formData.get("horaInicio") as string;
   const horaFin = formData.get("horaFin") as string;
-  const asignatura = (formData.get("asignatura") as string)?.trim();
-  const grupo = (formData.get("grupo") as string)?.trim();
+  const esGuardia = formData.get("esGuardia") === "true";
+  const asignatura = (formData.get("asignatura") as string)?.trim() || (esGuardia ? "Guardia" : "");
+  const grupo = (formData.get("grupo") as string)?.trim() || null;
+  const aula = (formData.get("aula") as string)?.trim() || null;
   const color = (formData.get("color") as string) || "#FD5249";
 
-  if (!asignatura) throw new Error("La asignatura es obligatoria.");
-  if (!grupo) throw new Error("El grupo es obligatorio.");
+  if (!esGuardia) {
+    if (!asignatura) throw new Error("La asignatura es obligatoria.");
+    if (!grupo) throw new Error("El grupo es obligatorio.");
+    if (!aula) throw new Error("El aula es obligatoria.");
+  }
   if (!horaInicio || !horaFin) throw new Error("Indica la hora de inicio y fin.");
   if (horaFin <= horaInicio) throw new Error("La hora de fin debe ser posterior a la de inicio.");
 
@@ -29,9 +34,26 @@ export async function addHorarioBloque(formData: FormData) {
       horaFin,
       asignatura,
       grupo,
+      aula,
       color,
+      esGuardia,
     },
   });
+
+  revalidatePath("/dashboard/horario");
+  revalidatePath("/dashboard/calendario");
+  revalidatePath("/dashboard");
+}
+
+export async function moverHorarioBloque(id: string, diaSemana: number, horaInicio: string, horaFin: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user.id) throw new Error("No autorizado.");
+
+  const bloque = await prisma.horarioBloque.findUnique({ where: { id } });
+  if (!bloque || bloque.profesorId !== session.user.id) throw new Error("No tienes permiso sobre este bloque.");
+  if (horaFin <= horaInicio) throw new Error("La hora de fin debe ser posterior a la de inicio.");
+
+  await prisma.horarioBloque.update({ where: { id }, data: { diaSemana, horaInicio, horaFin } });
 
   revalidatePath("/dashboard/horario");
   revalidatePath("/dashboard/calendario");
@@ -51,18 +73,23 @@ export async function updateHorarioBloque(formData: FormData) {
   const diaSemana = Number(formData.get("diaSemana"));
   const horaInicio = formData.get("horaInicio") as string;
   const horaFin = formData.get("horaFin") as string;
-  const asignatura = (formData.get("asignatura") as string)?.trim();
-  const grupo = (formData.get("grupo") as string)?.trim();
+  const esGuardia = formData.get("esGuardia") === "true";
+  const asignatura = (formData.get("asignatura") as string)?.trim() || (esGuardia ? "Guardia" : "");
+  const grupo = (formData.get("grupo") as string)?.trim() || null;
+  const aula = (formData.get("aula") as string)?.trim() || null;
   const color = (formData.get("color") as string) || "#FD5249";
 
-  if (!asignatura) throw new Error("La asignatura es obligatoria.");
-  if (!grupo) throw new Error("El grupo es obligatorio.");
+  if (!esGuardia) {
+    if (!asignatura) throw new Error("La asignatura es obligatoria.");
+    if (!grupo) throw new Error("El grupo es obligatorio.");
+    if (!aula) throw new Error("El aula es obligatoria.");
+  }
   if (!horaInicio || !horaFin) throw new Error("Indica la hora de inicio y fin.");
   if (horaFin <= horaInicio) throw new Error("La hora de fin debe ser posterior a la de inicio.");
 
   await prisma.horarioBloque.update({
     where: { id },
-    data: { diaSemana, horaInicio, horaFin, asignatura, grupo, color },
+    data: { diaSemana, horaInicio, horaFin, asignatura, grupo, aula, color, esGuardia },
   });
 
   revalidatePath("/dashboard/horario");

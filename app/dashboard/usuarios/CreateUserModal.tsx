@@ -1,13 +1,15 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { X, Plus } from "lucide-react";
+import { X, Plus, Building2, Users } from "lucide-react";
 import { createUser } from "./actions";
+import { obtenerDepartamentos, crearDepartamento } from "./departamentosActions";
 import { ROLE_LABELS, ASSIGNABLE_ROLES } from "./constants";
 import { ButtonSpinner } from "../components/ButtonSpinner";
 
 type SchoolOption = { id: string; name: string };
+type DepartamentoOption = { id: string; nombre: string; coordinadores: { id: string; nombre: string }[] };
 
 export function CreateUserModal({ schools }: { schools: SchoolOption[] }) {
   const router = useRouter();
@@ -15,15 +17,60 @@ export function CreateUserModal({ schools }: { schools: SchoolOption[] }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [autoPassword, setAutoPassword] = useState(false);
+  const [role, setRole] = useState("PROFESOR");
+  const [schoolId, setSchoolId] = useState(schools[0]?.id ?? "");
+  const [departamentos, setDepartamentos] = useState<DepartamentoOption[]>([]);
+  const [departamentoIds, setDepartamentoIds] = useState<string[]>([]);
+  const [nuevoDepartamento, setNuevoDepartamento] = useState("");
+  const [creandoDepartamento, setCreandoDepartamento] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (!schoolId) {
+      setDepartamentos([]);
+      return;
+    }
+    obtenerDepartamentos(schoolId).then(setDepartamentos);
+  }, [schoolId]);
+
+  function toggleDepartamento(id: string) {
+    setDepartamentoIds((prev) => (prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]));
+  }
+
+  async function handleCrearDepartamento() {
+    if (!nuevoDepartamento.trim() || !schoolId) return;
+    setCreandoDepartamento(true);
+    try {
+      const formData = new FormData();
+      formData.set("schoolId", schoolId);
+      formData.set("nombre", nuevoDepartamento.trim());
+      await crearDepartamento(formData);
+      const actualizados = await obtenerDepartamentos(schoolId);
+      setDepartamentos(actualizados);
+      setNuevoDepartamento("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo crear el departamento.");
+    } finally {
+      setCreandoDepartamento(false);
+    }
+  }
+
+  // Coordinador(es) calculados automáticamente a partir de los
+  // departamentos elegidos para un profesor (sin duplicados).
+  const coordinadoresCalculados = departamentos
+    .filter((d) => departamentoIds.includes(d.id))
+    .flatMap((d) => d.coordinadores)
+    .filter((c, i, arr) => arr.findIndex((x) => x.id === c.id) === i);
 
   async function handleSubmit(formData: FormData) {
     setPending(true);
     setError(null);
+    departamentoIds.forEach((id) => formData.append("departamentoIds", id));
     try {
       await createUser(formData);
       setOpen(false);
       formRef.current?.reset();
+      setDepartamentoIds([]);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo crear el usuario.");
@@ -135,12 +182,16 @@ export function CreateUserModal({ schools }: { schools: SchoolOption[] }) {
                   </label>
                   <select
                     name="role"
-                    defaultValue="PROFESOR"
+                    value={role}
+                    onChange={(e) => {
+                      setRole(e.target.value);
+                      setDepartamentoIds([]);
+                    }}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   >
-                    {ASSIGNABLE_ROLES.map((role) => (
-                      <option key={role} value={role}>
-                        {ROLE_LABELS[role]}
+                    {ASSIGNABLE_ROLES.map((r) => (
+                      <option key={r} value={r}>
+                        {ROLE_LABELS[r]}
                       </option>
                     ))}
                   </select>
@@ -151,7 +202,11 @@ export function CreateUserModal({ schools }: { schools: SchoolOption[] }) {
                   </label>
                   <select
                     name="schoolId"
-                    defaultValue={schools[0]?.id ?? ""}
+                    value={schoolId}
+                    onChange={(e) => {
+                      setSchoolId(e.target.value);
+                      setDepartamentoIds([]);
+                    }}
                     required
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   >
@@ -164,6 +219,70 @@ export function CreateUserModal({ schools }: { schools: SchoolOption[] }) {
                   </select>
                 </div>
               </div>
+
+              {(role === "PROFESOR" || role === "COORDINADOR") && schoolId && (
+                <div className="rounded-lg border border-slate-200 p-3.5">
+                  <label className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-slate-700">
+                    <Building2 className="h-4 w-4 text-[#FD5249]" />
+                    {role === "COORDINADOR" ? "Departamentos que coordina" : "Departamentos a los que pertenece"}
+                  </label>
+
+                  {departamentos.length === 0 ? (
+                    <p className="text-xs text-slate-400">Este centro todavía no tiene departamentos creados.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {departamentos.map((d) => (
+                        <label
+                          key={d.id}
+                          className={`flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium ${
+                            departamentoIds.includes(d.id) ? "border-[#FD5249] bg-red-50 text-[#FD5249]" : "border-slate-200 text-slate-600"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={departamentoIds.includes(d.id)}
+                            onChange={() => toggleDepartamento(d.id)}
+                            className="accent-[#FD5249]"
+                          />
+                          {d.nombre}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-2.5 flex items-center gap-2">
+                    <input
+                      value={nuevoDepartamento}
+                      onChange={(e) => setNuevoDepartamento(e.target.value)}
+                      placeholder="Nuevo departamento..."
+                      className="flex-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs outline-none focus:border-[#FD5249]"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCrearDepartamento}
+                      disabled={creandoDepartamento || !nuevoDepartamento.trim()}
+                      className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      + Crear
+                    </button>
+                  </div>
+
+                  {role === "PROFESOR" && departamentoIds.length > 0 && (
+                    <div className="mt-3 rounded-lg bg-slate-50 px-3 py-2.5">
+                      <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+                        <Users className="h-3.5 w-3.5" /> Coordinador{coordinadoresCalculados.length !== 1 ? "es" : ""} asignado{coordinadoresCalculados.length !== 1 ? "s" : ""} automáticamente
+                      </p>
+                      {coordinadoresCalculados.length === 0 ? (
+                        <p className="text-xs text-slate-400">Ninguno de estos departamentos tiene coordinador todavía.</p>
+                      ) : (
+                        <p className="text-sm font-semibold text-[#0B1D4D]">
+                          {coordinadoresCalculados.map((c) => c.nombre).join(", ")}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="flex justify-end gap-3 pt-2">
                 <button

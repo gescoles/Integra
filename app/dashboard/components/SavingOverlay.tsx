@@ -13,7 +13,7 @@ export function SavingOverlay() {
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-white/70 backdrop-blur-sm">
       <div className="flex flex-col items-center gap-4">
-        <AssemblingLogo size={56} />
+        <AssemblingLogo size={140} />
         <div className="flex items-center gap-1 text-sm font-semibold text-[#0B1D4D]">
           <span>{guardandoMensaje || translate(locale, "common.guardando")}</span>
           <span className="flex gap-0.5">

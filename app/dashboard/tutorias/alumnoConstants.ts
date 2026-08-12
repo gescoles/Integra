@@ -20,5 +20,5 @@ export const MEDIO_LABELS: Record<string, string> = {
   TELEFONO: "Teléfono",
   EMAIL: "Email",
   PRESENCIAL: "Presencial",
-  APP: "App Integra",
+  APP: "App Docentium",
 };

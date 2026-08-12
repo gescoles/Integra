@@ -59,7 +59,7 @@ function DashboardMock() {
           <div>
             <div className="mb-6 flex items-center gap-2 px-1">
               <HexLogo size={22} />
-              <span className="text-sm font-bold text-white">Integra</span>
+              <span className="text-sm font-bold text-white">Docentium</span>
             </div>
             <nav className="space-y-1">
               {navItems.map((item) => (
@@ -480,7 +480,7 @@ function Testimonials() {
   const items = [
     {
       quote:
-        "Integra ha transformado nuestra manera de trabajar. Centralizamos todo y ganamos tiempo para lo importante: nuestros alumnos.",
+        "Docentium ha transformado nuestra manera de trabajar. Centralizamos todo y ganamos tiempo para lo importante: nuestros alumnos.",
       name: "Colegio Horizonte",
       place: "Barcelona",
       icon: ShieldCheck,
@@ -645,7 +645,7 @@ function CTABanner() {
           Más tiempo para formar, menos para gestionar
         </h2>
         <p className="mt-2 text-sm text-slate-300">
-          Únete a cientos de centros que ya han transformado su forma de trabajar con Integra.
+          Únete a cientos de centros que ya han transformado su forma de trabajar con Docentium.
         </p>
         <div className="mt-6 flex justify-center gap-3">
           <button className="rounded-lg border border-white px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10">

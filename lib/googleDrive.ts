@@ -51,6 +51,22 @@ export async function downloadFileFromDrive(fileId: string) {
 }
 
 /**
+ * Lista los archivos de una carpeta de Drive, más recientes primero. Se
+ * usa para mostrar las copias de seguridad disponibles, ordenadas por
+ * fecha de creación.
+ */
+export async function listFilesInFolder(folderId: string) {
+  const drive = getDriveClient();
+  const res = await drive.files.list({
+    q: `'${folderId}' in parents and trashed = false`,
+    fields: "files(id, name, createdTime, size)",
+    orderBy: "createdTime desc",
+    spaces: "drive",
+  });
+  return res.data.files ?? [];
+}
+
+/**
  * Busca una subcarpeta por nombre dentro de otra carpeta de Drive; si no
  * existe, la crea. Así cada día se agrupan los backups en su propia carpeta
  * con la fecha, dentro de la carpeta principal que compartiste con la
@@ -205,7 +221,7 @@ export async function uploadPublicImageToDrive(
 
   // Lo hacemos público como respaldo (por si se quiere abrir directamente
   // en Drive desde fuera de la app), aunque para mostrarlo dentro de
-  // Integra usamos nuestra propia ruta /api/drive-image, que es fiable de
+  // Docentium usamos nuestra propia ruta /api/drive-image, que es fiable de
   // verdad porque no depende de las URLs públicas de Drive.
   await drive.permissions.create({
     fileId,

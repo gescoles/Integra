@@ -108,7 +108,7 @@ export default function LoginPage() {
     <main className="flex min-h-screen flex-col bg-white">
       {loading && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-white/90 backdrop-blur-sm">
-          <AssemblingLogo size={56} />
+          <AssemblingLogo size={140} />
           <p className="text-sm font-medium text-slate-500">Entrando a tu panel…</p>
         </div>
       )}
@@ -124,7 +124,7 @@ export default function LoginPage() {
             <div className="flex items-center gap-3">
               <HexLogo size={56} />
               <div>
-                <div className="text-2xl font-bold text-[#0B1D4D]">Integra</div>
+                <div className="text-2xl font-bold text-[#0B1D4D]">Docentium</div>
                 <div className="text-sm text-slate-500">
                   Gestión inteligente para centros educativos
                 </div>
@@ -152,7 +152,7 @@ export default function LoginPage() {
           <div className="flex flex-1 items-center justify-center">
             <div className="w-full max-w-md rounded-2xl border border-slate-200 p-8 shadow-sm">
               <h2 className="text-2xl font-bold text-[#0B1D4D]">Iniciar sesión</h2>
-              <p className="mt-1 text-sm text-slate-500">Accede a tu cuenta de Integra</p>
+              <p className="mt-1 text-sm text-slate-500">Accede a tu cuenta de Docentium</p>
 
               <form
                 className="mt-7 space-y-5"

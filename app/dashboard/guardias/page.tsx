@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth";
+import { Suspense } from "react";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "../components/DashboardHeader";
@@ -7,13 +8,28 @@ import { ModuleLocked } from "../components/ModuleLocked";
 import { GuardiasClient } from "./GuardiasClient";
 import { GuardiaFormModal } from "./GuardiaFormModal";
 import { CoberturaWizard } from "./CoberturaWizard";
+import { SolicitudesPendientes } from "./SolicitudesPendientes";
+import { AvisarAusenciaForm } from "./AvisarAusenciaForm";
+import { MisCoberturas } from "./MisCoberturas";
+import { obtenerSolicitudesPendientes } from "./actions";
 import { SchoolPicker, SchoolSwitcher } from "../components/SchoolPicker";
 
 async function getGuardiasCentro(schoolId: string) {
-  const [guardiasRaw, profesoresRaw] = await Promise.all([
+  const [guardiasRaw, coberturasRaw, profesoresRaw] = await Promise.all([
     prisma.guardia.findMany({
       where: { schoolId },
       include: { profesor: { select: { id: true, name: true } } },
+      orderBy: { fecha: "desc" },
+    }),
+    // Las guardias ya resueltas a través del sistema de avisos de
+    // ausencia (CoberturaGuardia) también cuentan como "programadas": es
+    // el sustituto quien tiene la guardia en su agenda.
+    prisma.coberturaGuardia.findMany({
+      where: { schoolId, estado: "ASIGNADA" },
+      include: {
+        profesorSustituto: { select: { id: true, name: true } },
+        profesorAusente: { select: { name: true } },
+      },
       orderBy: { fecha: "desc" },
     }),
     prisma.user.findMany({
@@ -23,7 +39,7 @@ async function getGuardiasCentro(schoolId: string) {
     }),
   ]);
 
-  const rows = guardiasRaw.map((g) => ({
+  const rowsGuardia = guardiasRaw.map((g) => ({
     id: g.id,
     turno: g.turno,
     ubicacion: g.ubicacion,
@@ -33,7 +49,25 @@ async function getGuardiasCentro(schoolId: string) {
     fecha: g.fecha.toISOString(),
     profesorId: g.profesorId,
     profesorName: g.profesor?.name ?? "—",
+    origen: "guardia" as const,
   }));
+
+  const rowsCobertura = coberturasRaw
+    .filter((c) => c.profesorSustituto)
+    .map((c) => ({
+      id: c.id,
+      turno: `${c.horaInicio}–${c.horaFin}`,
+      ubicacion: c.ubicacion,
+      grupo: c.grupo,
+      tarea: `Cubre a ${c.profesorAusente?.name ?? "otro profesor"}${c.trabajoAlumnos ? `: ${c.trabajoAlumnos}` : ""}`,
+      status: "CUBIERTA",
+      fecha: c.fecha.toISOString(),
+      profesorId: c.profesorSustituto!.id,
+      profesorName: c.profesorSustituto!.name ?? "—",
+      origen: "cobertura" as const,
+    }));
+
+  const rows = [...rowsGuardia, ...rowsCobertura].sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
 
   const profesores = profesoresRaw.map((p) => ({ id: p.id, name: p.name ?? p.email }));
   return { rows, profesores };
@@ -46,7 +80,7 @@ async function getDatosCobertura(schoolId: string) {
   const [horarios, guardias] = await Promise.all([
     prisma.horarioBloque.findMany({
       where: { profesor: { schoolId } },
-      select: { id: true, profesorId: true, diaSemana: true, horaInicio: true, horaFin: true, asignatura: true, grupo: true },
+      select: { id: true, profesorId: true, diaSemana: true, horaInicio: true, horaFin: true, asignatura: true, grupo: true, esGuardia: true },
     }),
     prisma.guardia.findMany({
       where: { schoolId, status: { in: ["PROGRAMADA", "PENDIENTE"] } },
@@ -101,10 +135,15 @@ export default async function GuardiasPage({
 
     const { rows, profesores } = await getGuardiasCentro(searchParams.school);
     const { horarios, guardias } = await getDatosCobertura(searchParams.school);
+    const solicitudes = await obtenerSolicitudesPendientes(searchParams.school);
     return (
       <div>
         <DashboardHeader title={translate(locale, "guardias.title")} subtitle={translate(locale, "guardias.subtitle.superadmin")} userName={userName} role={role} />
         <SchoolSwitcher schools={schools} currentSchoolId={searchParams.school} locale={locale} basePath="/dashboard/guardias" />
+        <MisCoberturas modo="buscador" schoolId={searchParams.school} />
+        <Suspense fallback={null}>
+          <SolicitudesPendientes solicitudes={solicitudes} profesores={profesores} guardias={guardias} horarios={horarios} />
+        </Suspense>
         <CoberturaWizard schoolId={searchParams.school} profesores={profesores} horarios={horarios} guardias={guardias} />
         <div className="mb-5 mt-8 flex items-center justify-between">
           <h2 className="text-base font-bold text-[#0B1D4D]">{translate(locale, "guardias.programadas")}</h2>
@@ -192,6 +231,16 @@ export default async function GuardiasPage({
     ? await getDatosCobertura(schoolId)
     : { horarios: [], guardias: [] };
 
+  const solicitudes = !isProfesor ? await obtenerSolicitudesPendientes() : [];
+
+  const miHorario = isProfesor
+    ? await prisma.horarioBloque.findMany({
+        where: { profesorId: userId },
+        select: { id: true, diaSemana: true, horaInicio: true, horaFin: true, asignatura: true, grupo: true, aula: true, esGuardia: true },
+        orderBy: [{ diaSemana: "asc" }, { horaInicio: "asc" }],
+      })
+    : [];
+
   return (
     <div>
       <DashboardHeader
@@ -201,8 +250,18 @@ export default async function GuardiasPage({
         role={role}
         notificationCount={0}
       />
+      {isProfesor && (
+        <div className="mb-8">
+          <AvisarAusenciaForm miHorario={miHorario} />
+        </div>
+      )}
+      {isProfesor && <MisCoberturas modo="propio" />}
+      {role === "COORDINADOR" && <MisCoberturas modo="buscador" schoolId={schoolId} />}
       {!isProfesor && (
         <>
+          <Suspense fallback={null}>
+          <SolicitudesPendientes solicitudes={solicitudes} profesores={profesores} guardias={guardias} horarios={horarios} />
+        </Suspense>
           <CoberturaWizard schoolId={schoolId} profesores={profesores} horarios={horarios} guardias={guardias} />
           <div className="mb-5 mt-8 flex items-center justify-between">
             <h2 className="text-base font-bold text-[#0B1D4D]">{translate(locale, "guardias.programadas")}</h2>
@@ -210,7 +269,7 @@ export default async function GuardiasPage({
           </div>
         </>
       )}
-      <GuardiasClient rows={rows} profesores={profesores} />
+      {!isProfesor && <GuardiasClient rows={rows} profesores={profesores} />}
     </div>
   );
 }

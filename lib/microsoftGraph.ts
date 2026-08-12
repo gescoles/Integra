@@ -1,8 +1,8 @@
 // Conexión con Microsoft Graph usando "permisos de aplicación" (no de un
 // usuario concreto): un administrador de Microsoft 365 del centro autoriza
-// la app UNA vez, y a partir de ahí Integra puede crear eventos en el
+// la app UNA vez, y a partir de ahí Docentium puede crear eventos en el
 // calendario de CUALQUIER profesor del centro, usando su email (el mismo
-// con el que inicia sesión en Integra) — sin que cada profesor tenga que
+// con el que inicia sesión en Docentium) — sin que cada profesor tenga que
 // autorizar nada por su cuenta.
 
 async function getGraphToken() {
@@ -39,7 +39,7 @@ async function getGraphToken() {
 /**
  * Crea un evento en el calendario de Outlook/Teams de un profesor.
  * `userEmail` debe ser su correo de Microsoft 365 (el mismo con el que
- * inicia sesión en Integra).
+ * inicia sesión en Docentium).
  */
 export async function createTeamsCalendarEvent(params: {
   userEmail: string;

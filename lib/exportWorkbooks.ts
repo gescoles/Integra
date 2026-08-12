@@ -63,7 +63,7 @@ export async function buildTutoriasWorkbook(schoolId: string, profesorId?: strin
   const profesores = profesorId ? profesoresRaw.filter((p) => p.id === profesorId) : profesoresRaw;
 
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "Integra";
+  workbook.creator = "Docentium";
   workbook.created = new Date();
 
   const usedNames = new Set<string>();
@@ -149,7 +149,7 @@ export async function buildMaterialWorkbook(schoolId: string, profesorId?: strin
   });
 
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "Integra";
+  workbook.creator = "Docentium";
   workbook.created = new Date();
 
   const ciclos = Array.from(new Set(materialRaw.map((m) => m.curso))).sort();
@@ -237,7 +237,7 @@ export async function buildSalidasWorkbook(schoolId: string, responsableId?: str
   const nombrePorId = new Map(profesoresAcompanantes.map((p) => [p.id, p.name ?? p.email]));
 
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "Integra";
+  workbook.creator = "Docentium";
   workbook.created = new Date();
 
   const ciclos = Array.from(new Set(salidasRaw.map((s) => s.curso))).sort();
@@ -325,7 +325,7 @@ export async function buildPracticasWorkbook(schoolId: string) {
   });
 
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "Integra";
+  workbook.creator = "Docentium";
   workbook.created = new Date();
 
   const ciclos = Array.from(new Set(fichasRaw.map((f) => f.cicloFormativo || "Sin ciclo"))).sort();

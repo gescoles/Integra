@@ -25,12 +25,12 @@ export async function sendPasswordEmail(to: string, name: string, password: stri
   const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
 
   await transporter.sendMail({
-    from: `Integra <${from}>`,
+    from: `Docentium <${from}>`,
     to,
-    subject: "Tu acceso a Integra",
+    subject: "Tu acceso a Docentium",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
-        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Bienvenido/a a Integra, ${name}</h2>
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Bienvenido/a a Docentium, ${name}</h2>
         <p>Se ha creado tu cuenta en la plataforma de gestión de tu centro educativo. Estas son tus credenciales de acceso:</p>
         <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
           <p style="margin:0;"><strong>Email:</strong> ${to}</p>
@@ -66,7 +66,7 @@ export async function sendGuardiaEmail(params: {
   });
 
   await transporter.sendMail({
-    from: `Integra <${from}>`,
+    from: `Docentium <${from}>`,
     to: params.to,
     subject: `Nueva guardia asignada: ${params.turno}`,
     html: `
@@ -81,7 +81,7 @@ export async function sendGuardiaEmail(params: {
         </div>
         <p style="color:#64748B; font-size:13px;">
           Este aviso se ha añadido automáticamente a tu calendario de Teams. También puedes consultar
-          todas tus guardias desde Integra, en el apartado "Guardias".
+          todas tus guardias desde Docentium, en el apartado "Guardias".
         </p>
       </div>
     `,
@@ -112,7 +112,7 @@ export async function sendSalidaCreadaEmail(params: {
   });
 
   await transporter.sendMail({
-    from: `Integra <${from}>`,
+    from: `Docentium <${from}>`,
     to: params.to.join(", "),
     subject: `Nueva salida pendiente de aprobar: ${params.actividad}`,
     html: `
@@ -130,7 +130,7 @@ export async function sendSalidaCreadaEmail(params: {
         </div>
         <p style="color:#64748B; font-size:13px;">
           Está pendiente de aprobación. Puedes revisarla y aceptarla o rechazarla desde
-          Integra, en Salidas → Aprobaciones.
+          Docentium, en Salidas → Aprobaciones.
         </p>
       </div>
     `,
@@ -154,7 +154,7 @@ export async function sendSalidaAprobadaEmail(params: {
   });
 
   await transporter.sendMail({
-    from: `Integra <${from}>`,
+    from: `Docentium <${from}>`,
     to: params.to,
     subject: `Salida aprobada: ${params.actividad}`,
     html: `
@@ -166,7 +166,7 @@ export async function sendSalidaAprobadaEmail(params: {
           <p style="margin:8px 0 0; color:#059669;"><strong>Estado: Aprobada ✓</strong></p>
         </div>
         <p style="color:#64748B; font-size:13px;">
-          Ya puedes consultarla desde Integra, en el apartado "Salidas".
+          Ya puedes consultarla desde Docentium, en el apartado "Salidas".
         </p>
       </div>
     `,
@@ -190,7 +190,7 @@ export async function sendSalidaRechazadaEmail(params: {
   });
 
   await transporter.sendMail({
-    from: `Integra <${from}>`,
+    from: `Docentium <${from}>`,
     to: params.to,
     subject: `Salida rechazada: ${params.actividad}`,
     html: `
@@ -236,7 +236,7 @@ export async function sendIncidenciaCreadaEmail(params: {
   const prioridadColor = params.prioridad === "ALTA" ? "#DC2626" : params.prioridad === "MEDIA" ? "#D97706" : "#16A34A";
 
   await transporter.sendMail({
-    from: `Integra <${from}>`,
+    from: `Docentium <${from}>`,
     to: params.to,
     subject: `Nueva incidencia asignada: ${params.alumnoNombre} (${params.tipoIncidencia})`,
     html: `
@@ -254,7 +254,7 @@ export async function sendIncidenciaCreadaEmail(params: {
           <p style="margin:8px 0 0;"><strong>Descripción:</strong> ${params.descripcion}</p>
         </div>
         <p style="color:#64748B; font-size:13px;">
-          Puedes ver el expediente completo y hacerle seguimiento desde Integra, en Expedientes.
+          Puedes ver el expediente completo y hacerle seguimiento desde Docentium, en Expedientes.
         </p>
       </div>
     `,
@@ -271,7 +271,7 @@ export async function sendTresIncidenciasEmail(params: {
   const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
 
   await transporter.sendMail({
-    from: `Integra <${from}>`,
+    from: `Docentium <${from}>`,
     to: params.to.join(", "),
     subject: `Aviso: ${params.alumnoNombre} ha llegado a 3 incidencias`,
     html: `
@@ -280,12 +280,12 @@ export async function sendTresIncidenciasEmail(params: {
         <div style="background:#FEF2F2; border-radius:8px; padding:16px; margin:16px 0; border:1px solid #FECACA;">
           <p style="margin:0;">
             El alumno <strong>${params.alumnoNombre}</strong> (${params.curso}) ha alcanzado
-            <strong>3 incidencias</strong> registradas en Integra.
+            <strong>3 incidencias</strong> registradas en Docentium.
           </p>
         </div>
         <p style="color:#64748B; font-size:13px;">
           Puedes revisar el expediente completo y valorar un parte con expulsión desde
-          Integra, en Expedientes.
+          Docentium, en Expedientes.
         </p>
       </div>
     `,
@@ -313,7 +313,7 @@ export async function sendExpedienteEmail(params: {
   const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
 
   await transporter.sendMail({
-    from: `Integra <${from}>`,
+    from: `Docentium <${from}>`,
     to: params.to.join(", "),
     subject: `Expediente disciplinario ${params.data.numero} · ${params.data.alumnoNombre}`,
     attachments: [
@@ -338,7 +338,7 @@ export async function sendExpedienteEmail(params: {
           <p style="margin:8px 0 0;"><strong>Fets:</strong> ${params.data.fets}</p>
         </div>
         <p style="color:#64748B; font-size:13px;">
-          También puedes consultarlo en cualquier momento desde Integra, en Expedientes.
+          También puedes consultarlo en cualquier momento desde Docentium, en Expedientes.
         </p>
       </div>
     `,
@@ -356,7 +356,7 @@ export async function sendIncidenciasCerradasEmail(params: {
   const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
 
   await transporter.sendMail({
-    from: `Integra <${from}>`,
+    from: `Docentium <${from}>`,
     to: params.to.join(", "),
     subject: `Aviso: ${params.alumnoNombre} ya lleva ${params.cantidad} incidencias cerradas`,
     html: `
@@ -365,12 +365,12 @@ export async function sendIncidenciasCerradasEmail(params: {
         <div style="background:#FEF2F2; border-radius:8px; padding:16px; margin:16px 0; border:1px solid #FECACA;">
           <p style="margin:0;">
             El alumno <strong>${params.alumnoNombre}</strong> (${params.curso}) ya tiene
-            <strong>${params.cantidad} incidencias cerradas</strong> registradas en Integra.
+            <strong>${params.cantidad} incidencias cerradas</strong> registradas en Docentium.
           </p>
         </div>
         <p style="color:#64748B; font-size:13px;">
           Puedes revisar su historial completo y valorar si hace falta abrir un expediente
-          desde Integra, en Expedientes.
+          desde Docentium, en Expedientes.
         </p>
       </div>
     `,
@@ -389,7 +389,7 @@ export async function sendOnboardingArchivoEmail(params: {
   const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
 
   await transporter.sendMail({
-    from: `Integra <${from}>`,
+    from: `Docentium <${from}>`,
     bcc: params.to,
     subject: `Nuevo documento de OnBoarding: ${params.archivoNombre}`,
     html: `
@@ -403,7 +403,7 @@ export async function sendOnboardingArchivoEmail(params: {
           <p style="margin:8px 0 0;"><strong>Archivo:</strong> ${params.archivoNombre}</p>
         </div>
         <p style="color:#64748B; font-size:13px;">
-          Puedes verlo y descargarlo desde Integra, en OnBoarding.
+          Puedes verlo y descargarlo desde Docentium, en OnBoarding.
         </p>
       </div>
     `,
@@ -425,7 +425,7 @@ export async function sendResumenIncidenciaEmail(params: {
   const fechaFmt = params.fecha.toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" });
 
   await transporter.sendMail({
-    from: `Integra <${from}>`,
+    from: `Docentium <${from}>`,
     to: params.to,
     subject: `Resumen de incidencia: ${params.alumnoNombre}`,
     html: `
@@ -438,7 +438,7 @@ export async function sendResumenIncidenciaEmail(params: {
           <p style="margin:8px 0 0;"><strong>Descripción:</strong> ${params.descripcion}</p>
           ${params.medidasAplicadas ? `<p style="margin:8px 0 0;"><strong>Medidas aplicadas:</strong> ${params.medidasAplicadas}</p>` : ""}
         </div>
-        <p style="color:#64748B; font-size:13px;">Este correo es un resumen informativo enviado desde Integra.</p>
+        <p style="color:#64748B; font-size:13px;">Este correo es un resumen informativo enviado desde Docentium.</p>
       </div>
     `,
   });
@@ -464,7 +464,7 @@ export async function sendReservaConfirmadaEmail(params: {
   });
 
   await transporter.sendMail({
-    from: `Integra <${from}>`,
+    from: `Docentium <${from}>`,
     to: params.to,
     subject: `Reserva confirmada: ${params.aulaNombre}`,
     html: `
@@ -479,7 +479,7 @@ export async function sendReservaConfirmadaEmail(params: {
           <p style="margin:8px 0 0;"><strong>Hora:</strong> ${params.horaInicio} – ${params.horaFin}</p>
         </div>
         <p style="color:#64748B; font-size:13px;">
-          Puedes consultar o cancelar tu reserva desde Integra, en Reserva de Espacios.
+          Puedes consultar o cancelar tu reserva desde Docentium, en Reserva de Espacios.
         </p>
       </div>
     `,
@@ -493,6 +493,7 @@ export async function sendCoberturaEmail(params: {
   asignatura: string | null;
   grupo: string | null;
   ubicacion: string | null;
+  trabajoAlumnos?: string | null;
   fecha: Date;
   horaInicio: string;
   horaFin: string;
@@ -507,7 +508,7 @@ export async function sendCoberturaEmail(params: {
   });
 
   await transporter.sendMail({
-    from: `Integra <${from}>`,
+    from: `Docentium <${from}>`,
     to: params.to,
     subject: `Guardia: cubre la clase de ${params.ausenteNombre}`,
     html: `
@@ -523,9 +524,138 @@ export async function sendCoberturaEmail(params: {
           ${params.asignatura ? `<p style="margin:8px 0 0;"><strong>Asignatura:</strong> ${params.asignatura}</p>` : ""}
           ${params.grupo ? `<p style="margin:8px 0 0;"><strong>Grupo:</strong> ${params.grupo}</p>` : ""}
           ${params.ubicacion ? `<p style="margin:8px 0 0;"><strong>Aula/Ubicación:</strong> ${params.ubicacion}</p>` : ""}
+          ${params.trabajoAlumnos ? `<p style="margin:8px 0 0;"><strong>Qué tienen que hacer los alumnos:</strong> ${params.trabajoAlumnos}</p>` : ""}
         </div>
         <p style="color:#64748B; font-size:13px;">
-          Este aviso se ha generado automáticamente desde Integra, en Guardias.
+          Este aviso se ha generado automáticamente desde Docentium, en Guardias.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendSolicitudCoberturaEmail(params: {
+  to: string[];
+  profesorNombre: string;
+  fecha: Date;
+  horaInicio: string;
+  horaFin: string;
+  trabajoAlumnos: string;
+  motivo?: string | null;
+  asignatura?: string | null;
+  grupo?: string | null;
+  aula?: string | null;
+}) {
+  if (params.to.length === 0) return;
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", { weekday: "long", day: "2-digit", month: "long" });
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    bcc: params.to,
+    subject: `${params.profesorNombre} no podrá estar: falta cubrir una guardia`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Aviso de ausencia</h2>
+        <p style="color:#64748B; font-size:13px; margin-top:0;">
+          ${params.profesorNombre} ha avisado de que no podrá estar en clase y hace falta buscar quién le cubre.
+        </p>
+        <div style="background:#FEF2F2; border-radius:8px; padding:16px; margin:16px 0; border:1px solid #FECACA;">
+          <p style="margin:0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0;"><strong>Hora:</strong> ${params.horaInicio} – ${params.horaFin}</p>
+          ${params.asignatura ? `<p style="margin:8px 0 0;"><strong>Asignatura:</strong> ${params.asignatura}</p>` : ""}
+          ${params.grupo ? `<p style="margin:8px 0 0;"><strong>Grupo:</strong> ${params.grupo}</p>` : ""}
+          ${params.aula ? `<p style="margin:8px 0 0;"><strong>Aula:</strong> ${params.aula}</p>` : ""}
+          ${params.motivo ? `<p style="margin:8px 0 0;"><strong>Motivo:</strong> ${params.motivo}</p>` : ""}
+          <p style="margin:8px 0 0;"><strong>Trabajo para los alumnos:</strong> ${params.trabajoAlumnos}</p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Entra en Docentium, en Guardias, para asignar quién va a cubrir esta clase.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendCoberturaResueltaEmail(params: {
+  to: string;
+  ausenteNombre: string;
+  sustitutoNombre: string;
+  sustitutoEmail: string | null;
+  fecha: Date;
+  horaInicio: string;
+  horaFin: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  });
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Ya tienes quien te cubra: ${params.sustitutoNombre}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Tu ausencia ya tiene sustituto/a</h2>
+        <p style="color:#64748B; font-size:13px; margin-top:0;">
+          Hola ${params.ausenteNombre}, dirección ya ha asignado quién te cubre.
+        </p>
+        <div style="background:#ECFDF5; border-radius:8px; padding:16px; margin:16px 0; border:1px solid #A7F3D0;">
+          <p style="margin:0;"><strong>Te cubre:</strong> ${params.sustitutoNombre}</p>
+          ${params.sustitutoEmail ? `<p style="margin:8px 0 0;"><strong>Contacto:</strong> ${params.sustitutoEmail}</p>` : ""}
+          <p style="margin:8px 0 0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0;"><strong>Hora:</strong> ${params.horaInicio} – ${params.horaFin}</p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Si necesitas comentarle algo sobre la clase, puedes escribirle directamente.
+          Este aviso se ha generado automáticamente desde Docentium, en Guardias.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendSolicitudRechazadaEmail(params: {
+  to: string;
+  ausenteNombre: string;
+  fecha: Date;
+  horaInicio: string;
+  horaFin: string;
+  motivoRechazo: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  });
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Tu aviso de ausencia ha sido rechazado`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Solicitud rechazada</h2>
+        <p style="color:#64748B; font-size:13px; margin-top:0;">
+          Hola ${params.ausenteNombre}, dirección ha rechazado tu aviso de ausencia para esta franja.
+        </p>
+        <div style="background:#FEF2F2; border-radius:8px; padding:16px; margin:16px 0; border:1px solid #FECACA;">
+          <p style="margin:0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0;"><strong>Hora:</strong> ${params.horaInicio} – ${params.horaFin}</p>
+          <p style="margin:8px 0 0;"><strong>Motivo del rechazo:</strong> ${params.motivoRechazo}</p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Si tienes dudas, ponte en contacto con dirección. Este aviso se ha generado automáticamente desde Docentium, en Guardias.
         </p>
       </div>
     `,

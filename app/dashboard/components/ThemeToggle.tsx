@@ -8,7 +8,7 @@ export function ThemeToggle() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem("integra-theme");
+    const saved = localStorage.getItem("docentium-theme");
     const prefersDark = saved
       ? saved === "dark"
       : window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -21,7 +21,7 @@ export function ThemeToggle() {
     const next = !isDark;
     setIsDark(next);
     document.documentElement.classList.toggle("dark", next);
-    localStorage.setItem("integra-theme", next ? "dark" : "light");
+    localStorage.setItem("docentium-theme", next ? "dark" : "light");
   }
 
   if (!mounted) {

@@ -1,6 +1,6 @@
-# Integra — Landing page
+# Docentium — Landing page
 
-Proyecto Next.js 14 + TypeScript + Tailwind CSS con la landing page de Integra.
+Proyecto Next.js 14 + TypeScript + Tailwind CSS con la landing page de Docentium.
 
 ## Cómo arrancarlo en local
 
