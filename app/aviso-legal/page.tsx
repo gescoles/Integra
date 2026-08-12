@@ -19,7 +19,7 @@ export default function AvisoLegalPage() {
               ["NIF/CIF", "4616****E"],
               ["Domicilio", "Carrer Plini el Vell"],
               ["Correo electrónico", "gescoles@gmail.com"],
-              ["Sitio web", "https://integra-six-khaki.vercel.app/"],
+              ["Sitio web", "https://doc3ntium.vercel.app/"],
             ].map(([label, value]) => (
               <tr key={label} className="border-b border-slate-100 last:border-0">
                 <td className="w-40 bg-slate-50 px-4 py-2.5 font-semibold text-slate-500">{label}</td>
