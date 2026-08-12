@@ -16,7 +16,12 @@ export default async function BackupPage() {
   if (role !== "SUPERADMIN") {
     return (
       <div>
-        <DashboardHeader title={translate(locale, "nav.backup")} userName={userName} role={role} />
+        <DashboardHeader
+          title={translate(locale, "nav.backup")}
+          subtitle={translate(locale, "backup.subtitle")}
+          userName={userName}
+          role={role}
+        />
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-24 text-center text-sm text-slate-400">
           {translate(locale, "backup.soloSuperAdmin")}
         </div>

@@ -17,7 +17,12 @@ export default async function MiDepartamentoPage() {
   if (role !== "COORDINADOR" || !session?.user.id) {
     return (
       <div>
-        <DashboardHeader title={translate(locale, "nav.miDepartamento")} userName={userName} role={role} />
+        <DashboardHeader
+          title={translate(locale, "nav.miDepartamento")}
+          subtitle={translate(locale, "miDepartamento.subtitle")}
+          userName={userName}
+          role={role}
+        />
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-24 text-center text-sm text-slate-400">
           {translate(locale, "miDepartamento.soloCoordinadores")}
         </div>

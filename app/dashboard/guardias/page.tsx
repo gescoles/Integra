@@ -197,35 +197,15 @@ export default async function GuardiasPage({
     ? "Consulta tus propias guardias."
     : "Planifica y consulta las guardias de todo el centro.";
 
-  const [guardiasRaw, profesoresRaw] = await Promise.all([
-    prisma.guardia.findMany({
-      where: isProfesor ? { schoolId, profesorId: userId } : { schoolId },
-      include: { profesor: { select: { id: true, name: true } } },
-      orderBy: { fecha: "desc" },
-    }),
-    prisma.user.findMany({
-      where: { schoolId, role: { in: ["PROFESOR", "COORDINADOR"] } },
-      select: { id: true, name: true, email: true },
-      orderBy: { name: "asc" },
-    }),
-  ]);
-
-  const rows = guardiasRaw.map((g) => ({
-    id: g.id,
-    turno: g.turno,
-    ubicacion: g.ubicacion,
-    grupo: g.grupo,
-    tarea: g.tarea,
-    status: g.status,
-    fecha: g.fecha.toISOString(),
-    profesorId: g.profesorId,
-    profesorName: g.profesor?.name ?? "—",
-  }));
-
-  const profesores = profesoresRaw.map((p) => ({
-    id: p.id,
-    name: p.name ?? p.email,
-  }));
+  // Para dirección/coordinación: mismo origen de datos que usa el
+  // SuperAdmin (getGuardiasCentro), que combina las guardias puntuales
+  // ("+ Nueva guardia") CON las coberturas ya asignadas desde el aviso de
+  // ausencia de un profesor. Antes esta rama solo miraba las puntuales, así
+  // que las guardias resueltas por el flujo de "avisar ausencia" nunca
+  // aparecían aquí aunque sí se hubieran asignado correctamente.
+  const { rows, profesores } = !isProfesor
+    ? await getGuardiasCentro(schoolId)
+    : { rows: [] as Awaited<ReturnType<typeof getGuardiasCentro>>["rows"], profesores: [] as Awaited<ReturnType<typeof getGuardiasCentro>>["profesores"] };
 
   const { horarios, guardias } = !isProfesor
     ? await getDatosCobertura(schoolId)

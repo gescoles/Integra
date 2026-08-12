@@ -101,13 +101,30 @@ export function MisCoberturas({
 
   useEffect(() => {
     if (modo === "propio") {
-      Promise.all([obtenerMisCoberturas(), obtenerMisSolicitudesPendientes()]).then(([{ cubiertas, recibidas }, pendientes]) => {
-        setCubiertas(cubiertas);
-        setRecibidas(recibidas.concat(pendientes));
-        setPendientes(pendientes.filter((p) => p.estado === "PENDIENTE"));
-        setCargado(true);
-        if (pendientes.length > 0) setTab("recibidas");
-      });
+      Promise.all([obtenerMisCoberturas(), obtenerMisSolicitudesPendientes()]).then(
+        ([{ cubiertas, recibidas: recibidasAsignadas }, pendientesRaw]) => {
+          // Los dos orígenes tienen formas distintas (las coberturas ya
+          // asignadas traen otroNombre/ubicacion; las solicitudes pendientes
+          // todavía no, porque aún no hay sustituto), así que se normalizan
+          // ambas al tipo Item del componente antes de combinarlas.
+          const pendientesComoItem: Item[] = pendientesRaw.map((p) => ({
+            id: p.id,
+            fecha: p.fecha,
+            horaInicio: p.horaInicio,
+            horaFin: p.horaFin,
+            asignatura: p.asignatura,
+            grupo: p.grupo,
+            estado: p.estado,
+          }));
+          const recibidasCombinadas: Item[] = [...recibidasAsignadas, ...pendientesComoItem];
+
+          setCubiertas(cubiertas);
+          setRecibidas(recibidasCombinadas);
+          setPendientes(pendientesComoItem.filter((p) => p.estado === "PENDIENTE"));
+          setCargado(true);
+          if (pendientesComoItem.length > 0) setTab("recibidas");
+        }
+      );
     }
   }, [modo]);
 
