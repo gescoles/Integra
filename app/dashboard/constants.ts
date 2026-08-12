@@ -8,16 +8,24 @@ export const TUTORIA_STATUS_COLORS: Record<string, string> = {
   COMPLETADA: "bg-emerald-50 text-emerald-600",
 };
 
+// Vocabulario real del estado de una guardia: Pendiente / Cubierta /
+// Rechazada. PROGRAMADA se mantiene solo como alias de lectura por si
+// queda alguna fila antigua (la app ya no la asigna ni la ofrece como
+// opción — para eso está GUARDIA_STATUS_OPTIONS, no Object.keys() de aquí).
+export const GUARDIA_STATUS_OPTIONS = ["PENDIENTE", "CUBIERTA", "RECHAZADA"] as const;
+
 export const GUARDIA_STATUS_LABELS: Record<string, string> = {
-  PROGRAMADA: "Programada",
-  CUBIERTA: "Cubierta",
   PENDIENTE: "Pendiente",
+  CUBIERTA: "Cubierta",
+  RECHAZADA: "Rechazada",
+  PROGRAMADA: "Pendiente",
 };
 
 export const GUARDIA_STATUS_COLORS: Record<string, string> = {
-  PROGRAMADA: "bg-blue-50 text-[#FD5249]",
-  CUBIERTA: "bg-emerald-50 text-emerald-600",
   PENDIENTE: "bg-amber-50 text-amber-600",
+  CUBIERTA: "bg-emerald-50 text-emerald-600",
+  RECHAZADA: "bg-red-50 text-red-600",
+  PROGRAMADA: "bg-amber-50 text-amber-600",
 };
 
 export const MATERIAL_CATEGORIA_LABELS: Record<string, string> = {

@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
-import { updateGuardiaStatus } from "./actions";
-import { GUARDIA_STATUS_LABELS, GUARDIA_STATUS_COLORS } from "../constants";
+import { useRouter } from "next/navigation";
+import { Search, Pencil, Trash2 } from "lucide-react";
+import { updateGuardiaStatus, eliminarGuardiaProgramada } from "./actions";
+import { EditarGuardiaModal } from "./EditarGuardiaModal";
+import { GUARDIA_STATUS_LABELS, GUARDIA_STATUS_COLORS, GUARDIA_STATUS_OPTIONS } from "../constants";
 import { useLocale, useGuardadoTransition } from "../SchoolContext";
 import { translate } from "../i18n";
 
@@ -29,11 +31,15 @@ export function GuardiasClient({
   rows: Row[];
   profesores: ProfesorOption[];
 }) {
+  const router = useRouter();
   const { locale } = useLocale();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
   const [profesorFilter, setProfesorFilter] = useState("Todos");
   const [isPending, startTransition] = useGuardadoTransition();
+  const [editando, setEditando] = useState<{ id: string; origen: "guardia" | "cobertura" } | null>(null);
+  const [borrando, setBorrando] = useState<string | null>(null);
+  const [confirmandoBorrar, setConfirmandoBorrar] = useState<Row | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -56,6 +62,19 @@ export function GuardiasClient({
     });
   }
 
+  async function handleEliminar(row: Row) {
+    setBorrando(row.id);
+    try {
+      await eliminarGuardiaProgramada(row.id, row.origen);
+      router.refresh();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "No se pudo eliminar.");
+    } finally {
+      setBorrando(null);
+      setConfirmandoBorrar(null);
+    }
+  }
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5">
       <div className="mb-4 flex flex-wrap gap-3">
@@ -74,7 +93,7 @@ export function GuardiasClient({
           className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
         >
           <option value="Todos">{translate(locale, "guardias.todosEstados")}</option>
-          {Object.keys(GUARDIA_STATUS_LABELS).map((value) => (
+          {GUARDIA_STATUS_OPTIONS.map((value) => (
             <option key={value} value={value}>
               {translate(locale, `status.${value}` as never)}
             </option>
@@ -100,7 +119,7 @@ export function GuardiasClient({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-xs">
+          <table className="w-full min-w-[800px] text-left text-xs">
             <thead>
               <tr className="border-b border-slate-100 text-slate-400">
                 <th className="pb-2 pr-3 font-medium">{translate(locale, "guardias.colTurno")}</th>
@@ -108,7 +127,8 @@ export function GuardiasClient({
                 <th className="pb-2 pr-3 font-medium">{translate(locale, "guardias.colGrupo")}</th>
                 <th className="pb-2 pr-3 font-medium">{translate(locale, "guardias.colUbicacion")}</th>
                 <th className="pb-2 pr-3 font-medium">{translate(locale, "guardias.colFecha")}</th>
-                <th className="pb-2 font-medium">{translate(locale, "guardias.colEstado")}</th>
+                <th className="pb-2 pr-3 font-medium">{translate(locale, "guardias.colEstado")}</th>
+                <th className="pb-2 font-medium text-right">{translate(locale, "common.acciones")}</th>
               </tr>
             </thead>
             <tbody>
@@ -124,7 +144,7 @@ export function GuardiasClient({
                   <td className="py-3 pr-3 text-slate-400">
                     {new Date(r.fecha).toLocaleDateString("es-ES")}
                   </td>
-                  <td className="py-3">
+                  <td className="py-3 pr-3">
                     {r.origen === "guardia" ? (
                       <select
                         defaultValue={r.status}
@@ -132,7 +152,7 @@ export function GuardiasClient({
                         onChange={(e) => handleStatusChange(r.id, e.target.value)}
                         className={`rounded-full border-0 px-2.5 py-1 text-[11px] font-semibold outline-none ${GUARDIA_STATUS_COLORS[r.status]}`}
                       >
-                        {Object.keys(GUARDIA_STATUS_LABELS).map((value) => (
+                        {GUARDIA_STATUS_OPTIONS.map((value) => (
                           <option key={value} value={value}>
                             {translate(locale, `status.${value}` as never)}
                           </option>
@@ -144,6 +164,24 @@ export function GuardiasClient({
                       </span>
                     )}
                   </td>
+                  <td className="py-3 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => setEditando({ id: r.id, origen: r.origen })}
+                        title={translate(locale, "guardias.editarGuardia")}
+                        className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#FD5249]"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setConfirmandoBorrar(r)}
+                        title={translate(locale, "common.eliminar")}
+                        className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -154,6 +192,43 @@ export function GuardiasClient({
       <div className="mt-4 text-xs text-slate-400">
         Mostrando {filtered.length} de {rows.length} guardias
       </div>
+
+      {editando && (
+        <EditarGuardiaModal
+          id={editando.id}
+          origen={editando.origen}
+          onClose={() => setEditando(null)}
+        />
+      )}
+
+      {confirmandoBorrar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="text-base font-bold text-[#0B1D4D]">{translate(locale, "guardias.confirmarEliminar")}</h3>
+            <p className="mt-2 text-sm text-slate-500">
+              {translate(locale, "guardias.confirmarEliminarTexto")}{" "}
+              <strong className="text-slate-700">{confirmandoBorrar.profesorName}</strong>.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmandoBorrar(null)}
+                className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                {translate(locale, "common.cancelar")}
+              </button>
+              <button
+                onClick={() => handleEliminar(confirmandoBorrar)}
+                disabled={borrando === confirmandoBorrar.id}
+                className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {borrando === confirmandoBorrar.id
+                  ? translate(locale, "common.eliminando")
+                  : translate(locale, "common.eliminar")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

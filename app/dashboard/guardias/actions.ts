@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { GuardiaStatus } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { sendGuardiaEmail, sendCoberturaEmail, sendSolicitudCoberturaEmail, sendCoberturaResueltaEmail, sendSolicitudRechazadaEmail } from "@/lib/email";
+import { sendGuardiaEmail, sendCoberturaEmail, sendSolicitudCoberturaEmail, sendCoberturaResueltaEmail, sendSolicitudRechazadaEmail, sendGuardiaEliminadaEmail, sendGuardiaModificadaEmail, sendCoberturaEliminadaEmail, sendCoberturaModificadaEmail } from "@/lib/email";
 import { notifyUsers } from "@/lib/notifications";
 
 function esDirectivo(role?: string) {
@@ -386,7 +386,184 @@ export async function obtenerSolicitudesPendientes(schoolIdParam?: string) {
 }
 
 export async function updateGuardiaStatus(id: string, status: GuardiaStatus) {
+  const session = await getServerSession(authOptions);
+  if (!esDirectivo(session?.user.role)) throw new Error("No autorizado.");
+
   await prisma.guardia.update({ where: { id }, data: { status } });
+  revalidatePath("/dashboard/guardias");
+  revalidatePath("/dashboard");
+}
+
+// Para rellenar el formulario de edición con los datos reales (no los ya
+// formateados/combinados que se usan solo para pintar la tabla).
+export async function obtenerGuardiaProgramadaParaEditar(id: string, origen: "guardia" | "cobertura") {
+  const session = await getServerSession(authOptions);
+  if (!esDirectivo(session?.user.role)) throw new Error("No autorizado.");
+
+  if (origen === "guardia") {
+    const g = await prisma.guardia.findUnique({ where: { id } });
+    if (!g) throw new Error("No se ha encontrado la guardia.");
+    return {
+      origen: "guardia" as const,
+      id: g.id,
+      fecha: g.fecha.toISOString().slice(0, 10),
+      hora: g.fecha.toISOString().slice(11, 16),
+      turno: g.turno,
+      ubicacion: g.ubicacion ?? "",
+      grupo: g.grupo ?? "",
+      tarea: g.tarea ?? "",
+    };
+  }
+
+  const c = await prisma.coberturaGuardia.findUnique({ where: { id } });
+  if (!c) throw new Error("No se ha encontrado la cobertura.");
+  return {
+    origen: "cobertura" as const,
+    id: c.id,
+    fecha: c.fecha.toISOString().slice(0, 10),
+    horaInicio: c.horaInicio,
+    horaFin: c.horaFin,
+    ubicacion: c.ubicacion ?? "",
+    grupo: c.grupo ?? "",
+    asignatura: c.asignatura ?? "",
+    trabajoAlumnos: c.trabajoAlumnos ?? "",
+  };
+}
+
+// Dirección modifica una guardia ya asignada (de cualquiera de los dos
+// orígenes) y se avisa por email al profesor que la tiene asignada.
+export async function actualizarGuardiaProgramada(
+  id: string,
+  origen: "guardia" | "cobertura",
+  formData: FormData
+) {
+  const session = await getServerSession(authOptions);
+  if (!esDirectivo(session?.user.role)) throw new Error("No autorizado.");
+
+  const ubicacion = ((formData.get("ubicacion") as string) || "").trim() || null;
+  const grupo = ((formData.get("grupo") as string) || "").trim() || null;
+  const fechaRaw = (formData.get("fecha") as string)?.trim();
+  if (!fechaRaw) throw new Error("Falta la fecha.");
+
+  if (origen === "guardia") {
+    const turno = ((formData.get("turno") as string) || "").trim();
+    const hora = ((formData.get("hora") as string) || "").trim();
+    const tarea = ((formData.get("tarea") as string) || "").trim() || null;
+    if (!turno) throw new Error("El turno es obligatorio.");
+    if (!hora) throw new Error("La hora es obligatoria.");
+
+    const fecha = new Date(`${fechaRaw}T${hora}:00`);
+    if (Number.isNaN(fecha.getTime())) throw new Error("Fecha u hora no válidas.");
+
+    const guardia = await prisma.guardia.update({
+      where: { id },
+      data: { turno, ubicacion, grupo, tarea, fecha },
+      include: { profesor: { select: { name: true, email: true } } },
+    });
+
+    try {
+      await sendGuardiaModificadaEmail({
+        to: guardia.profesor.email,
+        profesorName: guardia.profesor.name ?? guardia.profesor.email,
+        turno,
+        ubicacion,
+        grupo,
+        tarea,
+        fecha,
+      });
+    } catch {
+      // La guardia ya se ha actualizado; si falla el email no revertimos nada.
+    }
+  } else {
+    const horaInicio = ((formData.get("horaInicio") as string) || "").trim();
+    const horaFin = ((formData.get("horaFin") as string) || "").trim();
+    const asignatura = ((formData.get("asignatura") as string) || "").trim() || null;
+    const trabajoAlumnos = ((formData.get("trabajoAlumnos") as string) || "").trim() || null;
+    if (!horaInicio || !horaFin) throw new Error("Las horas son obligatorias.");
+    if (horaFin <= horaInicio) throw new Error("La hora de fin debe ser posterior a la de inicio.");
+
+    const fecha = new Date(`${fechaRaw}T00:00:00Z`);
+
+    const cobertura = await prisma.coberturaGuardia.update({
+      where: { id },
+      data: { horaInicio, horaFin, ubicacion, grupo, asignatura, trabajoAlumnos, fecha },
+      include: {
+        profesorSustituto: { select: { name: true, email: true } },
+        profesorAusente: { select: { name: true } },
+      },
+    });
+
+    if (cobertura.profesorSustituto?.email) {
+      try {
+        await sendCoberturaModificadaEmail({
+          to: cobertura.profesorSustituto.email,
+          sustitutoNombre: cobertura.profesorSustituto.name ?? cobertura.profesorSustituto.email,
+          ausenteNombre: cobertura.profesorAusente?.name ?? "otro profesor",
+          asignatura,
+          grupo,
+          ubicacion,
+          trabajoAlumnos,
+          fecha,
+          horaInicio,
+          horaFin,
+        });
+      } catch {
+        // La cobertura ya se ha actualizado; si falla el email no revertimos nada.
+      }
+    }
+  }
+
+  revalidatePath("/dashboard/guardias");
+  revalidatePath("/dashboard");
+}
+
+// Dirección elimina una guardia ya asignada (de cualquiera de los dos
+// orígenes) y se avisa por email al profesor que la tenía asignada.
+export async function eliminarGuardiaProgramada(id: string, origen: "guardia" | "cobertura") {
+  const session = await getServerSession(authOptions);
+  if (!esDirectivo(session?.user.role)) throw new Error("No autorizado.");
+
+  if (origen === "guardia") {
+    const guardia = await prisma.guardia.delete({
+      where: { id },
+      include: { profesor: { select: { name: true, email: true } } },
+    });
+
+    try {
+      await sendGuardiaEliminadaEmail({
+        to: guardia.profesor.email,
+        profesorName: guardia.profesor.name ?? guardia.profesor.email,
+        turno: guardia.turno,
+        fecha: guardia.fecha,
+      });
+    } catch {
+      // La guardia ya se ha borrado; si falla el email no revertimos nada.
+    }
+  } else {
+    const cobertura = await prisma.coberturaGuardia.delete({
+      where: { id },
+      include: {
+        profesorSustituto: { select: { name: true, email: true } },
+        profesorAusente: { select: { name: true } },
+      },
+    });
+
+    if (cobertura.profesorSustituto?.email) {
+      try {
+        await sendCoberturaEliminadaEmail({
+          to: cobertura.profesorSustituto.email,
+          sustitutoNombre: cobertura.profesorSustituto.name ?? cobertura.profesorSustituto.email,
+          ausenteNombre: cobertura.profesorAusente?.name ?? "otro profesor",
+          fecha: cobertura.fecha,
+          horaInicio: cobertura.horaInicio,
+          horaFin: cobertura.horaFin,
+        });
+      } catch {
+        // La cobertura ya se ha borrado; si falla el email no revertimos nada.
+      }
+    }
+  }
+
   revalidatePath("/dashboard/guardias");
   revalidatePath("/dashboard");
 }

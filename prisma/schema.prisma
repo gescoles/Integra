@@ -441,10 +441,14 @@ model AlumnoContacto {
   email    String?
 }
 
+// Nota: PROGRAMADA se mantiene en la base de datos por compatibilidad con
+// filas antiguas (para no romper el enum en Postgres), pero la app ya no
+// la usa: el vocabulario real ahora es Pendiente / Cubierta / Rechazada.
 enum GuardiaStatus {
   PROGRAMADA
   CUBIERTA
   PENDIENTE
+  RECHAZADA
 }
 
 model ChatbotEntry {
@@ -652,7 +656,7 @@ model Guardia {
   grupo      String?
   tarea      String?
   fecha      DateTime
-  status     GuardiaStatus @default(PROGRAMADA)
+  status     GuardiaStatus @default(PENDIENTE)
   createdAt  DateTime      @default(now())
 }
 

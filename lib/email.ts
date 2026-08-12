@@ -661,3 +661,171 @@ export async function sendSolicitudRechazadaEmail(params: {
     `,
   });
 }
+
+// Cuando dirección elimina una guardia puntual (creada con "+ Nueva
+// guardia") que ya tenía profesor asignado.
+export async function sendGuardiaEliminadaEmail(params: {
+  to: string;
+  profesorName: string;
+  turno: string;
+  fecha: Date;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Guardia cancelada: ${params.turno}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Se ha cancelado una guardia, ${params.profesorName}</h2>
+        <div style="background:#FEF2F2; border-radius:8px; padding:16px; margin:16px 0; border:1px solid #FECACA;">
+          <p style="margin:0;"><strong>Cuándo era:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0;"><strong>Turno:</strong> ${params.turno}</p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Dirección ha eliminado esta guardia de tu agenda. Ya no tienes que cubrirla.
+          Este aviso se ha generado automáticamente desde Docentium, en Guardias.
+        </p>
+      </div>
+    `,
+  });
+}
+
+// Cuando dirección modifica los datos de una guardia puntual ya asignada
+// (cambia hora, aula, grupo o la tarea a realizar).
+export async function sendGuardiaModificadaEmail(params: {
+  to: string;
+  profesorName: string;
+  turno: string;
+  ubicacion: string | null;
+  grupo: string | null;
+  tarea: string | null;
+  fecha: Date;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Guardia modificada: ${params.turno}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Han cambiado los datos de tu guardia, ${params.profesorName}</h2>
+        <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
+          <p style="margin:0;"><strong>Cuándo:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0;"><strong>Turno:</strong> ${params.turno}</p>
+          ${params.ubicacion ? `<p style="margin:8px 0 0;"><strong>Aula / ubicación:</strong> ${params.ubicacion}</p>` : ""}
+          ${params.grupo ? `<p style="margin:8px 0 0;"><strong>Grupo:</strong> ${params.grupo}</p>` : ""}
+          ${params.tarea ? `<p style="margin:8px 0 0;"><strong>Qué tienes que hacer:</strong> ${params.tarea}</p>` : ""}
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Revisa los datos actualizados. Este aviso se ha generado automáticamente desde Docentium, en Guardias.
+        </p>
+      </div>
+    `,
+  });
+}
+
+// Cuando dirección elimina una cobertura ya asignada (la que había
+// resuelto una solicitud de ausencia de otro profesor).
+export async function sendCoberturaEliminadaEmail(params: {
+  to: string;
+  sustitutoNombre: string;
+  ausenteNombre: string;
+  fecha: Date;
+  horaInicio: string;
+  horaFin: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  });
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Guardia cancelada: ya no cubres a ${params.ausenteNombre}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Se ha cancelado una cobertura, ${params.sustitutoNombre}</h2>
+        <div style="background:#FEF2F2; border-radius:8px; padding:16px; margin:16px 0; border:1px solid #FECACA;">
+          <p style="margin:0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0;"><strong>Hora:</strong> ${params.horaInicio} – ${params.horaFin}</p>
+          <p style="margin:8px 0 0;"><strong>Cubrías a:</strong> ${params.ausenteNombre}</p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Dirección ha eliminado esta cobertura de tu agenda. Ya no tienes que cubrir esta clase.
+          Este aviso se ha generado automáticamente desde Docentium, en Guardias.
+        </p>
+      </div>
+    `,
+  });
+}
+
+// Cuando dirección modifica los datos de una cobertura ya asignada.
+export async function sendCoberturaModificadaEmail(params: {
+  to: string;
+  sustitutoNombre: string;
+  ausenteNombre: string;
+  asignatura: string | null;
+  grupo: string | null;
+  ubicacion: string | null;
+  trabajoAlumnos?: string | null;
+  fecha: Date;
+  horaInicio: string;
+  horaFin: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  });
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Cobertura modificada: cubres a ${params.ausenteNombre}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Han cambiado los datos de tu cobertura, ${params.sustitutoNombre}</h2>
+        <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
+          <p style="margin:0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0;"><strong>Hora:</strong> ${params.horaInicio} – ${params.horaFin}</p>
+          ${params.asignatura ? `<p style="margin:8px 0 0;"><strong>Asignatura:</strong> ${params.asignatura}</p>` : ""}
+          ${params.grupo ? `<p style="margin:8px 0 0;"><strong>Grupo:</strong> ${params.grupo}</p>` : ""}
+          ${params.ubicacion ? `<p style="margin:8px 0 0;"><strong>Aula/Ubicación:</strong> ${params.ubicacion}</p>` : ""}
+          ${params.trabajoAlumnos ? `<p style="margin:8px 0 0;"><strong>Qué tienen que hacer los alumnos:</strong> ${params.trabajoAlumnos}</p>` : ""}
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Revisa los datos actualizados. Este aviso se ha generado automáticamente desde Docentium, en Guardias.
+        </p>
+      </div>
+    `,
+  });
+}
