@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X, Send, User as UserIcon } from "lucide-react";
+import { X, Send, User as UserIcon, Sparkles } from "lucide-react";
 import { useLocale } from "../SchoolContext";
 import { translate } from "../i18n";
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = { role: "user" | "assistant"; content: string; esIA?: boolean };
 
 const SESSION_KEY = "integra_chat_saludado";
 
@@ -74,7 +74,7 @@ export function ChatWidget({ userName }: { userName: string }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "No se pudo contactar con el asistente.");
-      setMessages((prev) => [...prev, { role: "assistant", content: data.text }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: data.text, esIA: Boolean(data.esIA) }]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo contactar con el asistente.");
     } finally {
@@ -167,6 +167,11 @@ export function ChatWidget({ userName }: { userName: string }) {
                   }`}
                 >
                   {m.content}
+                  {m.esIA && (
+                    <div className="mt-1.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                      <Sparkles className="h-2.5 w-2.5" /> {translate(locale, "chat.respuestaIA")}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

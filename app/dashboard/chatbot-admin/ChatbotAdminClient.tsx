@@ -83,6 +83,7 @@ export function ChatbotAdminClient({
           <MessageCircleQuestion className="h-4 w-4 text-amber-600" />
           <h2 className="text-sm font-bold text-[#0B1D4D]">{translate(locale, "chatbotAdmin.sinResponder")}</h2>
         </div>
+        <p className="mb-3 text-xs text-slate-500">{translate(locale, "chatbotAdmin.avisoIA")}</p>
         {preguntasSinResponder.length === 0 ? (
           <p className="text-sm text-slate-500">{translate(locale, "chatbotAdmin.sinPendientes")}</p>
         ) : (
