@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Pencil, X, Lock } from "lucide-react";
 import { actualizarFichaAlumno } from "../actions";
 import { CampoDesactivable } from "../CampoDesactivable";
+import { CampoTelefonoDesactivable } from "../CampoTelefonoDesactivable";
 import { ButtonSpinner } from "../../components/ButtonSpinner";
 import { useLocale } from "../../SchoolContext";
 import { translate } from "../../i18n";
@@ -25,7 +26,7 @@ type Ficha = {
   nuss: string | null;
 };
 
-export function EditFichaModal({ ficha }: { ficha: Ficha }) {
+export function EditFichaModal({ ficha, alumnoCurso }: { ficha: Ficha; alumnoCurso: string }) {
   const router = useRouter();
   const { locale } = useLocale();
   const [open, setOpen] = useState(false);
@@ -89,11 +90,31 @@ export function EditFichaModal({ ficha }: { ficha: Ficha }) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.cicloFormativo")}</label>
-                  <input name="cicloFormativo" defaultValue={ficha.cicloFormativo ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+                  <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-500">
+                    <Lock className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    {alumnoCurso}
+                  </div>
+                  <input type="hidden" name="cicloFormativo" value={alumnoCurso} />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.anyTitulacion")}</label>
-                  <input name="anyTitulacion" defaultValue={ficha.anyTitulacion ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+                  <select
+                    name="anyTitulacion"
+                    defaultValue={ficha.anyTitulacion ?? ""}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+                  >
+                    <option value="" disabled>
+                      Selecciona...
+                    </option>
+                    {ficha.anyTitulacion && !Array.from({ length: 9 }, (_, i) => String(2027 + i)).includes(ficha.anyTitulacion) && (
+                      <option value={ficha.anyTitulacion}>{ficha.anyTitulacion}</option>
+                    )}
+                    {Array.from({ length: 2035 - 2027 + 1 }, (_, i) => 2027 + i).map((anyo) => (
+                      <option key={anyo} value={anyo}>
+                        {anyo}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="col-span-2">
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.tutorImes")}</label>
@@ -109,7 +130,12 @@ export function EditFichaModal({ ficha }: { ficha: Ficha }) {
                   <CampoDesactivable label={translate(locale, "practicas.fechaNacimiento")} name="fechaNacimiento" type="date" defaultValue={fmtDate(ficha.fechaNacimiento)} initialmenteDesactivado={!ficha.fechaNacimiento} />
                 </div>
                 <div>
-                  <CampoDesactivable label={translate(locale, "practicas.telefono")} name="telefono" defaultValue={ficha.telefono ?? ""} initialmenteDesactivado={!ficha.telefono} />
+                  <CampoTelefonoDesactivable
+                    label={translate(locale, "practicas.telefono")}
+                    name="telefono"
+                    defaultValue={ficha.telefono ?? ""}
+                    initialmenteDesactivado={!ficha.telefono}
+                  />
                 </div>
                 <div>
                   <CampoDesactivable label={translate(locale, "practicas.correoAlumno")} name="correoAlumno" type="email" defaultValue={ficha.correoAlumno ?? ""} initialmenteDesactivado={!ficha.correoAlumno} />

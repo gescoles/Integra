@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, X, Mail } from "lucide-react";
 import { createSalida } from "./actions";
 import { ButtonSpinner } from "../components/ButtonSpinner";
+import { CursoSelect } from "../components/CursoSelect";
 import { useLocale } from "../SchoolContext";
 import { translate } from "../i18n";
 
@@ -91,12 +92,7 @@ export function SalidaFormModal({
                     <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                       {translate(locale, "salidas.curso")} <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      name="curso"
-                      required
-                      placeholder={translate(locale, "salidas.cursoPlaceholder")}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
-                    />
+                    <CursoSelect name="curso" required />
                   </div>
                   <div>
                     <label className="mb-1.5 block text-sm font-semibold text-slate-700">

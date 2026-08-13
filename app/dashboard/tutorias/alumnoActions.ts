@@ -7,6 +7,9 @@ import { authOptions } from "@/lib/auth";
 import { ConQuien, MedioContacto, RiesgoNivel } from "@prisma/client";
 import { generateAvatarUrl } from "@/lib/avatar";
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const TELEFONO_RE = /^\+\d{1,4} \d{6,12}$/;
+
 export async function createAlumno(formData: FormData) {
   const session = await getServerSession(authOptions);
   if (!session?.user.id || !session.user.schoolId) throw new Error("No autorizado.");
@@ -23,31 +26,58 @@ export async function createAlumno(formData: FormData) {
 
   if (!nombre) throw new Error("El nombre del alumno es obligatorio.");
   if (!curso) throw new Error("El curso/grupo es obligatorio.");
+  if (!edadRaw) throw new Error("La edad es obligatoria.");
+
+  const edad = Number(edadRaw);
+  if (!Number.isInteger(edad) || edad < 0 || edad > 99) throw new Error("La edad no es válida.");
+
+  if (!madreTelefono || !TELEFONO_RE.test(madreTelefono)) {
+    throw new Error("El teléfono de la madre no es válido.");
+  }
+  if (!madreEmail || !EMAIL_RE.test(madreEmail)) {
+    throw new Error("El email de la madre no es válido.");
+  }
+  if (!padreTelefono || !TELEFONO_RE.test(padreTelefono)) {
+    throw new Error("El teléfono del padre no es válido.");
+  }
+  if (!padreEmail || !EMAIL_RE.test(padreEmail)) {
+    throw new Error("El email del padre no es válido.");
+  }
 
   const avatarUrl = generateAvatarUrl(nombre);
+
+  // Equipo directivo puede elegir a qué profesor asignar como tutor; un
+  // Profesor siempre se asigna a sí mismo (no puede elegir a otro).
+  const esDirectivo =
+    session.user.role === "SUPERADMIN" || session.user.role === "COORDINADOR" || session.user.role === "ADMIN_CENTRO";
+  const tutorIdElegido = (formData.get("tutorId") as string)?.trim();
+  let profesorId = session.user.id;
+  if (esDirectivo && tutorIdElegido) {
+    const tutor = await prisma.user.findUnique({ where: { id: tutorIdElegido } });
+    if (!tutor || tutor.schoolId !== session.user.schoolId) {
+      throw new Error("El tutor elegido no es válido.");
+    }
+    profesorId = tutorIdElegido;
+  }
 
   const alumno = await prisma.alumno.create({
     data: {
       schoolId: session.user.schoolId,
-      profesorId: session.user.id,
+      profesorId,
       nombre,
       curso,
-      edad: edadRaw ? Number(edadRaw) : null,
+      edad,
       riesgo,
       avatarUrl,
     },
   });
 
-  const contactos = [];
-  if (madreTelefono || madreEmail) {
-    contactos.push({ alumnoId: alumno.id, relacion: "Madre", telefono: madreTelefono || null, email: madreEmail || null });
-  }
-  if (padreTelefono || padreEmail) {
-    contactos.push({ alumnoId: alumno.id, relacion: "Padre", telefono: padreTelefono || null, email: padreEmail || null });
-  }
-  if (contactos.length > 0) {
-    await prisma.alumnoContacto.createMany({ data: contactos });
-  }
+  await prisma.alumnoContacto.createMany({
+    data: [
+      { alumnoId: alumno.id, relacion: "Madre", telefono: madreTelefono, email: madreEmail },
+      { alumnoId: alumno.id, relacion: "Padre", telefono: padreTelefono, email: padreEmail },
+    ],
+  });
 
   revalidatePath("/dashboard/tutorias");
   revalidatePath("/dashboard/mis-alumnos");
@@ -74,10 +104,23 @@ export async function updateAlumnoFicha(formData: FormData) {
 
   if (!nombre) throw new Error("El nombre es obligatorio.");
   if (!curso) throw new Error("El curso/grupo es obligatorio.");
+  if (!edadRaw) throw new Error("La edad es obligatoria.");
+
+  const edad = Number(edadRaw);
+  if (!Number.isInteger(edad) || edad < 0 || edad > 99) throw new Error("La edad no es válida.");
+
+  // Solo equipo directivo puede reasignar el tutor de un alumno.
+  const tutorIdElegido = (formData.get("tutorId") as string)?.trim();
+  let profesorId: string | undefined;
+  if (esDirectivo && tutorIdElegido && tutorIdElegido !== alumno.profesorId) {
+    const tutor = await prisma.user.findUnique({ where: { id: tutorIdElegido } });
+    if (!tutor || tutor.schoolId !== alumno.schoolId) throw new Error("El tutor elegido no es válido.");
+    profesorId = tutorIdElegido;
+  }
 
   await prisma.alumno.update({
     where: { id },
-    data: { nombre, curso, edad: edadRaw ? Number(edadRaw) : null, riesgo },
+    data: { nombre, curso, edad, riesgo, ...(profesorId ? { profesorId } : {}) },
   });
 
   const madreTelefono = (formData.get("madreTelefono") as string)?.trim();
@@ -85,17 +128,26 @@ export async function updateAlumnoFicha(formData: FormData) {
   const padreTelefono = (formData.get("padreTelefono") as string)?.trim();
   const padreEmail = (formData.get("padreEmail") as string)?.trim();
 
+  if (!madreTelefono || !TELEFONO_RE.test(madreTelefono)) {
+    throw new Error("El teléfono de la madre no es válido.");
+  }
+  if (!madreEmail || !EMAIL_RE.test(madreEmail)) {
+    throw new Error("El email de la madre no es válido.");
+  }
+  if (!padreTelefono || !TELEFONO_RE.test(padreTelefono)) {
+    throw new Error("El teléfono del padre no es válido.");
+  }
+  if (!padreEmail || !EMAIL_RE.test(padreEmail)) {
+    throw new Error("El email del padre no es válido.");
+  }
+
   await prisma.alumnoContacto.deleteMany({ where: { alumnoId: id } });
-  const contactos = [];
-  if (madreTelefono || madreEmail) {
-    contactos.push({ alumnoId: id, relacion: "Madre", telefono: madreTelefono || null, email: madreEmail || null });
-  }
-  if (padreTelefono || padreEmail) {
-    contactos.push({ alumnoId: id, relacion: "Padre", telefono: padreTelefono || null, email: padreEmail || null });
-  }
-  if (contactos.length > 0) {
-    await prisma.alumnoContacto.createMany({ data: contactos });
-  }
+  await prisma.alumnoContacto.createMany({
+    data: [
+      { alumnoId: id, relacion: "Madre", telefono: madreTelefono, email: madreEmail },
+      { alumnoId: id, relacion: "Padre", telefono: padreTelefono, email: padreEmail },
+    ],
+  });
 
   revalidatePath("/dashboard/tutorias");
   revalidatePath("/dashboard/mis-alumnos");
@@ -240,6 +292,9 @@ export async function deleteAlumno(id: string) {
   const esDirectivo =
     session.user.role === "SUPERADMIN" ||
     ((session.user.role === "COORDINADOR" || session.user.role === "ADMIN_CENTRO") && alumno?.schoolId === session.user.schoolId);
+  // Un profesor solo puede eliminar los alumnos que ha creado/tutoriza él
+  // mismo; dirección (Coordinador/Admin. de Centro) puede eliminar
+  // cualquier alumno de su centro.
   if (!alumno || (alumno.profesorId !== session.user.id && !esDirectivo)) {
     throw new Error("No puedes eliminar un alumno que no es tuyo.");
   }

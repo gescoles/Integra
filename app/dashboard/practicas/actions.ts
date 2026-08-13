@@ -16,6 +16,26 @@ function texto(formData: FormData, campo: string) {
   return raw || null;
 }
 
+// Los campos "desactivables" (DNI, teléfono, dirección...) o se rellenan,
+// o se marca "No aplica" — nunca los dos vacíos a la vez. Un campo
+// desactivado ("No aplica" marcado) directamente no llega en el
+// FormData porque el <input disabled> del navegador no lo envía; así que
+// si SÍ ha llegado (está activo) pero viene vacío, es que el usuario se
+// lo ha saltado sin querer.
+function exigirCampoOMarcarNoAplica(formData: FormData, campo: string, etiqueta: string) {
+  if (!formData.has(campo)) return null; // "No aplica" marcado: correcto, se omite.
+  const raw = (formData.get(campo) as string)?.trim();
+  if (!raw) throw new Error(`${etiqueta}: rellena el campo o marca "No aplica".`);
+  return raw;
+}
+
+function fechaObligatoriaOMarcarNoAplica(formData: FormData, campo: string, etiqueta: string) {
+  if (!formData.has(campo)) return null;
+  const raw = (formData.get(campo) as string)?.trim();
+  if (!raw) throw new Error(`${etiqueta}: rellena el campo o marca "No aplica".`);
+  return new Date(`${raw}T00:00:00`);
+}
+
 async function puedeGestionarFicha(fichaId: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user.id) return { ok: false as const };
@@ -70,13 +90,13 @@ export async function crearFichaAlumno(formData: FormData) {
       cicloFormativo: texto(formData, "cicloFormativo"),
       anyTitulacion: texto(formData, "anyTitulacion"),
       tutorImesId: session.user.id,
-      dni: texto(formData, "dni"),
-      fechaNacimiento: fecha(formData, "fechaNacimiento"),
-      telefono: texto(formData, "telefono"),
-      direccion: texto(formData, "direccion"),
-      correoAlumno: texto(formData, "correoAlumno"),
-      cap: texto(formData, "cap"),
-      nuss: texto(formData, "nuss"),
+      dni: exigirCampoOMarcarNoAplica(formData, "dni", "DNI"),
+      fechaNacimiento: fechaObligatoriaOMarcarNoAplica(formData, "fechaNacimiento", "Fecha de nacimiento"),
+      telefono: exigirCampoOMarcarNoAplica(formData, "telefono", "Teléfono"),
+      direccion: exigirCampoOMarcarNoAplica(formData, "direccion", "Dirección"),
+      correoAlumno: exigirCampoOMarcarNoAplica(formData, "correoAlumno", "Correo del alumno"),
+      cap: exigirCampoOMarcarNoAplica(formData, "cap", "CAP"),
+      nuss: exigirCampoOMarcarNoAplica(formData, "nuss", "Nº Seguridad Social (NUSS)"),
     },
   });
 
@@ -97,13 +117,13 @@ export async function actualizarFichaAlumno(formData: FormData) {
       promocion: promocion === "PRIMERA" || promocion === "SEGUNDA" ? promocion : undefined,
       cicloFormativo: texto(formData, "cicloFormativo"),
       anyTitulacion: texto(formData, "anyTitulacion"),
-      dni: texto(formData, "dni"),
-      fechaNacimiento: fecha(formData, "fechaNacimiento"),
-      telefono: texto(formData, "telefono"),
-      direccion: texto(formData, "direccion"),
-      correoAlumno: texto(formData, "correoAlumno"),
-      cap: texto(formData, "cap"),
-      nuss: texto(formData, "nuss"),
+      dni: exigirCampoOMarcarNoAplica(formData, "dni", "DNI"),
+      fechaNacimiento: fechaObligatoriaOMarcarNoAplica(formData, "fechaNacimiento", "Fecha de nacimiento"),
+      telefono: exigirCampoOMarcarNoAplica(formData, "telefono", "Teléfono"),
+      direccion: exigirCampoOMarcarNoAplica(formData, "direccion", "Dirección"),
+      correoAlumno: exigirCampoOMarcarNoAplica(formData, "correoAlumno", "Correo del alumno"),
+      cap: exigirCampoOMarcarNoAplica(formData, "cap", "CAP"),
+      nuss: exigirCampoOMarcarNoAplica(formData, "nuss", "Nº Seguridad Social (NUSS)"),
     },
   });
 

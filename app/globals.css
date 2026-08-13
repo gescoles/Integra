@@ -97,3 +97,30 @@ html.dark .shadow-xl {
 /* Nota: la animación de carga de Docentium (módulos orbitando alrededor
    del monograma "DC") vive como CSS-in-JS dentro de
    app/dashboard/components/AssemblingLogo.tsx, no aquí. */
+
+/* Estilos para el cuerpo de una noticia en modo "texto simple" (los <p>
+   generados a partir del textarea del formulario de Noticias). No usamos
+   el plugin @tailwindcss/typography para no añadir una dependencia nueva
+   solo para esto. */
+.noticia-contenido {
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  color: #334155;
+}
+.noticia-contenido p {
+  margin-bottom: 1.25em;
+}
+.noticia-contenido p:last-child {
+  margin-bottom: 0;
+}
+.noticia-contenido a {
+  color: #fd5249;
+  text-decoration: underline;
+}
+.noticia-contenido img {
+  width: 100%;
+  height: auto;
+  border-radius: 1.25rem;
+  margin: 1.75em 0;
+  display: block;
+}

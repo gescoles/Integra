@@ -58,6 +58,10 @@ model School {
   modules   String[]     @default([])
   logoUrl   String?
   cursoAcademico String?
+  // Lista de cursos/grupos del centro (ej. "DAM1", "1r Batxillerat A"),
+  // para que los desplegables de "Curso/Grupo" (alumnos, horario...)
+  // ofrezcan los grupos reales del centro en vez de texto libre.
+  grupos    String[]     @default([])
   createdAt DateTime     @default(now())
   updatedAt DateTime     @default(now()) @updatedAt
   users     User[]
@@ -66,6 +70,7 @@ model School {
   material  MaterialRequest[]
   alumnos   Alumno[]
   avisos    Aviso[]
+  noticias  Noticia[]
   salidas   Salida[]
   practicas PracticaAlumno[]
   historias Historia[]
@@ -343,6 +348,7 @@ model User {
   eventos      CalendarEvento[]
   alumnos      Alumno[]
   avisos       Aviso[]
+  noticias     Noticia[]
   salidasCreadas     Salida[] @relation("SalidaCreador")
   salidasResponsable Salida[] @relation("SalidaResponsable")
   practicasComoTutor PracticaAlumno[] @relation("PracticaTutorIMES")
@@ -780,4 +786,42 @@ model Aviso {
   cuerpo    String
   categoria AvisoCategoria @default(GENERAL)
   createdAt DateTime       @default(now())
+}
+
+enum NoticiaModo {
+  SIMPLE // texto escrito desde el propio formulario
+  PERSONALIZADO // HTML + CSS subidos por el SuperAdmin
+}
+
+enum NoticiaCategoria {
+  CENTRO // noticia/publicidad de un centro concreto
+  EDUCACION_ESPANA // noticia general de educación en España, sin centro asociado
+}
+
+// Noticias/publicidad que el SuperAdmin publica en la web pública de
+// Docentium (/noticias). Dos categorías: EDUCACION_ESPANA (contenido
+// curado por Docentium sobre actualidad educativa, sin centro asociado,
+// siempre con fuente citada) y CENTRO (asociada a un centro concreto,
+// sirve como escaparate/marketing — para eso está Aviso, no esto, ya que
+// Aviso es interno para el propio centro).
+model Noticia {
+  id               String           @id @default(cuid())
+  schoolId         String?
+  school           School?          @relation(fields: [schoolId], references: [id])
+  autorId          String?
+  autor            User?            @relation(fields: [autorId], references: [id])
+  slug             String           @unique
+  titulo           String
+  resumen          String
+  imagenPortada    String?
+  categoria        NoticiaCategoria @default(CENTRO)
+  modo             NoticiaModo      @default(SIMPLE)
+  cuerpoHtml       String           @db.Text
+  cssPersonalizado String?          @db.Text
+  fuenteNombre     String?
+  fuenteUrl        String?
+  publicada        Boolean          @default(false)
+  publishedAt      DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @default(now()) @updatedAt
 }

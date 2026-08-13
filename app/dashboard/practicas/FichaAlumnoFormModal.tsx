@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, X, Search, Lock } from "lucide-react";
 import { crearFichaAlumno } from "./actions";
 import { CampoDesactivable } from "./CampoDesactivable";
+import { CampoTelefonoDesactivable } from "./CampoTelefonoDesactivable";
 import { ButtonSpinner } from "../components/ButtonSpinner";
 import { useLocale } from "../SchoolContext";
 import { translate } from "../i18n";
@@ -168,11 +169,35 @@ export function FichaAlumnoFormModal({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.cicloFormativo")}</label>
-                  <input name="cicloFormativo" placeholder="Ej. 1r CFGM AC" className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+                  {alumnoSeleccionado ? (
+                    <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-500">
+                      <Lock className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                      {alumnoSeleccionado.curso}
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-400">
+                      Elige primero un alumno
+                    </div>
+                  )}
+                  {/* El valor real que se envía: el curso del alumno elegido, no editable a mano. */}
+                  <input type="hidden" name="cicloFormativo" value={alumnoSeleccionado?.curso ?? ""} />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.anyTitulacion")}</label>
-                  <input name="anyTitulacion" placeholder="Ej. 2027" className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+                  <select
+                    name="anyTitulacion"
+                    defaultValue=""
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+                  >
+                    <option value="" disabled>
+                      Selecciona...
+                    </option>
+                    {Array.from({ length: 2035 - 2027 + 1 }, (_, i) => 2027 + i).map((anyo) => (
+                      <option key={anyo} value={anyo}>
+                        {anyo}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="col-span-2">
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.tutorImes")}</label>
@@ -188,7 +213,7 @@ export function FichaAlumnoFormModal({
                   <CampoDesactivable label={translate(locale, "practicas.fechaNacimiento")} name="fechaNacimiento" type="date" />
                 </div>
                 <div>
-                  <CampoDesactivable label={translate(locale, "practicas.telefono")} name="telefono" />
+                  <CampoTelefonoDesactivable label={translate(locale, "practicas.telefono")} name="telefono" />
                 </div>
                 <div>
                   <CampoDesactivable label={translate(locale, "practicas.correoAlumno")} name="correoAlumno" type="email" />

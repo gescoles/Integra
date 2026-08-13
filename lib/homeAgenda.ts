@@ -58,12 +58,56 @@ export function obtenerProximaTutoria(profesorId: string, ahora: Date = new Date
   });
 }
 
-/** La próxima guardia asignada al profesor a partir de ahora, sea hoy o en un día futuro. */
-export function obtenerProximaGuardia(profesorId: string, ahora: Date = new Date()) {
-  return prisma.guardia.findFirst({
-    where: { profesorId, fecha: { gte: ahora } },
-    orderBy: { fecha: "asc" },
-  });
+/**
+ * La próxima guardia del profesor a partir de ahora, sea hoy o en un día
+ * futuro. Mira las DOS fuentes que existen en la app:
+ * 1. Guardia — creadas a mano por dirección con "+ Nueva guardia".
+ * 2. CoberturaGuardia — asignadas al profesor como sustituto al resolver
+ *    el aviso de ausencia de otro compañero (esta es la misma fuente que
+ *    usa la alerta roja "Tienes X guardia que cubrir" en el inicio, así
+ *    que ambas ahora coinciden siempre).
+ * Devuelve la que caiga antes de las dos, ya normalizada a la forma
+ * { fecha, turno, ubicacion } que espera el widget de la agenda.
+ */
+export async function obtenerProximaGuardia(profesorId: string, ahora: Date = new Date()) {
+  const hoy = new Date(ahora);
+  hoy.setHours(0, 0, 0, 0);
+
+  const [guardiaPropia, coberturaAsignada] = await Promise.all([
+    prisma.guardia.findFirst({
+      where: { profesorId, fecha: { gte: ahora } },
+      orderBy: { fecha: "asc" },
+    }),
+    prisma.coberturaGuardia.findMany({
+      where: { profesorSustitutoId: profesorId, estado: "ASIGNADA", fecha: { gte: hoy } },
+      orderBy: { fecha: "asc" },
+    }),
+  ]);
+
+  // De las coberturas asignadas, la primera cuya hora de fin no haya
+  // pasado ya hoy (mismo criterio que la alerta roja del inicio).
+  const esHoy = (f: Date) => f.toDateString() === ahora.toDateString();
+  const horaFinYaPaso = (horaFin: string) => {
+    const [h, m] = horaFin.split(":").map(Number);
+    return h * 60 + m <= ahora.getHours() * 60 + ahora.getMinutes();
+  };
+  const proximaCobertura = coberturaAsignada.find((c) => !(esHoy(c.fecha) && horaFinYaPaso(c.horaFin))) ?? null;
+
+  const candidatas = [
+    guardiaPropia
+      ? { fecha: guardiaPropia.fecha, turno: guardiaPropia.turno, ubicacion: guardiaPropia.ubicacion }
+      : null,
+    proximaCobertura
+      ? {
+          fecha: proximaCobertura.fecha,
+          turno: `${proximaCobertura.horaInicio}–${proximaCobertura.horaFin}`,
+          ubicacion: proximaCobertura.ubicacion,
+        }
+      : null,
+  ].filter((c): c is { fecha: Date; turno: string; ubicacion: string | null } => c !== null);
+
+  if (candidatas.length === 0) return null;
+  return candidatas.reduce((antes, actual) => (actual.fecha < antes.fecha ? actual : antes));
 }
 
 /**

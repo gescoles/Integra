@@ -30,6 +30,7 @@ import {
   Bus,
   CheckSquare,
   Bot,
+  Newspaper,
 } from "lucide-react";
 import { HexLogo } from "@/app/components/Logo";
 import { ROLE_LABELS_FULL } from "../constants";
@@ -85,6 +86,7 @@ const superadminSections: {
       { href: "/dashboard/planes", labelKey: "nav.planes", icon: CreditCard },
       { href: "/dashboard/auditoria", labelKey: "nav.auditoria", icon: Clock },
       { href: "/dashboard/chatbot-admin", labelKey: "nav.chatbotAdmin", icon: Bot },
+      { href: "/dashboard/noticias-admin", labelKey: "nav.noticiasAdmin", icon: Newspaper },
       { href: "/dashboard/configuracion", labelKey: "nav.configuracion", icon: Settings },
     ],
   },
@@ -274,6 +276,20 @@ export function Sidebar({
           >
             <Building2 className="h-4 w-4" />
             {translate(locale, "nav.miDepartamento")}
+          </Link>
+        )}
+
+        {!isSuperAdmin && (role === "COORDINADOR" || role === "ADMIN_CENTRO") && (
+          <Link
+            href="/dashboard/grupos"
+            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              pathname === "/dashboard/grupos"
+                ? "bg-[#FD5249] text-white"
+                : "text-slate-300 hover:bg-white/5 hover:text-white"
+            }`}
+          >
+            <GraduationCap className="h-4 w-4" />
+            {translate(locale, "nav.grupos")}
           </Link>
         )}
 

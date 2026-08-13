@@ -8,6 +8,7 @@ import {
   obtenerProximaGuardia,
   obtenerProximoEvento,
 } from "@/lib/homeAgenda";
+import { obtenerUltimasNoticias } from "@/lib/noticiasPublic";
 import { DashboardHeader } from "./components/DashboardHeader";
 import { translate, AppLocale } from "./i18n";
 import { HistoriasBar } from "./components/HistoriasBar";
@@ -156,10 +157,11 @@ export async function CoordinadorHome({
   // próxima ocurrencia real aunque caiga otro día, para que siempre haya
   // algo que mostrar (un "recordatorio" de verdad, no solo para hoy).
   const ahora = new Date();
-  const [proximaTutoriaRaw, proximaGuardiaRaw, proximoEventoRaw] = await Promise.all([
+  const [proximaTutoriaRaw, proximaGuardiaRaw, proximoEventoRaw, ultimasNoticias] = await Promise.all([
     hasTutorias ? obtenerProximaTutoria(userId, ahora) : Promise.resolve(null),
     hasGuardias ? obtenerProximaGuardia(userId, ahora) : Promise.resolve(null),
     obtenerProximoEvento(userId, ahora),
+    obtenerUltimasNoticias(3),
   ]);
   // La "próxima clase" sale del horario semanal recurrente (no tiene fecha
   // propia), así que se calcula en memoria a partir de día+hora. Se
@@ -334,7 +336,7 @@ export async function CoordinadorHome({
 
       <div className="mb-5 grid gap-5 lg:grid-cols-2">
         <HistoriasBar puedeSubir currentUserId={userId} currentUserRole={role} currentUserSchoolId={schoolId} />
-        <ComunidadPanel avisos={avisos} />
+        <ComunidadPanel avisos={avisos} noticias={ultimasNoticias} />
       </div>
 
 

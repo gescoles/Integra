@@ -6,6 +6,9 @@ import { Plus, X } from "lucide-react";
 import { createAlumno } from "./alumnoActions";
 import { RIESGO_LABELS } from "./alumnoConstants";
 import { ButtonSpinner } from "../components/ButtonSpinner";
+import { PhoneInput } from "../components/PhoneInput";
+import { CursoSelect } from "../components/CursoSelect";
+import { TutorSelect } from "../components/TutorSelect";
 
 export function NuevoAlumnoModal() {
   const router = useRouter();
@@ -75,12 +78,7 @@ export function NuevoAlumnoModal() {
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                     Curso / Grupo
                   </label>
-                  <input
-                    name="curso"
-                    required
-                    placeholder="Ej. 2º ESO B"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
-                  />
+                  <CursoSelect name="curso" required />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">
@@ -89,6 +87,7 @@ export function NuevoAlumnoModal() {
                   <input
                     name="edad"
                     type="number"
+                    required
                     min={0}
                     max={99}
                     placeholder="Ej. 14"
@@ -114,38 +113,34 @@ export function NuevoAlumnoModal() {
                 </select>
               </div>
 
+              <TutorSelect name="tutorId" />
+
               <div className="border-t border-slate-100 pt-4">
                 <h3 className="mb-3 text-sm font-semibold text-slate-700">Contacto familiar</h3>
                 <div className="space-y-3">
                   <div>
                     <label className="mb-1 block text-xs font-medium text-slate-500">Madre</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        name="madreTelefono"
-                        placeholder="Teléfono"
-                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
-                      />
+                    <div className="space-y-2">
+                      <PhoneInput name="madreTelefono" required />
                       <input
                         name="madreEmail"
                         type="email"
-                        placeholder="Email"
-                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
+                        required
+                        placeholder="madre@email.com"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
                       />
                     </div>
                   </div>
                   <div>
                     <label className="mb-1 block text-xs font-medium text-slate-500">Padre</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        name="padreTelefono"
-                        placeholder="Teléfono"
-                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
-                      />
+                    <div className="space-y-2">
+                      <PhoneInput name="padreTelefono" required />
                       <input
                         name="padreEmail"
                         type="email"
-                        placeholder="Email"
-                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
+                        required
+                        placeholder="padre@email.com"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
                       />
                     </div>
                   </div>

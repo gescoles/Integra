@@ -13,7 +13,7 @@ import {
   ChevronUp,
   Award,
 } from "lucide-react";
-import { eliminarConvenio, eliminarProrroga } from "../actions";
+import { eliminarConvenio, eliminarProrroga, eliminarFichaAlumno } from "../actions";
 import { ConvenioFormModal } from "./ConvenioFormModal";
 import { ProrrogaFormModal } from "./ProrrogaFormModal";
 import { CerrarConvenioModal } from "./CerrarConvenioModal";
@@ -284,12 +284,60 @@ export function DetalleClient({
   esDirectivo: boolean;
 }) {
   const { locale } = useLocale();
+  const router = useRouter();
+  const [confirmarEliminar, setConfirmarEliminar] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
+
+  async function handleEliminarFicha() {
+    setEliminando(true);
+    try {
+      await eliminarFichaAlumno(ficha.id);
+      router.push("/dashboard/practicas");
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "No se pudo eliminar la ficha.");
+      setEliminando(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
-      <Link href="/dashboard/practicas" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-[#FD5249]">
-        <ArrowLeft className="h-3.5 w-3.5" /> {translate(locale, "practicas.title")}
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link href="/dashboard/practicas" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-[#FD5249]">
+          <ArrowLeft className="h-3.5 w-3.5" /> {translate(locale, "practicas.title")}
+        </Link>
+        <button
+          onClick={() => setConfirmarEliminar(true)}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
+        >
+          <Trash2 className="h-3.5 w-3.5" /> Eliminar ficha
+        </button>
+      </div>
+
+      {confirmarEliminar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="text-base font-bold text-[#0B1D4D]">¿Eliminar esta ficha de prácticas?</h3>
+            <p className="mt-2 text-sm text-slate-500">
+              Se borrará la ficha de <strong className="text-slate-700">{ficha.alumnoNombre}</strong> junto con sus convenios y prórrogas. Esta acción no se puede deshacer.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmarEliminar(false)}
+                className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleEliminarFicha}
+                disabled={eliminando}
+                className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {eliminando ? "Eliminando..." : "Eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Ficha del alumno */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -309,7 +357,7 @@ export function DetalleClient({
               {ficha.promocion === "PRIMERA" ? translate(locale, "practicas.primeraPromocion") : translate(locale, "practicas.segundaPromocion")}
             </span>
           </div>
-          <EditFichaModal ficha={ficha} />
+          <EditFichaModal ficha={ficha} alumnoCurso={ficha.alumnoCurso} />
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">

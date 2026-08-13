@@ -40,6 +40,7 @@ export function SiteHeader() {
         <a href="/#funciones" className="hover:text-[#0B1D4D]">Funciones</a>
         <a href="/#como-funciona" className="hover:text-[#0B1D4D]">Cómo funciona</a>
         <a href="/#planes" className="hover:text-[#0B1D4D]">Planes</a>
+        <Link href="/noticias" className="hover:text-[#0B1D4D]">Noticias</Link>
         <div className="relative" onMouseEnter={() => setAbierto(true)} onMouseLeave={() => setAbierto(false)}>
           <button
             onClick={() => setAbierto((v) => !v)}

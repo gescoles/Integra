@@ -28,6 +28,7 @@ async function getAlumnos(schoolId: string, soloProfesorId?: string) {
     edad: a.edad,
     riesgo: a.riesgo,
     avatarUrl: a.avatarUrl,
+    profesorId: a.profesorId,
     profesorNombre: a.profesor.name ?? a.profesor.email,
     contactos: a.contactos.map((c) => ({ id: c.id, relacion: c.relacion, telefono: c.telefono, email: c.email })),
   }));

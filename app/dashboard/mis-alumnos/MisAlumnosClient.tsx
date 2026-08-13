@@ -6,6 +6,9 @@ import { Search, Pencil, Trash2, X } from "lucide-react";
 import { updateAlumnoFicha, deleteAlumno } from "../tutorias/alumnoActions";
 import { RIESGO_LABELS, RIESGO_COLORS } from "../tutorias/alumnoConstants";
 import { ButtonSpinner } from "../components/ButtonSpinner";
+import { CursoSelect } from "../components/CursoSelect";
+import { PhoneInput } from "../components/PhoneInput";
+import { TutorSelect } from "../components/TutorSelect";
 import { useLocale, useGuardadoTransition } from "../SchoolContext";
 import { translate } from "../i18n";
 
@@ -17,6 +20,7 @@ type Alumno = {
   edad: number | null;
   riesgo: string;
   avatarUrl: string | null;
+  profesorId: string;
   profesorNombre: string;
   contactos: Contacto[];
 };
@@ -199,11 +203,11 @@ function EditarAlumnoModal({ alumno, onClose }: { alumno: Alumno; onClose: () =>
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "misAlumnos.colCiclo")}</label>
-              <input name="curso" defaultValue={alumno.curso} required className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+              <CursoSelect name="curso" defaultValue={alumno.curso} required />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "misAlumnos.colEdad")}</label>
-              <input name="edad" type="number" defaultValue={alumno.edad ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+              <input name="edad" type="number" required min={0} max={99} defaultValue={alumno.edad ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
             </div>
             <div className="col-span-2">
               <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "misAlumnos.colRiesgo")}</label>
@@ -215,13 +219,25 @@ function EditarAlumnoModal({ alumno, onClose }: { alumno: Alumno; onClose: () =>
             </div>
           </div>
 
+          <TutorSelect name="tutorId" defaultValue={alumno.profesorId} />
+
           <div className="border-t border-slate-100 pt-4">
             <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-400">Contactos</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <input name="madreTelefono" placeholder="Teléfono madre" defaultValue={madre?.telefono ?? ""} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
-              <input name="madreEmail" placeholder="Email madre" defaultValue={madre?.email ?? ""} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
-              <input name="padreTelefono" placeholder="Teléfono padre" defaultValue={padre?.telefono ?? ""} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
-              <input name="padreEmail" placeholder="Email padre" defaultValue={padre?.email ?? ""} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Madre</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <PhoneInput name="madreTelefono" defaultValue={madre?.telefono ?? ""} required />
+                  <input name="madreEmail" type="email" required placeholder="Email madre" defaultValue={madre?.email ?? ""} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Padre</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <PhoneInput name="padreTelefono" defaultValue={padre?.telefono ?? ""} required />
+                  <input name="padreEmail" type="email" required placeholder="Email padre" defaultValue={padre?.email ?? ""} className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+                </div>
+              </div>
             </div>
           </div>
 

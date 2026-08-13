@@ -16,6 +16,8 @@ import {
   Eye,
 } from "lucide-react";
 import { NuevoAlumnoModal } from "./NuevoAlumnoModal";
+import { CursoSelect } from "../components/CursoSelect";
+import { PhoneInput } from "../components/PhoneInput";
 import {
   createTutoriaAlumno,
   updateAlumnoFicha,
@@ -568,18 +570,16 @@ export function AlumnosClient({
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                     {translate(locale, "tutorias.cursoGrupo")}
                   </label>
-                  <input
-                    name="curso"
-                    required
-                    defaultValue={selected.curso}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
-                  />
+                  <CursoSelect name="curso" defaultValue={selected.curso} required />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "tutorias.edad")}</label>
                   <input
                     name="edad"
                     type="number"
+                    required
+                    min={0}
+                    max={99}
                     defaultValue={selected.edad ?? ""}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
@@ -609,15 +609,11 @@ export function AlumnosClient({
                   <div>
                     <label className="mb-1 block text-xs font-medium text-slate-500">{translate(locale, "tutorias.madre")}</label>
                     <div className="grid grid-cols-2 gap-2">
-                      <input
-                        name="madreTelefono"
-                        defaultValue={madre?.telefono ?? ""}
-                        placeholder={translate(locale, "tutorias.telefono")}
-                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
-                      />
+                      <PhoneInput name="madreTelefono" defaultValue={madre?.telefono ?? ""} required />
                       <input
                         name="madreEmail"
                         type="email"
+                        required
                         defaultValue={madre?.email ?? ""}
                         placeholder={translate(locale, "tutorias.email")}
                         className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
@@ -627,15 +623,11 @@ export function AlumnosClient({
                   <div>
                     <label className="mb-1 block text-xs font-medium text-slate-500">{translate(locale, "tutorias.padre")}</label>
                     <div className="grid grid-cols-2 gap-2">
-                      <input
-                        name="padreTelefono"
-                        defaultValue={padre?.telefono ?? ""}
-                        placeholder={translate(locale, "tutorias.telefono")}
-                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
-                      />
+                      <PhoneInput name="padreTelefono" defaultValue={padre?.telefono ?? ""} required />
                       <input
                         name="padreEmail"
                         type="email"
+                        required
                         defaultValue={padre?.email ?? ""}
                         placeholder={translate(locale, "tutorias.email")}
                         className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
