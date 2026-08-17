@@ -829,3 +829,42 @@ export async function sendCoberturaModificadaEmail(params: {
     `,
   });
 }
+
+export async function sendSolicitudCentroEmail(params: {
+  tipo: "demo" | "registro";
+  centro: string;
+  responsable: string;
+  cargo: string;
+  telefono: string;
+  email: string;
+  numAlumnos?: string;
+  mensaje?: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+  const destino = process.env.LEADS_EMAIL || "gescoles@gmail.com";
+  const asunto = params.tipo === "demo" ? "Nueva solicitud de demo" : "Nueva solicitud de registro de centro";
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: destino,
+    replyTo: params.email,
+    subject: `${asunto}: ${params.centro}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">${asunto}</h2>
+        <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
+          <p style="margin:0;"><strong>Centro:</strong> ${params.centro}</p>
+          <p style="margin:8px 0 0;"><strong>Responsable:</strong> ${params.responsable} (${params.cargo})</p>
+          <p style="margin:8px 0 0;"><strong>Teléfono:</strong> ${params.telefono}</p>
+          <p style="margin:8px 0 0;"><strong>Email:</strong> ${params.email}</p>
+          ${params.numAlumnos ? `<p style="margin:8px 0 0;"><strong>Nº aprox. de alumnos:</strong> ${params.numAlumnos}</p>` : ""}
+          ${params.mensaje ? `<p style="margin:8px 0 0;"><strong>Mensaje:</strong> ${params.mensaje}</p>` : ""}
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Este formulario se ha enviado desde la web pública de Docentium.
+        </p>
+      </div>
+    `,
+  });
+}

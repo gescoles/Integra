@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
-    "seed:noticias-educacion": "ts-node --project tsconfig.scripts.json scripts/seedNoticiasEducacion.ts"
+    "seed:noticias-educacion": "ts-node --project tsconfig.scripts.json scripts/seedNoticiasEducacion.ts",
+    "cap:assets": "capacitor-assets generate --android",
+    "cap:sync": "npx cap sync android",
+    "cap:open:android": "npx cap open android"
   },
   "prisma": {
     "seed": "ts-node --project tsconfig.scripts.json prisma/seed.ts"
@@ -42,6 +45,10 @@
     "eslint": "^8",
     "eslint-config-next": "14.2.5",
     "prisma": "^5.18.0",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/cli": "^6.1.2",
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/assets": "^3.0.5"
   }
 }

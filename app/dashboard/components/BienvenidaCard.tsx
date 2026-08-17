@@ -41,21 +41,21 @@ export function BienvenidaCard({
   ].filter(Boolean) as { icon: typeof Users; color: string; label: string; value: string }[];
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-8">
-      <div className="flex flex-col gap-8 md:flex-row md:items-center">
-        <div className="flex flex-1 items-center gap-6">
-          <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-50 ring-1 ring-slate-100">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-8">
+      <div className="flex flex-col gap-6 sm:gap-8 md:flex-row md:items-center">
+        <div className="flex min-w-0 flex-1 items-center gap-4 sm:gap-6">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-50 ring-1 ring-slate-100 sm:h-28 sm:w-28">
             {logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={logoUrl} alt="" className="h-full w-full object-cover" />
             ) : (
-              <Landmark className="h-11 w-11 text-slate-300" />
+              <Landmark className="h-7 w-7 text-slate-300 sm:h-11 sm:w-11" />
             )}
           </div>
 
-          <div className="min-w-[220px]">
-            <h2 className="text-2xl font-bold text-[#0B1D4D]">¡Bienvenido, {userName}!</h2>
-            <p className="mt-1.5 max-w-md text-base text-slate-500">
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-[#0B1D4D] sm:text-2xl">¡Bienvenido, {userName}!</h2>
+            <p className="mt-1.5 max-w-md text-sm text-slate-500 sm:text-base">
               Nos alegra verte de nuevo. Aquí tienes un resumen de lo más importante para que tu día sea un éxito.
             </p>
           </div>

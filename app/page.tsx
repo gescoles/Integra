@@ -182,12 +182,12 @@ function Hero() {
           pensada para el día a día real de un centro educativo.
         </p>
         <div className="mt-7 flex items-center gap-3">
-          <button className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
+          <Link href="/solicitar?tipo=demo" className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
             Solicitar demo
-          </button>
-          <button className="flex items-center gap-2 rounded-lg bg-[#FD5249] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-transform hover:-translate-y-0.5 hover:bg-[#D7463E] hover:shadow-md">
+          </Link>
+          <Link href="/solicitar?tipo=registro" className="flex items-center gap-2 rounded-lg bg-[#FD5249] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-transform hover:-translate-y-0.5 hover:bg-[#D7463E] hover:shadow-md">
             <ShieldCheck className="h-4 w-4" /> Registrar mi centro
-          </button>
+          </Link>
         </div>
         <div className="mt-5 flex items-center gap-5 text-xs text-slate-500">
           <span className="flex items-center gap-1">
@@ -537,106 +537,6 @@ function Testimonials() {
   );
 }
 
-function Pricing() {
-  const plans = [
-    {
-      name: "Básico",
-      desc: "Ideal para centros pequeños",
-      price: "49",
-      users: "Hasta 10 usuarios",
-      features: ["Todo lo incluido básico", "Soporte por email", "Actualizaciones incluidas"],
-      cta: "Probar gratis",
-      highlight: false,
-      soon: false,
-    },
-    {
-      name: "Profesional",
-      desc: "Para centros en crecimiento",
-      price: "99",
-      users: "Hasta 40 usuarios",
-      features: ["Todo lo incluido avanzado", "Informes y estadísticas", "Soporte prioritario"],
-      cta: "Probar gratis",
-      highlight: true,
-      soon: false,
-    },
-    {
-      name: "Institucional",
-      desc: "Para grandes instituciones",
-      price: "149",
-      users: "Hasta 100 usuarios",
-      features: ["Todo lo incluido", "Integraciones personalizadas", "Soporte dedicado"],
-      cta: "Próximamente",
-      highlight: false,
-      soon: true,
-    },
-  ];
-
-  return (
-    <section id="planes" className="bg-slate-50/60 py-16">
-      <div className="mx-auto max-w-7xl px-6 text-center">
-        <h2 className="text-2xl font-bold text-[#0B1D4D]">Planes para cada tipo de centro</h2>
-        <p className="mt-2 text-sm text-slate-500">
-          Elige el plan que mejor se adapta a tus necesidades.
-        </p>
-        <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
-          {plans.map((p) => (
-            <div
-              key={p.name}
-              className={`relative rounded-2xl border p-6 text-left ${
-                p.highlight
-                  ? "border-[#FD5249] bg-white shadow-lg"
-                  : "border-slate-200 bg-white"
-              }`}
-            >
-              {p.highlight && (
-                <span className="absolute -top-3 left-6 rounded-full bg-[#FD5249] px-3 py-1 text-[11px] font-semibold text-white">
-                  Más popular
-                </span>
-              )}
-              {p.soon && (
-                <span className="absolute right-0 top-0 rounded-bl-xl rounded-tr-2xl bg-amber-400 px-3 py-1 text-[11px] font-semibold text-white">
-                  Próximamente
-                </span>
-              )}
-              <div className="text-sm font-bold text-[#0B1D4D]">{p.name}</div>
-              <div className="text-xs text-slate-500">{p.desc}</div>
-              <div className="mt-4 flex items-end gap-1">
-                <span className="text-3xl font-extrabold text-[#0B1D4D]">€{p.price}</span>
-                <span className="pb-1 text-xs text-slate-500">/mes</span>
-              </div>
-              <div className="mt-1 text-xs text-slate-500">{p.users}</div>
-              <ul className="mt-4 space-y-2">
-                {p.features.map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-[13px] text-slate-600">
-                    <CheckCircle2 className="h-4 w-4 text-[#FD5249]" /> {f}
-                  </li>
-                ))}
-              </ul>
-              <button
-                disabled={p.soon}
-                className={`mt-6 w-full rounded-lg px-4 py-2.5 text-sm font-semibold ${
-                  p.soon
-                    ? "cursor-not-allowed bg-slate-200 text-slate-400"
-                    : p.highlight
-                    ? "bg-[#FD5249] text-white hover:bg-[#D7463E]"
-                    : "border border-[#FD5249] text-[#FD5249] hover:bg-blue-50"
-                }`}
-              >
-                {p.cta}
-              </button>
-            </div>
-          ))}
-        </div>
-        <div className="mt-8 flex justify-center gap-6 text-xs text-slate-500">
-          <span>Prueba gratis 14 días</span>
-          <span>Sin compromiso</span>
-          <span>Cancela cuando quieras</span>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function CTABanner() {
   return (
     <section className="mx-auto max-w-7xl px-6 py-10">
@@ -648,12 +548,12 @@ function CTABanner() {
           Únete a cientos de centros que ya han transformado su forma de trabajar con Docentium.
         </p>
         <div className="mt-6 flex justify-center gap-3">
-          <button className="rounded-lg border border-white px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10">
+          <a href="/#funciones" className="rounded-lg border border-white px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10">
             Conocer funciones
-          </button>
-          <button className="rounded-lg bg-[#FD5249] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]">
+          </a>
+          <Link href="/solicitar?tipo=registro" className="rounded-lg bg-[#FD5249] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]">
             Registrar mi centro
-          </button>
+          </Link>
         </div>
       </div>
     </section>
@@ -672,7 +572,6 @@ export default function LandingPage() {
       <HistoriasDemo />
       <HowItWorks />
       <Testimonials />
-      <Pricing />
       <CTABanner />
       <SiteFooter />
     </main>
