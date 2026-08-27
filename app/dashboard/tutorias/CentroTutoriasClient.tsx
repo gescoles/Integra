@@ -75,6 +75,13 @@ type Stats = {
 
 const PAGE_SIZE = 8;
 
+// 3 o más tutorías hechas = verde, 1-2 = naranja, 0 = rojo.
+function colorTotalTutorias(total: number) {
+  if (total >= 3) return "bg-emerald-500";
+  if (total >= 1) return "bg-amber-500";
+  return "bg-red-500";
+}
+
 function fmtFecha(iso: string) {
   return new Date(iso).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
@@ -413,7 +420,7 @@ export function CentroTutoriasClient({
                     </div>
                     <span
                       title={translate(locale, "tutorias.totalTutorias")}
-                      className="shrink-0 rounded-full bg-[#0B1D4D] px-1.5 py-0.5 text-[10px] font-bold text-white"
+                      className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white ${colorTotalTutorias(total)}`}
                     >
                       {total}
                     </span>
@@ -618,13 +625,13 @@ export function CentroTutoriasClient({
                   <h4 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
                     Última nota
                   </h4>
-                  <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+                  <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600 overflow-hidden">
                     <div className="mb-1 flex items-center gap-1.5 text-[11px] text-slate-400">
                       <MessageCircle className="h-3 w-3" />
                       {fmtFecha(ultimaNota.sessionDate)} ·{" "}
                       {ultimaNota.conQuien ? translate(locale, `conQuien.${ultimaNota.conQuien}` as never) : "—"}
                     </div>
-                    <p className="whitespace-pre-wrap">{ultimaNota.notas}</p>
+                    <p className="whitespace-pre-wrap break-words">{ultimaNota.notas}</p>
                   </div>
                   <button
                     onClick={() => setSearch(selectedAlumno.nombre)}
@@ -888,7 +895,7 @@ export function CentroTutoriasClient({
 
               <div>
                 <div className="text-xs font-semibold text-slate-400">{translate(locale, "tutorias.resumenTutoriaLabel")}</div>
-                <p className="mt-1 whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-slate-700">
+                <p className="mt-1 whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-3 text-slate-700">
                   {viewingTutoria.notas || translate(locale, "tutorias.tutoriaNoCerrada")}
                 </p>
               </div>

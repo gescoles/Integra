@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ChevronDown } from "lucide-react";
 import { Logo } from "./Logo";
+import { CTAConLoader } from "./CTAConLoader";
 
 type Centro = { nombre: string; slug: string; lugar: string; logo: string };
 
@@ -76,9 +77,9 @@ export function SiteHeader() {
         >
           Iniciar sesión
         </Link>
-        <button className="rounded-lg bg-[#FD5249] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#D7463E]">
+        <CTAConLoader href="/solicitar?tipo=registro" className="rounded-lg bg-[#FD5249] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#D7463E]">
           Registrar mi centro
-        </button>
+        </CTAConLoader>
       </div>
     </header>
   );

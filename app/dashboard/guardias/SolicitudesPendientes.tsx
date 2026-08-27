@@ -2,14 +2,18 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { UserX, ShieldCheck, Send, ChevronDown, ChevronUp, X } from "lucide-react";
-import { asignarSustitutoCobertura, rechazarSolicitud } from "./actions";
+import { UserX, ShieldCheck, Send, ChevronDown, ChevronUp, X, Check, Users } from "lucide-react";
+import { asignarSustitutoCobertura, rechazarSolicitud, aceptarAusencia } from "./actions";
 import { ButtonSpinner } from "../components/ButtonSpinner";
 import { useLocale } from "../SchoolContext";
 import { translate } from "../i18n";
 
 type Solicitud = {
   id: string;
+  // El servidor ya filtra para que solo lleguen estas dos, pero el tipo que
+  // devuelve Prisma sigue siendo el enum completo — lo aceptamos como string
+  // en vez de limitarlo a 2 valores, para no pelear con el tipo generado.
+  estado: string;
   profesorAusenteId: string;
   profesorAusenteNombre: string;
   fecha: string;
@@ -51,7 +55,9 @@ function SolicitudCard({
   const { locale } = useLocale();
   const [abierta, setAbierta] = useState(Boolean(autoAbrir));
   const [sustitutoId, setSustitutoId] = useState<string | null>(null);
+  const [modoManual, setModoManual] = useState(false);
   const [pending, setPending] = useState(false);
+  const [pendingAceptar, setPendingAceptar] = useState(false);
   const [pendingRechazo, setPendingRechazo] = useState(false);
   const [confirmandoRechazo, setConfirmandoRechazo] = useState(false);
   const [motivoRechazo, setMotivoRechazo] = useState("");
@@ -91,6 +97,24 @@ function SolicitudCard({
     const idsDeGuardia = new Set([...idsDesdeGuardiasCalendario, ...idsDesdeHorario]);
     return profesores.filter((p) => idsDeGuardia.has(p.id));
   }, [guardias, horarios, profesores, s]);
+
+  const otrosProfesores = useMemo(
+    () => profesores.filter((p) => p.id !== s.profesorAusenteId),
+    [profesores, s.profesorAusenteId]
+  );
+
+  async function handleAceptar() {
+    setPendingAceptar(true);
+    setError(null);
+    try {
+      await aceptarAusencia(s.id);
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo aceptar.");
+    } finally {
+      setPendingAceptar(false);
+    }
+  }
 
   async function handleAsignar() {
     if (!sustitutoId) return;
@@ -143,7 +167,14 @@ function SolicitudCard({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="hidden text-xs font-semibold text-[#FD5249] sm:inline">{translate(locale, "guardias.gestionarGuardia")}</span>
+          {s.estado === "ACEPTADA" && (
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+              Aceptada
+            </span>
+          )}
+          <span className="hidden text-xs font-semibold text-[#FD5249] sm:inline">
+            {s.estado === "ACEPTADA" ? translate(locale, "guardias.gestionarGuardia") : "Revisar aviso"}
+          </span>
           {abierta ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
         </div>
       </button>
@@ -172,81 +203,125 @@ function SolicitudCard({
 
           {error && <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{error}</div>}
 
-          <div>
-            <p className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-400">
-              <ShieldCheck className="h-3.5 w-3.5" /> {translate(locale, "guardias.quienEstaDeGuardia")}
-            </p>
-            {disponibles.length === 0 ? (
-              <p className="rounded-lg bg-white px-3 py-2.5 text-xs text-amber-600">{translate(locale, "guardias.nadieDeGuardia")}</p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {disponibles.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => setSustitutoId(p.id)}
-                    className={`rounded-lg border px-3.5 py-2 text-sm font-semibold transition-colors ${
-                      sustitutoId === p.id ? "border-[#FD5249] bg-[#FD5249] text-white" : "border-slate-200 bg-white text-slate-600 hover:border-[#FD5249]"
-                    }`}
-                  >
-                    {p.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 pt-1">
-            {sustitutoId && (
+          {s.estado === "PENDIENTE" ? (
+            // Todavía no se ha aceptado el aviso: solo se puede aceptar o rechazar.
+            <div className="flex flex-wrap items-center gap-3 pt-1">
               <button
-                onClick={handleAsignar}
-                disabled={pending}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
+                onClick={handleAceptar}
+                disabled={pendingAceptar}
+                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
               >
-                {pending ? <ButtonSpinner /> : <Send className="h-4 w-4" />}
-                {translate(locale, "guardias.enviarAviso")}
+                {pendingAceptar ? <ButtonSpinner /> : <Check className="h-4 w-4" />}
+                Aceptar ausencia
               </button>
-            )}
 
-            {confirmandoRechazo ? (
-              <div className="w-full space-y-2">
-                <label className="block text-xs font-semibold text-slate-600">{translate(locale, "guardias.motivoRechazoLabel")}</label>
-                <textarea
-                  value={motivoRechazo}
-                  onChange={(e) => setMotivoRechazo(e.target.value)}
-                  rows={2}
-                  placeholder={translate(locale, "guardias.motivoRechazoPlaceholder")}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-red-400"
-                />
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleRechazar}
-                    disabled={pendingRechazo}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-60"
-                  >
-                    {pendingRechazo ? <ButtonSpinner /> : translate(locale, "guardias.siRechazar")}
-                  </button>
+              {confirmandoRechazo ? (
+                <div className="w-full space-y-2">
+                  <label className="block text-xs font-semibold text-slate-600">{translate(locale, "guardias.motivoRechazoLabel")}</label>
+                  <textarea
+                    value={motivoRechazo}
+                    onChange={(e) => setMotivoRechazo(e.target.value)}
+                    rows={2}
+                    placeholder={translate(locale, "guardias.motivoRechazoPlaceholder")}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-red-400"
+                  />
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleRechazar}
+                      disabled={pendingRechazo}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                    >
+                      {pendingRechazo ? <ButtonSpinner /> : translate(locale, "guardias.siRechazar")}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setConfirmandoRechazo(false);
+                        setMotivoRechazo("");
+                        setError(null);
+                      }}
+                      className="rounded-lg border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50"
+                    >
+                      {translate(locale, "common.cancelar")}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmandoRechazo(true)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+                >
+                  <X className="h-4 w-4" />
+                  {translate(locale, "guardias.rechazarSolicitud")}
+                </button>
+              )}
+            </div>
+          ) : (
+            // Ya aceptada: gestionar guardia, con selección automática o manual.
+            <>
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-400">
+                    <ShieldCheck className="h-3.5 w-3.5" /> {translate(locale, "guardias.quienEstaDeGuardia")}
+                  </p>
                   <button
                     onClick={() => {
-                      setConfirmandoRechazo(false);
-                      setMotivoRechazo("");
-                      setError(null);
+                      setModoManual((v) => !v);
+                      setSustitutoId(null);
                     }}
-                    className="rounded-lg border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50"
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#FD5249] hover:underline"
                   >
-                    {translate(locale, "common.cancelar")}
+                    <Users className="h-3 w-3" />
+                    {modoManual ? "Ver quién está de guardia" : "Asignar manualmente"}
                   </button>
                 </div>
+
+                {modoManual ? (
+                  <div className="flex flex-wrap gap-2">
+                    {otrosProfesores.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => setSustitutoId(p.id)}
+                        className={`rounded-lg border px-3.5 py-2 text-sm font-semibold transition-colors ${
+                          sustitutoId === p.id ? "border-[#FD5249] bg-[#FD5249] text-white" : "border-slate-200 bg-white text-slate-600 hover:border-[#FD5249]"
+                        }`}
+                      >
+                        {p.name}
+                      </button>
+                    ))}
+                  </div>
+                ) : disponibles.length === 0 ? (
+                  <p className="rounded-lg bg-white px-3 py-2.5 text-xs text-amber-600">{translate(locale, "guardias.nadieDeGuardia")}</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {disponibles.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => setSustitutoId(p.id)}
+                        className={`rounded-lg border px-3.5 py-2 text-sm font-semibold transition-colors ${
+                          sustitutoId === p.id ? "border-[#FD5249] bg-[#FD5249] text-white" : "border-slate-200 bg-white text-slate-600 hover:border-[#FD5249]"
+                        }`}
+                      >
+                        {p.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            ) : (
-              <button
-                onClick={() => setConfirmandoRechazo(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
-              >
-                <X className="h-4 w-4" />
-                {translate(locale, "guardias.rechazarSolicitud")}
-              </button>
-            )}
-          </div>
+
+              {sustitutoId && (
+                <div className="pt-1">
+                  <button
+                    onClick={handleAsignar}
+                    disabled={pending}
+                    className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
+                  >
+                    {pending ? <ButtonSpinner /> : <Send className="h-4 w-4" />}
+                    {translate(locale, "guardias.enviarAviso")}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>

@@ -8,6 +8,7 @@ import { CentroTutoriasClient } from "./CentroTutoriasClient";
 import { AlumnosClient } from "./AlumnosClient";
 import { SchoolPicker, SchoolSwitcher } from "../components/SchoolPicker";
 import { translate } from "../i18n";
+import { calcularEdad } from "@/lib/fechas";
 
 async function getAlumnosData(profesorId: string, alumnoSeleccionado?: string) {
   const alumnosRaw = await prisma.alumno.findMany({
@@ -23,9 +24,13 @@ async function getAlumnosData(profesorId: string, alumnoSeleccionado?: string) {
     id: a.id,
     nombre: a.nombre,
     curso: a.curso,
-    edad: a.edad,
+    edad: calcularEdad(a.fechaNacimiento),
     riesgo: a.riesgo,
     avatarUrl: a.avatarUrl,
+    fechaNacimiento: a.fechaNacimiento ? a.fechaNacimiento.toISOString() : null,
+    tipoDocumento: a.tipoDocumento,
+    numeroDocumento: a.numeroDocumento,
+    direccion: a.direccion,
     contactos: a.contactos.map((c) => ({
       id: c.id,
       relacion: c.relacion,
@@ -108,12 +113,16 @@ async function getCentroData(schoolId: string) {
     id: a.id,
     nombre: a.nombre,
     curso: a.curso,
-    edad: a.edad,
+    edad: calcularEdad(a.fechaNacimiento),
     riesgo: a.riesgo,
     avatarUrl: a.avatarUrl,
     profesorId: a.profesorId,
     profesorName: a.profesor?.name ?? a.profesor?.email ?? "—",
     createdAt: a.createdAt.toISOString(),
+    fechaNacimiento: a.fechaNacimiento ? a.fechaNacimiento.toISOString() : null,
+    tipoDocumento: a.tipoDocumento,
+    numeroDocumento: a.numeroDocumento,
+    direccion: a.direccion,
     contactos: a.contactos.map((c) => ({
       id: c.id,
       relacion: c.relacion,

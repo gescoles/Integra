@@ -124,9 +124,9 @@ export function PhoneInput({
         required={required}
         disabled={disabled}
         inputMode="numeric"
-        placeholder="612 345 678"
-        pattern="[0-9]{6,12}"
-        title="Solo números, entre 6 y 12 dígitos"
+        placeholder={pais.code === "+34" ? "612345678" : "612 345 678"}
+        pattern={pais.code === "+34" ? "[0-9]{9}" : "[0-9]{6,12}"}
+        title={pais.code === "+34" ? "Para España: exactamente 9 dígitos" : "Solo números, entre 6 y 12 dígitos"}
         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249] disabled:bg-slate-50 disabled:text-slate-300"
       />
       {/* Valor combinado real que se envía en el formulario, ej. "+34 612345678".

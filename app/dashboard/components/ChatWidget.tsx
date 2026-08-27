@@ -162,7 +162,7 @@ export function ChatWidget({ userName }: { userName: string }) {
                   )}
                 </div>
                 <div
-                  className={`max-w-[75%] whitespace-pre-wrap rounded-xl px-3 py-2 text-sm ${
+                  className={`max-w-[75%] whitespace-pre-wrap break-words rounded-xl px-3 py-2 text-sm ${
                     m.role === "user" ? "bg-[#FD5249] text-white" : "bg-slate-100 text-slate-700"
                   }`}
                 >

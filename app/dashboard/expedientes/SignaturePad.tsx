@@ -13,21 +13,50 @@ export function SignaturePad({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dibujandoRef = useRef(false);
   const ultimaPosRef = useRef<{ x: number; y: number } | null>(null);
+  // Referencia directa (no estado de React) para saber si se ha dibujado
+  // algo — un estado normal podría no estar actualizado todavía en el
+  // mismo instante en que se suelta el ratón, y entonces no se guardaría
+  // la firma aunque se viera dibujada en el lienzo.
+  const hayTrazoRef = useRef(false);
   const [vacio, setVacio] = useState(true);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ratio = window.devicePixelRatio || 1;
-    canvas.width = canvas.clientWidth * ratio;
-    canvas.height = canvas.clientHeight * ratio;
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.scale(ratio, ratio);
-      ctx.lineWidth = 2;
-      ctx.lineCap = "round";
-      ctx.strokeStyle = "#0B1D4D";
-    }
+
+    // Ojo: si este SignaturePad está dentro de un paso que empieza oculto
+    // (display:none, como en el asistente de varios pasos), su tamaño es
+    // 0x0 en el momento en que se monta — por eso usamos un
+    // ResizeObserver, que vuelve a calcular el tamaño real del lienzo en
+    // cuanto el paso se hace visible de verdad, no solo una vez al montar.
+    const configurarLienzo = () => {
+      const ratio = window.devicePixelRatio || 1;
+      const anchoCss = canvas.clientWidth;
+      const altoCss = canvas.clientHeight;
+      if (anchoCss === 0 || altoCss === 0) return; // todavía oculto, esperamos al siguiente resize
+
+      const anchoNuevo = anchoCss * ratio;
+      const altoNuevo = altoCss * ratio;
+      // Si el tamaño no ha cambiado de verdad, no reseteamos el lienzo —
+      // así no se borra una firma ya empezada si el observador se
+      // disparase de más por cualquier motivo.
+      if (canvas.width === anchoNuevo && canvas.height === altoNuevo) return;
+
+      canvas.width = anchoNuevo;
+      canvas.height = altoNuevo;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.scale(ratio, ratio);
+        ctx.lineWidth = 2;
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "#0B1D4D";
+      }
+    };
+
+    configurarLienzo();
+    const observer = new ResizeObserver(configurarLienzo);
+    observer.observe(canvas);
+    return () => observer.disconnect();
   }, []);
 
   function getPos(canvas: HTMLCanvasElement, e: React.MouseEvent | React.TouchEvent) {
@@ -60,6 +89,7 @@ export function SignaturePad({
     ctx.lineTo(pos.x, pos.y);
     ctx.stroke();
     ultimaPosRef.current = pos;
+    hayTrazoRef.current = true;
     if (vacio) setVacio(false);
   }
 
@@ -67,7 +97,7 @@ export function SignaturePad({
     dibujandoRef.current = false;
     ultimaPosRef.current = null;
     const canvas = canvasRef.current;
-    if (canvas && !vacio) onChange(canvas.toDataURL("image/png"));
+    if (canvas && hayTrazoRef.current) onChange(canvas.toDataURL("image/png"));
   }
 
   function limpiar() {
@@ -75,6 +105,7 @@ export function SignaturePad({
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    hayTrazoRef.current = false;
     setVacio(true);
     onChange(null);
   }

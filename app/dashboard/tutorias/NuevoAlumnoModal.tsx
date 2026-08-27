@@ -9,6 +9,7 @@ import { ButtonSpinner } from "../components/ButtonSpinner";
 import { PhoneInput } from "../components/PhoneInput";
 import { CursoSelect } from "../components/CursoSelect";
 import { TutorSelect } from "../components/TutorSelect";
+import { DocumentoIdentidadInput } from "../components/DocumentoIdentidadInput";
 
 export function NuevoAlumnoModal() {
   const router = useRouter();
@@ -82,18 +83,35 @@ export function NuevoAlumnoModal() {
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                    Edad
+                    Fecha de nacimiento
                   </label>
                   <input
-                    name="edad"
-                    type="number"
+                    name="fechaNacimiento"
+                    type="date"
                     required
-                    min={0}
-                    max={99}
-                    placeholder="Ej. 14"
+                    max={new Date().toISOString().slice(0, 10)}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                  Documento de identidad
+                </label>
+                <DocumentoIdentidadInput />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                  Dirección
+                </label>
+                <input
+                  name="direccion"
+                  required
+                  placeholder="Ej. Carrer Major, 12, El Masnou"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+                />
               </div>
 
               <div>

@@ -53,3 +53,26 @@ export async function marcarTodasLeidas() {
   });
   revalidatePath("/dashboard");
 }
+
+export async function eliminarNotificacion(id: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user.id) return;
+
+  // Solo se puede borrar la propia notificación — el where ya lo garantiza,
+  // así nadie puede borrar notificaciones de otro usuario aunque manipule
+  // la petición.
+  await prisma.notificacion.deleteMany({
+    where: { id, userId: session.user.id },
+  });
+  revalidatePath("/dashboard");
+}
+
+export async function eliminarTodasNotificaciones() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user.id) return;
+
+  await prisma.notificacion.deleteMany({
+    where: { userId: session.user.id },
+  });
+  revalidatePath("/dashboard");
+}

@@ -175,7 +175,7 @@ export function GuardiasClient({
                       </button>
                       <button
                         onClick={() => setConfirmandoBorrar(r)}
-                        title={translate(locale, "common.eliminar")}
+                        title={r.origen === "cobertura" ? "Anular guardia" : translate(locale, "common.eliminar")}
                         className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -197,6 +197,7 @@ export function GuardiasClient({
         <EditarGuardiaModal
           id={editando.id}
           origen={editando.origen}
+          profesores={profesores}
           onClose={() => setEditando(null)}
         />
       )}
@@ -204,9 +205,13 @@ export function GuardiasClient({
       {confirmandoBorrar && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-            <h3 className="text-base font-bold text-[#0B1D4D]">{translate(locale, "guardias.confirmarEliminar")}</h3>
+            <h3 className="text-base font-bold text-[#0B1D4D]">
+              {confirmandoBorrar.origen === "cobertura" ? "Anular guardia" : translate(locale, "guardias.confirmarEliminar")}
+            </h3>
             <p className="mt-2 text-sm text-slate-500">
-              {translate(locale, "guardias.confirmarEliminarTexto")}{" "}
+              {confirmandoBorrar.origen === "cobertura"
+                ? "Se avisará por email de que ya no hace falta ir a esta guardia a "
+                : translate(locale, "guardias.confirmarEliminarTexto") + " "}
               <strong className="text-slate-700">{confirmandoBorrar.profesorName}</strong>.
             </p>
             <div className="mt-5 flex justify-end gap-2">
@@ -223,7 +228,7 @@ export function GuardiasClient({
               >
                 {borrando === confirmandoBorrar.id
                   ? translate(locale, "common.eliminando")
-                  : translate(locale, "common.eliminar")}
+                  : confirmandoBorrar.origen === "cobertura" ? "Anular" : translate(locale, "common.eliminar")}
               </button>
             </div>
           </div>

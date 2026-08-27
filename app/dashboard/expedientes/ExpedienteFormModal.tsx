@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldAlert, X, Pencil, Plus } from "lucide-react";
+import { ShieldAlert, X, Pencil, Plus, Lock } from "lucide-react";
 import { crearExpediente, actualizarExpediente } from "./actions";
 import { ButtonSpinner } from "../components/ButtonSpinner";
 import { useLocale } from "../SchoolContext";
@@ -47,7 +47,37 @@ export function ExpedienteFormModal({
 
   const fmtDate = (iso: string | null | undefined) => (iso ? iso.slice(0, 10) : "");
 
+  // La fecha de vuelta se calcula sola a partir de los días de expulsión:
+  // no tiene sentido que se pueda elegir un rango distinto al que ya se ha
+  // puesto arriba. 3 días de expulsión empezando el lunes = vuelve el jueves
+  // (lunes, martes, miércoles fuera => 3 días).
+  const [sancionDias, setSancionDias] = useState<string>(expediente ? String(expediente.sancionDias) : "");
+  const [fechaInicioSancion, setFechaInicioSancion] = useState<string>(fmtDate(expediente?.fechaAplicacionInicio));
+
+  // Formatea una fecha usando sus componentes en hora LOCAL, nunca con
+  // toISOString() — eso convierte a UTC y puede restar un día entero
+  // según la zona horaria (justo el fallo que hacía salir la fecha de
+  // vuelta un día antes de lo que tocaba).
+  const fmtFechaLocal = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+
+  const fechaFinCalculada = (() => {
+    const dias = Number(sancionDias);
+    if (!fechaInicioSancion || !Number.isFinite(dias) || dias < 1) return "";
+    const d = new Date(`${fechaInicioSancion}T00:00:00`);
+    d.setDate(d.getDate() + dias);
+    return fmtFechaLocal(d);
+  })();
+
   async function handleSubmit(formData: FormData) {
+    if (!fechaFinCalculada) {
+      setError("Pon los días de expulsión y la fecha de inicio para calcular la fecha de vuelta.");
+      return;
+    }
     formData.set("incidenciaId", incidenciaId);
     setPending(true);
     setError(null);
@@ -179,20 +209,41 @@ export function ExpedienteFormModal({
                     <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                       {translate(locale, "expedientes.diasExpulsion")} <span className="text-red-500">*</span>
                     </label>
-                    <input name="sancionDias" type="number" min={1} required defaultValue={expediente?.sancionDias ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+                    <input
+                      name="sancionDias"
+                      type="number"
+                      min={1}
+                      required
+                      value={sancionDias}
+                      onChange={(e) => setSancionDias(e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+                    />
                   </div>
                   <div />
                   <div>
                     <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                       {translate(locale, "expedientes.fechaAplicacionInicio")} <span className="text-red-500">*</span>
                     </label>
-                    <input name="fechaAplicacionInicio" type="date" required defaultValue={fmtDate(expediente?.fechaAplicacionInicio)} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+                    <input
+                      name="fechaAplicacionInicio"
+                      type="date"
+                      required
+                      value={fechaInicioSancion}
+                      onChange={(e) => setFechaInicioSancion(e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+                    />
                   </div>
                   <div>
                     <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                       {translate(locale, "expedientes.fechaAplicacionFin")} <span className="text-red-500">*</span>
                     </label>
-                    <input name="fechaAplicacionFin" type="date" required defaultValue={fmtDate(expediente?.fechaAplicacionFin)} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+                    <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-500">
+                      <Lock className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                      {fechaFinCalculada
+                        ? new Date(`${fechaFinCalculada}T00:00:00`).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" })
+                        : "Pon primero los días y la fecha de inicio"}
+                    </div>
+                    <input type="hidden" name="fechaAplicacionFin" value={fechaFinCalculada} />
                   </div>
                 </div>
                 <div className="mt-3">

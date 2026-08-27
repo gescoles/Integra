@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { NuevoAlumnoModal } from "./NuevoAlumnoModal";
 import { CursoSelect } from "../components/CursoSelect";
+import { DocumentoIdentidadInput } from "../components/DocumentoIdentidadInput";
 import { PhoneInput } from "../components/PhoneInput";
 import {
   createTutoriaAlumno,
@@ -54,6 +55,10 @@ type Alumno = {
   edad: number | null;
   riesgo: string;
   avatarUrl: string | null;
+  fechaNacimiento: string | null;
+  tipoDocumento: string | null;
+  numeroDocumento: string | null;
+  direccion: string | null;
   contactos: Contacto[];
   tutorias: TutoriaItem[];
 };
@@ -573,17 +578,30 @@ export function AlumnosClient({
                   <CursoSelect name="curso" defaultValue={selected.curso} required />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "tutorias.edad")}</label>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">Fecha de nacimiento</label>
                   <input
-                    name="edad"
-                    type="number"
+                    name="fechaNacimiento"
+                    type="date"
                     required
-                    min={0}
-                    max={99}
-                    defaultValue={selected.edad ?? ""}
+                    max={new Date().toISOString().slice(0, 10)}
+                    defaultValue={selected.fechaNacimiento ? selected.fechaNacimiento.slice(0, 10) : ""}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">Documento</label>
+                <DocumentoIdentidadInput defaultTipo={selected.tipoDocumento ?? "DNI"} defaultNumero={selected.numeroDocumento ?? ""} />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">Dirección</label>
+                <input
+                  name="direccion"
+                  required
+                  defaultValue={selected.direccion ?? ""}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+                />
               </div>
 
               <div>
@@ -735,7 +753,7 @@ export function AlumnosClient({
 
               <div>
                 <div className="text-xs font-semibold text-slate-400">{translate(locale, "tutorias.resumenTutoriaLabel")}</div>
-                <p className="mt-1 whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-slate-700">
+                <p className="mt-1 whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-3 text-slate-700">
                   {viewingTutoria.notas || "—"}
                 </p>
               </div>

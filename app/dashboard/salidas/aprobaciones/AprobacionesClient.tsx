@@ -10,12 +10,11 @@ import { translate } from "../../i18n";
 type Row = {
   id: string;
   curso: string;
-  tipo: string;
+  tipo: string | null;
   actividad: string;
   fecha: string;
   horaSalida: string;
   horaVuelta: string | null;
-  vueltaDirectaCasa: boolean;
   responsableName: string;
   acompanantesNombres: string[];
   numAlumnos: number;
@@ -117,7 +116,7 @@ export function AprobacionesClient({ rows }: { rows: Row[] }) {
             </Campo>
 
             <Campo icon={Tag} label={translate(locale, "salidas.tipo")}>
-              {r.tipo}
+              {r.tipo ?? "—"}
             </Campo>
 
             <Campo icon={Calendar} label={translate(locale, "tutorias.colFecha")}>
@@ -129,7 +128,7 @@ export function AprobacionesClient({ rows }: { rows: Row[] }) {
             </Campo>
 
             <Campo icon={Clock} label={translate(locale, "salidas.horaVuelta")}>
-              {r.vueltaDirectaCasa ? translate(locale, "salidas.directoACasa") : r.horaVuelta ?? "—"}
+              {r.horaVuelta ?? "—"}
             </Campo>
 
             <Campo icon={Users} label={translate(locale, "salidas.numAlumnos")}>

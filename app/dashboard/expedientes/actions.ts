@@ -43,12 +43,23 @@ export async function crearIncidencia(formData: FormData) {
   const prioridad = (formData.get("prioridad") as string) as PrioridadIncidencia;
   const fechaRaw = formData.get("fecha") as string;
   const descripcion = (formData.get("descripcion") as string)?.trim();
+  const lugar = (formData.get("lugar") as string)?.trim();
+  const observaciones = (formData.get("observaciones") as string)?.trim();
+  const medidasAplicadas = (formData.get("medidasAplicadas") as string)?.trim();
+  // Cuando la incidencia se crea desde el asistente de "Obrir expedient",
+  // ya se está abriendo el expediente en el mismo paso — no tiene sentido
+  // avisar de "ha llegado a 3 incidencias, revisa si hay que abrir
+  // expediente" si el expediente ya se está abriendo ahora mismo.
+  const esParteDeExpediente = formData.get("esParteDeExpediente") === "true";
 
   if (!alumnoId) throw new Error("Elige el alumno.");
   if (!tutorId) throw new Error("Elige el tutor responsable.");
   if (!tipoIncidencia) throw new Error("Indica el tipo de incidencia.");
   if (!fechaRaw) throw new Error("Indica la fecha.");
   if (!descripcion) throw new Error("Añade una descripción.");
+  if (!lugar) throw new Error("El lugar es obligatorio.");
+  if (!observaciones) throw new Error("Las observaciones son obligatorias.");
+  if (!medidasAplicadas) throw new Error("Las medidas aplicadas son obligatorias.");
 
   const alumno = await prisma.alumno.findUnique({ where: { id: alumnoId }, select: { nombre: true, curso: true } });
   if (!alumno) throw new Error("No se ha encontrado el alumno.");
@@ -64,10 +75,10 @@ export async function crearIncidencia(formData: FormData) {
       tipoIncidencia,
       prioridad: prioridad || "MEDIA",
       fecha: new Date(fechaRaw),
-      lugar: texto(formData, "lugar"),
+      lugar,
       descripcion,
-      observaciones: texto(formData, "observaciones"),
-      medidasAplicadas: texto(formData, "medidasAplicadas"),
+      observaciones,
+      medidasAplicadas,
       familiaInformada,
       familiaInformadaFecha: familiaInformada ? new Date() : null,
       familiaInformadaComunicacion: texto(formData, "familiaInformadaComunicacion"),
@@ -113,35 +124,49 @@ export async function crearIncidencia(formData: FormData) {
   });
 
   // Aviso especial al llegar exactamente a la 3ª incidencia del alumno: al
-  // tutor (o tutores, si ha tenido varios) + todo el equipo directivo del
-  // centro, por email y notificación.
+  // tutor (o tutores, si ha tenido varios) + al coordinador/es del
+  // departamento al que pertenece el tutor + Admin. de Centro/SuperAdmin
+  // del centro (dirección general, siempre informada de esto).
   const totalIncidenciasAlumno = await prisma.incidencia.count({ where: { alumnoId } });
-  if (totalIncidenciasAlumno === 3) {
-    const [tutoresPrevios, directivos] = await Promise.all([
+  if (totalIncidenciasAlumno === 3 && !esParteDeExpediente) {
+    const [tutoresPrevios, departamentosTutor, adminCentro] = await Promise.all([
       prisma.incidencia.findMany({
         where: { alumnoId },
         select: { tutorId: true },
         distinct: ["tutorId"],
       }),
+      prisma.departamento.findMany({
+        where: { schoolId: session.user.schoolId, profesores: { some: { id: tutorId } } },
+        select: { coordinadores: { select: { id: true, email: true } } },
+      }),
       prisma.user.findMany({
-        where: { schoolId: session.user.schoolId, role: { in: ["COORDINADOR", "ADMIN_CENTRO"] } },
+        where: { schoolId: session.user.schoolId, role: { in: ["ADMIN_CENTRO", "SUPERADMIN"] } },
         select: { id: true, email: true },
       }),
     ]);
 
-    const idsAvisar = Array.from(new Set([...tutoresPrevios.map((t) => t.tutorId), ...directivos.map((d) => d.id)]));
+    const coordinadoresDepartamento = departamentosTutor.flatMap((d) => d.coordinadores);
+
+    const idsAvisar = Array.from(
+      new Set([
+        ...tutoresPrevios.map((t) => t.tutorId),
+        ...coordinadoresDepartamento.map((c) => c.id),
+        ...adminCentro.map((d) => d.id),
+      ])
+    );
 
     await notifyUsers(idsAvisar, {
       schoolId: session.user.schoolId,
       tipo: "TRES_INCIDENCIAS",
       titulo: "3 incidencias registradas",
-      mensaje: `${alumno.nombre} (${alumno.curso}) ha llegado a 3 incidencias.`,
-      link: "/dashboard/expedientes",
+      mensaje: `${alumno.nombre} (${alumno.curso}) ha llegado a 3 incidencias. Revisa si procede abrir expediente.`,
+      link: "/dashboard/expedientes?vista=expedientes",
       relatedId: alumnoId,
     });
 
     const emails = new Set<string>();
-    directivos.forEach((d) => d.email && emails.add(d.email));
+    adminCentro.forEach((d) => d.email && emails.add(d.email));
+    coordinadoresDepartamento.forEach((c) => c.email && emails.add(c.email));
     if (tutor?.email) emails.add(tutor.email);
 
     try {
@@ -169,6 +194,12 @@ export async function actualizarIncidencia(formData: FormData) {
   const prioridad = (formData.get("prioridad") as string) as PrioridadIncidencia;
   const fechaRaw = formData.get("fecha") as string;
   const descripcion = (formData.get("descripcion") as string)?.trim();
+  const lugar = (formData.get("lugar") as string)?.trim();
+  const observaciones = (formData.get("observaciones") as string)?.trim();
+  const medidasAplicadas = (formData.get("medidasAplicadas") as string)?.trim();
+  if (!lugar) throw new Error("El lugar es obligatorio.");
+  if (!observaciones) throw new Error("Las observaciones son obligatorias.");
+  if (!medidasAplicadas) throw new Error("Las medidas aplicadas son obligatorias.");
   const familiaInformada = formData.get("familiaInformada") === "on";
   const eraFamiliaInformada = permiso.incidencia!.familiaInformada;
 
@@ -179,10 +210,10 @@ export async function actualizarIncidencia(formData: FormData) {
       tipoIncidencia: tipoIncidencia || undefined,
       prioridad: prioridad || undefined,
       fecha: fechaRaw ? new Date(fechaRaw) : undefined,
-      lugar: texto(formData, "lugar"),
+      lugar,
       descripcion: descripcion || undefined,
-      observaciones: texto(formData, "observaciones"),
-      medidasAplicadas: texto(formData, "medidasAplicadas"),
+      observaciones,
+      medidasAplicadas,
       familiaInformada,
       familiaInformadaFecha: familiaInformada && !eraFamiliaInformada ? new Date() : undefined,
       familiaInformadaComunicacion: texto(formData, "familiaInformadaComunicacion"),
@@ -325,6 +356,14 @@ function extraerCamposExpediente(formData: FormData) {
   const diasRaw = Number(formData.get("sancionDias"));
   if (!diasRaw || diasRaw < 1) throw new Error('El campo "Días de expulsión" es obligatorio.');
 
+  const fechaAplicacionInicio = fechaRequerida(formData, "fechaAplicacionInicio", "Data d'aplicació (inici)");
+
+  // La fecha de vuelta no se confía tal cual del cliente: se recalcula
+  // aquí mismo a partir de los días de expulsión + la fecha de inicio, así
+  // no puede haber un rango distinto al que de verdad se ha puesto.
+  const fechaAplicacionFin = new Date(fechaAplicacionInicio);
+  fechaAplicacionFin.setDate(fechaAplicacionFin.getDate() + diasRaw);
+
   return {
     fechaInicio: fechaRequerida(formData, "fechaInicio", "Data d'obertura"),
     fets: textoRequerido(formData, "fets", "Fets que motiven l'obertura"),
@@ -335,8 +374,8 @@ function extraerCamposExpediente(formData: FormData) {
     medidasProvisionales: textoRequerido(formData, "medidasProvisionales", "Mesures provisionals"),
     sancionDias: diasRaw,
     sancionMotivo: textoRequerido(formData, "sancionMotivo", "Motiu del part"),
-    fechaAplicacionInicio: fechaRequerida(formData, "fechaAplicacionInicio", "Data d'aplicació (inici)"),
-    fechaAplicacionFin: fechaRequerida(formData, "fechaAplicacionFin", "Data d'aplicació (fi)"),
+    fechaAplicacionInicio,
+    fechaAplicacionFin,
     recursoEstado: textoRequerido(formData, "recursoEstado", "Informació sobre recursos"),
     direccionNombre: textoRequerido(formData, "direccionNombre", "Direcció del centre"),
     coordinadorNombre: textoRequerido(formData, "coordinadorNombre", "Coordinador de Departament"),
@@ -349,8 +388,8 @@ function extraerCamposExpediente(formData: FormData) {
 export async function crearExpediente(formData: FormData) {
   const incidenciaId = formData.get("incidenciaId") as string;
   const session = await getServerSession(authOptions);
-  if (!session?.user.id || !esDirectivo(session.user.role)) {
-    throw new Error("Solo Coordinación, Dirección o SuperAdmin puede crear un expediente.");
+  if (!session?.user.id) {
+    throw new Error("No autorizado.");
   }
 
   const incidencia = await prisma.incidencia.findUnique({ where: { id: incidenciaId } });
@@ -387,8 +426,8 @@ export async function crearExpediente(formData: FormData) {
 export async function actualizarExpediente(formData: FormData) {
   const id = formData.get("id") as string;
   const session = await getServerSession(authOptions);
-  if (!session?.user.id || !esDirectivo(session.user.role)) {
-    throw new Error("Solo Coordinación, Dirección o SuperAdmin puede editar un expediente.");
+  if (!session?.user.id) {
+    throw new Error("No autorizado.");
   }
 
   const expediente = await prisma.expediente.findUnique({ where: { id } });
@@ -418,17 +457,18 @@ export async function actualizarExpediente(formData: FormData) {
 export async function enviarExpediente(formData: FormData) {
   const id = formData.get("id") as string;
   const session = await getServerSession(authOptions);
-  if (!session?.user.id || !esDirectivo(session.user.role)) {
-    throw new Error("Solo Coordinación, Dirección o SuperAdmin puede enviar el expediente al tutor.");
+  if (!session?.user.id) {
+    throw new Error("No autorizado.");
   }
 
   const firmaDireccion = formData.get("firmaDireccion") as string;
   const firmaTutor = formData.get("firmaTutor") as string;
   const firmaCoordinador = formData.get("firmaCoordinador") as string;
+  const firmaAlumno = formData.get("firmaAlumno") as string;
   const emailAlumno = (formData.get("emailAlumno") as string)?.trim() || null;
 
-  if (!firmaDireccion || !firmaTutor || !firmaCoordinador) {
-    throw new Error("Faltan firmas: hacen falta las de Dirección, Tutor/a y Coordinador/a antes de enviar.");
+  if (!firmaDireccion || !firmaTutor || !firmaCoordinador || !firmaAlumno) {
+    throw new Error("Faltan firmas: hacen falta las de Dirección, Tutor/a, Coordinador/a y del alumno/a antes de enviar.");
   }
 
   const expediente = await prisma.expediente.findUnique({ where: { id } });
@@ -437,7 +477,7 @@ export async function enviarExpediente(formData: FormData) {
 
   await prisma.expediente.update({
     where: { id },
-    data: { firmaDireccion, firmaTutor, firmaCoordinador, emailAlumno },
+    data: { firmaDireccion, firmaTutor, firmaCoordinador, firmaAlumno, emailAlumno },
   });
 
   const { getExpedienteData, buildExpedientePdf } = await import("@/lib/expedienteDocs");
@@ -509,8 +549,8 @@ export async function enviarExpediente(formData: FormData) {
 
 export async function eliminarExpediente(id: string) {
   const session = await getServerSession(authOptions);
-  if (!session?.user.id || !esDirectivo(session.user.role)) {
-    throw new Error("Solo Coordinación, Dirección o SuperAdmin puede eliminar un expediente.");
+  if (!session?.user.id) {
+    throw new Error("No autorizado.");
   }
 
   await prisma.expediente.delete({ where: { id } });

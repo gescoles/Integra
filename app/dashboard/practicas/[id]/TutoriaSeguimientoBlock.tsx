@@ -20,6 +20,8 @@ function TutoriaSlot({
   bloqueado,
   fechaMinima,
   fechaMaxima,
+  convenioFechaInicio,
+  convenioFechaFin,
 }: {
   tipo: (typeof TIPOS)[number];
   tutoria?: Tutoria;
@@ -28,6 +30,8 @@ function TutoriaSlot({
   bloqueado: boolean;
   fechaMinima?: string | null;
   fechaMaxima?: string | null;
+  convenioFechaInicio?: string | null;
+  convenioFechaFin?: string | null;
 }) {
   const router = useRouter();
   const { locale } = useLocale();
@@ -104,7 +108,7 @@ function TutoriaSlot({
         <div className="mt-1.5 text-xs text-slate-500">
           {tutoria.fecha && <div className="font-medium text-slate-600">{new Date(tutoria.fecha).toLocaleDateString("es-ES")}</div>}
           {tutoria.medioContacto && <div className="text-slate-400">{tutoria.medioContacto}</div>}
-          {tutoria.resumen && <p className="mt-0.5">{tutoria.resumen}</p>}
+          {tutoria.resumen && <p className="mt-0.5 whitespace-pre-wrap break-words">{tutoria.resumen}</p>}
         </div>
       ) : (
         <p className="mt-1.5 text-xs text-slate-300">{translate(locale, "practicas.sinRegistrar")}</p>
@@ -130,8 +134,8 @@ function TutoriaSlot({
                   name="fecha"
                   type="date"
                   required
-                  min={fechaMinima ? new Date(new Date(fechaMinima).getTime() + 86400000).toISOString().slice(0, 10) : undefined}
-                  max={fechaMaxima ? new Date(new Date(fechaMaxima).getTime() - 86400000).toISOString().slice(0, 10) : undefined}
+                  min={fechaMinima ? new Date(new Date(fechaMinima).getTime() + 86400000).toISOString().slice(0, 10) : convenioFechaInicio ? convenioFechaInicio.slice(0, 10) : undefined}
+                  max={fechaMaxima ? new Date(new Date(fechaMaxima).getTime() - 86400000).toISOString().slice(0, 10) : convenioFechaFin ? convenioFechaFin.slice(0, 10) : undefined}
                   defaultValue={fmtDate(tutoria?.fecha)}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#FD5249]"
                 />
@@ -193,11 +197,15 @@ export function TutoriaSeguimientoBlock({
   fichaId,
   tutorias,
   bloqueado,
+  convenioFechaInicio,
+  convenioFechaFin,
 }: {
   convenioId: string;
   fichaId: string;
   tutorias: Tutoria[];
   bloqueado: boolean;
+  convenioFechaInicio?: string | null;
+  convenioFechaFin?: string | null;
 }) {
   const { locale } = useLocale();
   const porTipo = new Map(tutorias.map((t) => [t.tipo, t]));
@@ -218,6 +226,7 @@ export function TutoriaSeguimientoBlock({
           fichaId={fichaId}
           bloqueado={bloqueado}
           fechaMaxima={fechaMedia}
+          convenioFechaInicio={convenioFechaInicio}
         />
         <TutoriaSlot
           tipo="MEDIA"
@@ -235,6 +244,7 @@ export function TutoriaSeguimientoBlock({
           fichaId={fichaId}
           bloqueado={bloqueado}
           fechaMinima={fechaMedia}
+          convenioFechaFin={convenioFechaFin}
         />
       </div>
     </div>

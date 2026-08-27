@@ -19,13 +19,16 @@ export default async function FichaPracticaPage({ params }: { params: { id: stri
   const ficha = await prisma.practicaAlumno.findUnique({
     where: { id: params.id },
     include: {
-      alumno: { select: { id: true, nombre: true, curso: true, avatarUrl: true } },
+      alumno: { select: { id: true, nombre: true, curso: true, avatarUrl: true, fechaNacimiento: true, tipoDocumento: true, numeroDocumento: true, direccion: true } },
       tutorImes: { select: { id: true, name: true, email: true } },
+      responsablePracticas: { select: { id: true, name: true, email: true } },
       convenios: {
         include: {
           prorrogas: { orderBy: { createdAt: "asc" } },
           tutoriasSeguimiento: true,
           cerradoPor: { select: { name: true, email: true } },
+          departamento: { select: { id: true, nombre: true } },
+          modulos: { include: { moduloProfesional: true }, orderBy: { moduloProfesional: { orden: "asc" } } },
         },
         orderBy: { createdAt: "desc" },
       },
@@ -34,9 +37,19 @@ export default async function FichaPracticaPage({ params }: { params: { id: stri
 
   if (!ficha) notFound();
 
+  const profesoresRaw = esDirectivo
+    ? await prisma.user.findMany({
+        where: { schoolId: ficha.schoolId, role: { in: ["PROFESOR", "COORDINADOR", "ADMIN_CENTRO"] } },
+        select: { id: true, name: true, email: true },
+        orderBy: { name: "asc" },
+      })
+    : [];
+  const profesores = profesoresRaw.map((p) => ({ id: p.id, name: p.name ?? p.email }));
+
   const puedeGestionar =
     role === "SUPERADMIN" ||
     ((role === "COORDINADOR" || role === "ADMIN_CENTRO") && ficha.schoolId === session?.user.schoolId) ||
+    ficha.responsablePracticasId === session?.user.id ||
     ficha.tutorImesId === session?.user.id;
 
   if (!puedeGestionar) redirect("/dashboard/practicas");
@@ -52,16 +65,23 @@ export default async function FichaPracticaPage({ params }: { params: { id: stri
       />
       <DetalleClient
         esDirectivo={esDirectivo}
+        profesores={profesores}
         ficha={{
           id: ficha.id,
           alumnoNombre: ficha.alumno.nombre,
           alumnoCurso: ficha.alumno.curso,
           alumnoAvatarUrl: ficha.alumno.avatarUrl,
+          alumnoFechaNacimiento: ficha.alumno.fechaNacimiento?.toISOString() ?? null,
+          alumnoTipoDocumento: ficha.alumno.tipoDocumento,
+          alumnoNumeroDocumento: ficha.alumno.numeroDocumento,
+          alumnoDireccion: ficha.alumno.direccion,
           promocion: ficha.promocion,
           cicloFormativo: ficha.cicloFormativo,
           anyTitulacion: ficha.anyTitulacion,
           tutorImesId: ficha.tutorImesId,
           tutorImesNombre: ficha.tutorImes?.name ?? ficha.tutorImes?.email ?? null,
+          responsablePracticasId: ficha.responsablePracticasId,
+          responsablePracticasNombre: ficha.responsablePracticas?.name ?? ficha.responsablePracticas?.email ?? null,
           dni: ficha.dni,
           fechaNacimiento: ficha.fechaNacimiento?.toISOString() ?? null,
           telefono: ficha.telefono,
@@ -74,7 +94,8 @@ export default async function FichaPracticaPage({ params }: { params: { id: stri
           id: c.id,
           tipologia: c.tipologia,
           estadoAcuerdo: c.estadoAcuerdo,
-          convalida: c.convalida,
+          horasConvalidadas: c.horasConvalidadas,
+          anyCurso: c.anyCurso,
           quienAltaBajaSS: c.quienAltaBajaSS,
           fechaInicio: c.fechaInicio?.toISOString() ?? null,
           fechaFin: c.fechaFin?.toISOString() ?? null,
@@ -89,6 +110,18 @@ export default async function FichaPracticaPage({ params }: { params: { id: stri
           notaFinal: c.notaFinal,
           fechaCierre: c.fechaCierre?.toISOString() ?? null,
           cerradoPorNombre: c.cerradoPor?.name ?? c.cerradoPor?.email ?? null,
+          departamentoId: c.departamentoId,
+          departamentoNombre: c.departamento?.nombre ?? null,
+          cicloGrupo: c.cicloGrupo,
+          modulos: c.modulos.map((m) => ({
+            id: m.id,
+            moduloProfesionalId: m.moduloProfesionalId,
+            codigo: m.moduloProfesional.codigo,
+            nombre: m.moduloProfesional.nombre,
+            horasEmpresa: m.horasEmpresa,
+            nota: m.nota,
+            notaEnviada: m.notaEnviada,
+          })),
           tutoriasSeguimiento: c.tutoriasSeguimiento.map((t) => ({
             id: t.id,
             tipo: t.tipo,

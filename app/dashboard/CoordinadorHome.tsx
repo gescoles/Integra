@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { contarGuardiasPendientesDeCubrir } from "@/lib/guardiaHelpers";
+import { contarAlumnosConTresIncidenciasSinExpediente } from "@/lib/disciplinaHelpers";
 import {
   proximoBloqueSemanal,
   fechaDeProximoBloque,
@@ -117,6 +118,7 @@ export async function CoordinadorHome({
     ? await prisma.coberturaGuardia.count({ where: { schoolId, estado: "PENDIENTE" } })
     : 0;
   const guardiasQueDebeCubrir = hasGuardias ? await contarGuardiasPendientesDeCubrir(schoolId, userId) : 0;
+  const alumnosPendientesExpulsion = await contarAlumnosConTresIncidenciasSinExpediente(schoolId);
 
   const hoy = startOfToday();
   const finHoy = endOfToday();
@@ -324,6 +326,23 @@ export async function CoordinadorHome({
               : `${guardiasQueDebeCubrir} ${translate(locale, "home.guardiaPropiaPlural")}`
           }
         />
+      )}
+
+      {alumnosPendientesExpulsion > 0 && (
+        <Link
+          href="/dashboard/expedientes?vista=expedientes"
+          className="mb-5 flex items-center justify-between rounded-xl border border-red-300 bg-red-50 px-4 py-3 hover:bg-red-100"
+        >
+          <div className="flex items-center gap-2.5">
+            <ShieldCheck className="h-4 w-4 shrink-0 text-red-600" />
+            <span className="text-sm font-semibold text-red-800">
+              {alumnosPendientesExpulsion === 1
+                ? "1 alumno/a ha llegado a 3 incidencias: revisa si procede abrir expediente."
+                : `${alumnosPendientesExpulsion} alumnos/as han llegado a 3 incidencias: revisa si procede abrir expediente.`}
+            </span>
+          </div>
+          <span className="text-xs font-semibold text-red-700 underline">Revisar en Expedients</span>
+        </Link>
       )}
 
       <div className="mb-5">

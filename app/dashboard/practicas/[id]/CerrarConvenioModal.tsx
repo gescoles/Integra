@@ -123,6 +123,10 @@ export function CerrarConvenioModal({
                 <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.notaFinal")}</label>
                 <input
                   name="notaFinal"
+                  type="number"
+                  step={1}
+                  min={0}
+                  max={10}
                   defaultValue={notaFinal ?? ""}
                   placeholder={translate(locale, "practicas.notaFinalPlaceholder")}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"

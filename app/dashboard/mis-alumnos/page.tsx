@@ -7,6 +7,7 @@ import { MisAlumnosClient } from "./MisAlumnosClient";
 import { NuevoAlumnoModal } from "../tutorias/NuevoAlumnoModal";
 import { SchoolPicker, SchoolSwitcher } from "../components/SchoolPicker";
 import { VistaAlumnosTabs } from "./VistaAlumnosTabs";
+import { calcularEdad } from "@/lib/fechas";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -17,6 +18,9 @@ async function getAlumnos(schoolId: string, soloProfesorId?: string) {
     include: {
       profesor: { select: { name: true, email: true } },
       contactos: true,
+      // Solo contamos las tutorías ya COMPLETADAS como "hechas" — una
+      // PENDIENTE todavía no se ha realizado de verdad.
+      _count: { select: { tutorias: { where: { status: "COMPLETADA" } } } },
     },
     orderBy: { nombre: "asc" },
   });
@@ -25,11 +29,16 @@ async function getAlumnos(schoolId: string, soloProfesorId?: string) {
     id: a.id,
     nombre: a.nombre,
     curso: a.curso,
-    edad: a.edad,
+    edad: calcularEdad(a.fechaNacimiento),
     riesgo: a.riesgo,
     avatarUrl: a.avatarUrl,
     profesorId: a.profesorId,
     profesorNombre: a.profesor.name ?? a.profesor.email,
+    totalTutorias: a._count.tutorias,
+    fechaNacimiento: a.fechaNacimiento?.toISOString() ?? null,
+    tipoDocumento: a.tipoDocumento,
+    numeroDocumento: a.numeroDocumento,
+    direccion: a.direccion,
     contactos: a.contactos.map((c) => ({ id: c.id, relacion: c.relacion, telefono: c.telefono, email: c.email })),
   }));
 }

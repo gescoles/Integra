@@ -12,6 +12,7 @@ import { SolicitudesPendientes } from "./SolicitudesPendientes";
 import { AvisarAusenciaForm } from "./AvisarAusenciaForm";
 import { MisCoberturas } from "./MisCoberturas";
 import { obtenerSolicitudesPendientes } from "./actions";
+import { GuardiasTabs } from "./GuardiasTabs";
 import { SchoolPicker, SchoolSwitcher } from "../components/SchoolPicker";
 
 async function getGuardiasCentro(schoolId: string) {
@@ -213,7 +214,10 @@ export default async function GuardiasPage({
 
   const solicitudes = !isProfesor ? await obtenerSolicitudesPendientes() : [];
 
-  const miHorario = isProfesor
+  // El horario propio (para poder avisar de una ausencia) lo necesita
+  // cualquiera con sesión, no solo un Profesor — Coordinación/Dirección
+  // también dan clase y también pueden faltar algún día.
+  const miHorario = userId
     ? await prisma.horarioBloque.findMany({
         where: { profesorId: userId },
         select: { id: true, diaSemana: true, horaInicio: true, horaFin: true, asignatura: true, grupo: true, aula: true, esGuardia: true },
@@ -230,12 +234,11 @@ export default async function GuardiasPage({
         role={role}
         notificationCount={0}
       />
-      {isProfesor && (
-        <div className="mb-8">
-          <AvisarAusenciaForm miHorario={miHorario} />
-        </div>
-      )}
-      {isProfesor && <MisCoberturas modo="propio" />}
+      {!isProfesor && <GuardiasTabs activo="guardias" />}
+      <div className="mb-8">
+        <AvisarAusenciaForm miHorario={miHorario} />
+      </div>
+      <MisCoberturas modo="propio" />
       {role === "COORDINADOR" && <MisCoberturas modo="buscador" schoolId={schoolId} />}
       {!isProfesor && (
         <>

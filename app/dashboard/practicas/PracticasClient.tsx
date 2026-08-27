@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Search, ChevronRight, FileText, FileSpreadsheet } from "lucide-react";
 import { useLocale } from "../SchoolContext";
 import { translate } from "../i18n";
+import { CargarCatalogoModulosButton } from "./CargarCatalogoModulosButton";
 
 type Row = {
   id: string;
@@ -82,14 +83,17 @@ export function PracticasClient({
           </select>
         )}
 
-        {showFilters && schoolId && (
-          <a
-            href={`/api/practicas/export?school=${schoolId}`}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-          >
-            <FileSpreadsheet className="h-4 w-4" /> {translate(locale, "practicas.descargarExcel")}
-          </a>
-        )}
+        <div className="ml-auto flex items-center gap-2">
+          <CargarCatalogoModulosButton />
+          {showFilters && schoolId && (
+            <a
+              href={`/api/practicas/export?school=${schoolId}`}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+            >
+              <FileSpreadsheet className="h-4 w-4" /> {translate(locale, "practicas.descargarExcel")}
+            </a>
+          )}
+        </div>
       </div>
 
       {filtered.length === 0 ? (

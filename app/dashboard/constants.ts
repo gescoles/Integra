@@ -77,4 +77,5 @@ export const SALIDA_ESTADO_COLORS: Record<string, string> = {
   PENDIENTE: "bg-amber-50 text-amber-600",
   APROBADA: "bg-emerald-50 text-emerald-600",
   RECHAZADA: "bg-red-50 text-red-600",
+  ANULADA: "bg-slate-200 text-slate-600",
 };

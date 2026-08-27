@@ -6,9 +6,61 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ConQuien, MedioContacto, RiesgoNivel } from "@prisma/client";
 import { generateAvatarUrl } from "@/lib/avatar";
+import { validarTelefono, validarDocumento, mensajeErrorDocumento } from "@/lib/validacionDocumentos";
+import { calcularEdad } from "@/lib/fechas";
+import { TipoDocumento } from "@prisma/client";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const TELEFONO_RE = /^\+\d{1,4} \d{6,12}$/;
+
+// Campos de identidad + contacto compartidos entre crear y editar alumno.
+function leerCamposAlumno(formData: FormData) {
+  const fechaNacimientoRaw = (formData.get("fechaNacimiento") as string)?.trim();
+  const tipoDocumento = (formData.get("tipoDocumento") as string)?.trim().toUpperCase() as TipoDocumento;
+  const numeroDocumento = (formData.get("numeroDocumento") as string)?.trim();
+  const direccion = (formData.get("direccion") as string)?.trim();
+  const madreTelefono = (formData.get("madreTelefono") as string)?.trim();
+  const madreEmail = (formData.get("madreEmail") as string)?.trim();
+  const padreTelefono = (formData.get("padreTelefono") as string)?.trim();
+  const padreEmail = (formData.get("padreEmail") as string)?.trim();
+
+  if (!fechaNacimientoRaw) throw new Error("La fecha de nacimiento es obligatoria.");
+  const fechaNacimiento = new Date(`${fechaNacimientoRaw}T00:00:00`);
+  if (Number.isNaN(fechaNacimiento.getTime())) throw new Error("La fecha de nacimiento no es válida.");
+  if (fechaNacimiento > new Date()) throw new Error("La fecha de nacimiento no puede ser una fecha futura.");
+
+  if (tipoDocumento !== "DNI" && tipoDocumento !== "NIE" && tipoDocumento !== "PASAPORTE") {
+    throw new Error("Elige el tipo de documento (DNI, NIE o pasaporte).");
+  }
+  if (!numeroDocumento || !validarDocumento(tipoDocumento, numeroDocumento)) {
+    throw new Error(mensajeErrorDocumento(tipoDocumento));
+  }
+
+  if (!direccion) throw new Error("La dirección es obligatoria.");
+
+  if (!madreTelefono || !validarTelefono(madreTelefono)) {
+    throw new Error("El teléfono de la madre no es válido (9 dígitos para números españoles).");
+  }
+  if (!madreEmail || !EMAIL_RE.test(madreEmail)) {
+    throw new Error("El email de la madre no es válido.");
+  }
+  if (!padreTelefono || !validarTelefono(padreTelefono)) {
+    throw new Error("El teléfono del padre no es válido (9 dígitos para números españoles).");
+  }
+  if (!padreEmail || !EMAIL_RE.test(padreEmail)) {
+    throw new Error("El email del padre no es válido.");
+  }
+
+  return {
+    fechaNacimiento,
+    tipoDocumento,
+    numeroDocumento: numeroDocumento.trim().toUpperCase(),
+    direccion,
+    madreTelefono,
+    madreEmail,
+    padreTelefono,
+    padreEmail,
+  };
+}
 
 export async function createAlumno(formData: FormData) {
   const session = await getServerSession(authOptions);
@@ -16,33 +68,25 @@ export async function createAlumno(formData: FormData) {
 
   const nombre = (formData.get("nombre") as string)?.trim();
   const curso = (formData.get("curso") as string)?.trim();
-  const edadRaw = formData.get("edad") as string;
   const riesgo = (formData.get("riesgo") as RiesgoNivel) || "BAJO";
-
-  const madreTelefono = (formData.get("madreTelefono") as string)?.trim();
-  const madreEmail = (formData.get("madreEmail") as string)?.trim();
-  const padreTelefono = (formData.get("padreTelefono") as string)?.trim();
-  const padreEmail = (formData.get("padreEmail") as string)?.trim();
 
   if (!nombre) throw new Error("El nombre del alumno es obligatorio.");
   if (!curso) throw new Error("El curso/grupo es obligatorio.");
-  if (!edadRaw) throw new Error("La edad es obligatoria.");
 
-  const edad = Number(edadRaw);
-  if (!Number.isInteger(edad) || edad < 0 || edad > 99) throw new Error("La edad no es válida.");
+  const {
+    fechaNacimiento,
+    tipoDocumento,
+    numeroDocumento,
+    direccion,
+    madreTelefono,
+    madreEmail,
+    padreTelefono,
+    padreEmail,
+  } = leerCamposAlumno(formData);
 
-  if (!madreTelefono || !TELEFONO_RE.test(madreTelefono)) {
-    throw new Error("El teléfono de la madre no es válido.");
-  }
-  if (!madreEmail || !EMAIL_RE.test(madreEmail)) {
-    throw new Error("El email de la madre no es válido.");
-  }
-  if (!padreTelefono || !TELEFONO_RE.test(padreTelefono)) {
-    throw new Error("El teléfono del padre no es válido.");
-  }
-  if (!padreEmail || !EMAIL_RE.test(padreEmail)) {
-    throw new Error("El email del padre no es válido.");
-  }
+  // La edad nunca se pide a mano — se calcula sola a partir de la fecha
+  // de nacimiento, así siempre está bien aunque pase el tiempo.
+  const edad = calcularEdad(fechaNacimiento);
 
   const avatarUrl = generateAvatarUrl(nombre);
 
@@ -69,6 +113,10 @@ export async function createAlumno(formData: FormData) {
       edad,
       riesgo,
       avatarUrl,
+      fechaNacimiento,
+      tipoDocumento,
+      numeroDocumento,
+      direccion,
     },
   });
 
@@ -99,15 +147,25 @@ export async function updateAlumnoFicha(formData: FormData) {
 
   const nombre = (formData.get("nombre") as string)?.trim();
   const curso = (formData.get("curso") as string)?.trim();
-  const edadRaw = formData.get("edad") as string;
   const riesgo = formData.get("riesgo") as RiesgoNivel;
 
   if (!nombre) throw new Error("El nombre es obligatorio.");
   if (!curso) throw new Error("El curso/grupo es obligatorio.");
-  if (!edadRaw) throw new Error("La edad es obligatoria.");
 
-  const edad = Number(edadRaw);
-  if (!Number.isInteger(edad) || edad < 0 || edad > 99) throw new Error("La edad no es válida.");
+  const {
+    fechaNacimiento,
+    tipoDocumento,
+    numeroDocumento,
+    direccion,
+    madreTelefono,
+    madreEmail,
+    padreTelefono,
+    padreEmail,
+  } = leerCamposAlumno(formData);
+
+  // La edad nunca se pide a mano — se calcula sola a partir de la fecha
+  // de nacimiento, así siempre está bien aunque pase el tiempo.
+  const edad = calcularEdad(fechaNacimiento);
 
   // Solo equipo directivo puede reasignar el tutor de un alumno.
   const tutorIdElegido = (formData.get("tutorId") as string)?.trim();
@@ -120,26 +178,18 @@ export async function updateAlumnoFicha(formData: FormData) {
 
   await prisma.alumno.update({
     where: { id },
-    data: { nombre, curso, edad, riesgo, ...(profesorId ? { profesorId } : {}) },
+    data: {
+      nombre,
+      curso,
+      edad,
+      riesgo,
+      fechaNacimiento,
+      tipoDocumento,
+      numeroDocumento,
+      direccion,
+      ...(profesorId ? { profesorId } : {}),
+    },
   });
-
-  const madreTelefono = (formData.get("madreTelefono") as string)?.trim();
-  const madreEmail = (formData.get("madreEmail") as string)?.trim();
-  const padreTelefono = (formData.get("padreTelefono") as string)?.trim();
-  const padreEmail = (formData.get("padreEmail") as string)?.trim();
-
-  if (!madreTelefono || !TELEFONO_RE.test(madreTelefono)) {
-    throw new Error("El teléfono de la madre no es válido.");
-  }
-  if (!madreEmail || !EMAIL_RE.test(madreEmail)) {
-    throw new Error("El email de la madre no es válido.");
-  }
-  if (!padreTelefono || !TELEFONO_RE.test(padreTelefono)) {
-    throw new Error("El teléfono del padre no es válido.");
-  }
-  if (!padreEmail || !EMAIL_RE.test(padreEmail)) {
-    throw new Error("El email del padre no es válido.");
-  }
 
   await prisma.alumnoContacto.deleteMany({ where: { alumnoId: id } });
   await prisma.alumnoContacto.createMany({

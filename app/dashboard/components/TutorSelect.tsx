@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { obtenerProfesoresParaTutor, esUsuarioActualDirectivo } from "../gruposActions";
+import { obtenerProfesoresParaTutor, esUsuarioActualDirectivo, obtenerMiUsuarioId } from "../gruposActions";
 
 export function TutorSelect({ name = "tutorId", defaultValue = "" }: { name?: string; defaultValue?: string }) {
   const [esDirectivo, setEsDirectivo] = useState(false);
@@ -10,10 +10,14 @@ export function TutorSelect({ name = "tutorId", defaultValue = "" }: { name?: st
   const [valor, setValor] = useState(defaultValue);
 
   useEffect(() => {
-    Promise.all([esUsuarioActualDirectivo(), obtenerProfesoresParaTutor()])
-      .then(([directivo, lista]) => {
+    Promise.all([esUsuarioActualDirectivo(), obtenerProfesoresParaTutor(), obtenerMiUsuarioId()])
+      .then(([directivo, lista, miId]) => {
         setEsDirectivo(directivo);
         setProfesores(lista);
+        // Si no venía ya un tutor puesto (p. ej. al crear un alumno nuevo,
+        // no al editar uno existente), lo dejamos preseleccionado a uno
+        // mismo — pero el campo sigue siendo editable, se puede cambiar.
+        if (!defaultValue && miId) setValor(miId);
       })
       .finally(() => setCargando(false));
   }, []);

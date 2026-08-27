@@ -38,7 +38,6 @@ async function getPendientes(schoolId: string) {
     fecha: s.fecha.toISOString(),
     horaSalida: s.horaSalida,
     horaVuelta: s.horaVuelta,
-    vueltaDirectaCasa: s.vueltaDirectaCasa,
     responsableName: s.responsable?.name ?? s.responsable?.email ?? "—",
     acompanantesNombres: s.profesoresIds.map((id) => nombrePorId.get(id) ?? "—"),
     numAlumnos: s.numAlumnos,

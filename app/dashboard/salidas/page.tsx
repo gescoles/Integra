@@ -14,13 +14,22 @@ import { SchoolPicker, SchoolSwitcher } from "../components/SchoolPicker";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-async function getSalidasData(schoolId: string, soloDe?: string) {
-  const [salidasRaw, profesoresRaw] = await Promise.all([
+async function getSalidasData(schoolId: string, soloAprobadasYPropias?: string) {
+  const [salidasRaw, profesoresRaw, departamentosRaw] = await Promise.all([
     prisma.salida.findMany({
-      where: { schoolId, ...(soloDe ? { creadoPorId: soloDe } : {}) },
+      where: {
+        schoolId,
+        // Equipo directivo ve todo. Un profesor ve las salidas ya
+        // aprobadas de todo el mundo (para estar informado), más las
+        // suyas propias en cualquier estado (para poder gestionarlas).
+        ...(soloAprobadasYPropias
+          ? { OR: [{ estado: "APROBADA" }, { creadoPorId: soloAprobadasYPropias }] }
+          : {}),
+      },
       include: {
         responsable: { select: { id: true, name: true, email: true } },
         creadoPor: { select: { id: true, name: true, email: true } },
+        departamento: { select: { id: true, nombre: true } },
       },
       orderBy: { fecha: "desc" },
     }),
@@ -28,6 +37,11 @@ async function getSalidasData(schoolId: string, soloDe?: string) {
       where: { schoolId, role: { in: ["PROFESOR", "COORDINADOR", "ADMIN_CENTRO"] } },
       select: { id: true, name: true, email: true },
       orderBy: { name: "asc" },
+    }),
+    prisma.departamento.findMany({
+      where: { schoolId },
+      select: { id: true, nombre: true },
+      orderBy: { nombre: "asc" },
     }),
   ]);
 
@@ -42,9 +56,9 @@ async function getSalidasData(schoolId: string, soloDe?: string) {
     fecha: s.fecha.toISOString(),
     horaSalida: s.horaSalida,
     horaVuelta: s.horaVuelta,
-    vueltaDirectaCasa: s.vueltaDirectaCasa,
     responsableId: s.responsableId,
     responsableName: s.responsable?.name ?? s.responsable?.email ?? "—",
+    profesoresIds: s.profesoresIds,
     profesoresNombres: s.profesoresIds.map((id) => profesoresMap.get(id) ?? "—"),
     numAlumnos: s.numAlumnos,
     costo: s.costo,
@@ -53,9 +67,11 @@ async function getSalidasData(schoolId: string, soloDe?: string) {
     estado: s.estado,
     creadoPorId: s.creadoPorId,
     creadoPorNombre: s.creadoPor?.name ?? s.creadoPor?.email ?? "—",
+    departamentoId: s.departamentoId,
+    departamentoNombre: s.departamento?.nombre ?? null,
   }));
 
-  return { rows, profesores };
+  return { rows, profesores, departamentos: departamentosRaw };
 }
 
 export default async function SalidasPage({
@@ -94,12 +110,12 @@ export default async function SalidasPage({
       );
     }
 
-    const { rows, profesores } = await getSalidasData(searchParams.school);
+    const { rows, profesores, departamentos } = await getSalidasData(searchParams.school);
     return (
       <div>
         <DashboardHeader title={translate(locale, "salidas.title")} subtitle={translate(locale, "salidas.subtitle.superadmin")} userName={userName} role={role} />
         <SchoolSwitcher schools={schools} currentSchoolId={searchParams.school} locale={locale} basePath="/dashboard/salidas" />
-        <SalidasClient rows={rows} profesores={profesores} currentUserId={session!.user.id} canManageAll showFilters schoolId={searchParams.school} />
+        <SalidasClient rows={rows} profesores={profesores} departamentos={departamentos} currentUserId={session!.user.id} canManageAll puedeAnular showFilters schoolId={searchParams.school} />
       </div>
     );
   }
@@ -131,9 +147,11 @@ export default async function SalidasPage({
 
   if (!userId) return null;
 
-  // El equipo directivo ve todas las salidas del centro; el profesor solo
-  // ve (y gestiona) las que ha creado él mismo.
-  const { rows, profesores } = await getSalidasData(schoolId, isProfesor ? userId : undefined);
+  // Equipo directivo ve todas las salidas del centro. Un profesor ve las
+  // aprobadas de todo el mundo (para estar informado) más las suyas
+  // propias en cualquier estado (para poder gestionarlas mientras estén
+  // pendientes).
+  const { rows, profesores, departamentos } = await getSalidasData(schoolId, isProfesor ? userId : undefined);
 
   return (
     <div>
@@ -144,7 +162,7 @@ export default async function SalidasPage({
         role={role}
         notificationCount={0}
       />
-      {isProfesor && (
+      {(isProfesor || isEquipoDirectivo) && (
         <div className="mb-5 flex justify-end">
           <SalidaFormModal profesores={profesores} currentUserId={userId} />
         </div>
@@ -152,9 +170,11 @@ export default async function SalidasPage({
       <SalidasClient
         rows={rows}
         profesores={profesores}
+        departamentos={departamentos}
         currentUserId={userId}
         canManageAll={isEquipoDirectivo}
-        showFilters={isEquipoDirectivo}
+        puedeAnular={isEquipoDirectivo}
+        showFilters
         schoolId={schoolId}
       />
     </div>

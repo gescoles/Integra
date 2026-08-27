@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Mail } from "lucide-react";
+import { Plus, X, Mail, Lock } from "lucide-react";
 import { createSalida } from "./actions";
+import { obtenerDepartamentosDelCentro } from "../practicas/actions";
 import { ButtonSpinner } from "../components/ButtonSpinner";
 import { CursoSelect } from "../components/CursoSelect";
 import { useLocale } from "../SchoolContext";
@@ -24,14 +25,17 @@ export function SalidaFormModal({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
-  const [vueltaDirectaCasa, setVueltaDirectaCasa] = useState(false);
+  const [departamentos, setDepartamentos] = useState<{ id: string; nombre: string }[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (open) obtenerDepartamentosDelCentro().then(setDepartamentos);
+  }, [open]);
 
   function handleClose() {
     setOpen(false);
     setDone(false);
     setError(null);
-    setVueltaDirectaCasa(false);
     formRef.current?.reset();
   }
 
@@ -96,15 +100,35 @@ export function SalidaFormModal({
                   </div>
                   <div>
                     <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                      {translate(locale, "salidas.tipo")} <span className="text-red-500">*</span>
+                      {translate(locale, "salidas.tipo")} <span className="font-normal text-slate-400">(opcional)</span>
                     </label>
-                    <input
+                    <select
                       name="tipo"
-                      required
-                      placeholder={translate(locale, "salidas.tipoPlaceholder")}
+                      defaultValue=""
                       className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
-                    />
+                    >
+                      <option value="">—</option>
+                      <option value="Interna">Interna</option>
+                      <option value="Salida">Salida</option>
+                    </select>
                   </div>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                    Departament <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="departamentoId"
+                    required
+                    defaultValue=""
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+                  >
+                    <option value="" disabled>Tria un departament...</option>
+                    {departamentos.map((d) => (
+                      <option key={d.id} value={d.id}>{d.nombre}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -127,6 +151,7 @@ export function SalidaFormModal({
                     name="fecha"
                     type="date"
                     required
+                    min={new Date().toISOString().slice(0, 10)}
                     defaultValue={new Date().toISOString().slice(0, 10)}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />
@@ -147,46 +172,27 @@ export function SalidaFormModal({
                   </div>
                   <div>
                     <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                      {translate(locale, "salidas.horaVuelta")}{!vueltaDirectaCasa && <span className="text-red-500"> *</span>}
+                      {translate(locale, "salidas.horaVuelta")} <span className="text-red-500">*</span>
                     </label>
                     <input
                       name="horaVuelta"
                       type="time"
-                      required={!vueltaDirectaCasa}
-                      disabled={vueltaDirectaCasa}
+                      required
                       defaultValue="14:00"
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249] disabled:bg-slate-50 disabled:text-slate-400"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                     />
                   </div>
                 </div>
-
-                <label className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2.5 text-sm text-slate-600">
-                  <input
-                    type="checkbox"
-                    name="vueltaDirectaCasa"
-                    checked={vueltaDirectaCasa}
-                    onChange={(e) => setVueltaDirectaCasa(e.target.checked)}
-                    className="rounded border-slate-300 accent-[#FD5249]"
-                  />
-                  {translate(locale, "salidas.vueltaDirectaCasa")}
-                </label>
 
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                     {translate(locale, "salidas.responsable")} <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    name="responsableId"
-                    required
-                    defaultValue={currentUserId}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
-                  >
-                    {profesores.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-500">
+                    <Lock className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    {profesores.find((p) => p.id === currentUserId)?.name ?? "Tú"}
+                  </div>
+                  <input type="hidden" name="responsableId" value={currentUserId} />
                 </div>
 
                 <div>
@@ -248,11 +254,12 @@ export function SalidaFormModal({
 
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                    {translate(locale, "salidas.observaciones")}
+                    {translate(locale, "salidas.observaciones")} <span className="text-red-500">*</span>
                   </label>
                   <textarea
                     name="observaciones"
                     rows={3}
+                    required
                     placeholder={translate(locale, "salidas.observacionesPlaceholder")}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   />

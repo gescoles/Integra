@@ -80,6 +80,7 @@ model School {
   plantas EspacioPlanta[]
   coberturas CoberturaGuardia[]
   departamentos Departamento[]
+  modulosProfesionales ModuloProfesional[]
 }
 
 // Departamento del centro (p. ej. "Matemàtiques", "Informàtica"). Cada
@@ -93,6 +94,8 @@ model Departamento {
   nombre        String
   profesores    User[]   @relation("DepartamentoProfesores")
   coordinadores User[]   @relation("DepartamentoCoordinadores")
+  convenios     Convenio[]
+  salidas       Salida[]
   createdAt     DateTime @default(now())
 }
 
@@ -279,6 +282,7 @@ model Expediente {
   firmaDireccion   String?
   firmaTutor       String?
   firmaCoordinador String?
+  firmaAlumno      String?
   emailAlumno      String?
 
   createdAt DateTime @default(now())
@@ -351,7 +355,9 @@ model User {
   noticias     Noticia[]
   salidasCreadas     Salida[] @relation("SalidaCreador")
   salidasResponsable Salida[] @relation("SalidaResponsable")
+  salidasAnuladas    Salida[] @relation("SalidaAnuladaPor")
   practicasComoTutor PracticaAlumno[] @relation("PracticaTutorIMES")
+  practicasComoResponsable PracticaAlumno[] @relation("PracticaResponsable")
   conveniosCerrados  Convenio[] @relation("ConvenioCerradoPor")
   tutoriasSeguimientoCreadas TutoriaSeguimiento[] @relation("TutoriaSeguimientoCreador")
   historias         Historia[]
@@ -430,12 +436,25 @@ model Alumno {
   edad       Int?
   riesgo     RiesgoNivel      @default(BAJO)
   avatarUrl  String?
+  // Datos identificativos del alumno. Se piden al crear el alumno desde
+  // Tutorías, y luego se muestran bloqueados (solo lectura) en la ficha de
+  // Prácticas — para editarlos hay que hacerlo desde la ficha del alumno.
+  fechaNacimiento DateTime?
+  tipoDocumento   TipoDocumento?
+  numeroDocumento String?
+  direccion       String?
   createdAt  DateTime         @default(now())
   contactos  AlumnoContacto[]
   tutorias   Tutoria[]
   practicas  PracticaAlumno[]
   incidencias Incidencia[]
   expedientes Expediente[]
+}
+
+enum TipoDocumento {
+  DNI
+  NIE
+  PASAPORTE
 }
 
 model AlumnoContacto {
@@ -494,6 +513,7 @@ enum SalidaEstado {
   PENDIENTE
   APROBADA
   RECHAZADA
+  ANULADA
 }
 
 model Salida {
@@ -501,12 +521,11 @@ model Salida {
   schoolId     String
   school       School       @relation(fields: [schoolId], references: [id])
   curso        String
-  tipo         String
+  tipo         String?
   actividad    String
   fecha        DateTime
   horaSalida   String
   horaVuelta   String?
-  vueltaDirectaCasa Boolean @default(false)
   responsableId String
   responsable   User        @relation("SalidaResponsable", fields: [responsableId], references: [id])
   profesoresIds String[]    @default([])
@@ -516,6 +535,17 @@ model Salida {
   observaciones String?
   calendarioSustituciones String?
   estado       SalidaEstado @default(PENDIENTE)
+  // Anulación: solo Admin. de Centro/SuperAdmin puede anular una salida ya
+  // aprobada, siempre con un motivo obligatorio. Se avisa por email al
+  // profesor que la creó.
+  motivoAnulacion String?
+  anuladaPorId    String?
+  anuladaPor      User?    @relation("SalidaAnuladaPor", fields: [anuladaPorId], references: [id])
+  fechaAnulacion  DateTime?
+  // Departamento al que pertenece la salida: al aprobarla, se avisa a
+  // todos los profesores y coordinadores de ese departamento.
+  departamentoId String?
+  departamento   Departamento? @relation(fields: [departamentoId], references: [id])
   creadoPorId  String
   creadoPor    User         @relation("SalidaCreador", fields: [creadoPorId], references: [id])
   createdAt    DateTime     @default(now())
@@ -541,9 +571,18 @@ model PracticaAlumno {
   cicloFormativo String?
   anyTitulacion  String?
 
-  // Tutor iMES (profesor del centro responsable del alumno en prácticas)
+  // Tutor iMES = el tutor/a académico REAL del alumno (el mismo que en
+  // Tutorías/Mis Alumnos), nunca quien crea la ficha. Se rellena solo, a
+  // partir del alumno elegido, y no se puede tocar desde aquí.
   tutorImesId String?
   tutorImes   User?   @relation("PracticaTutorIMES", fields: [tutorImesId], references: [id])
+
+  // Responsable de prácticas = quien de verdad lleva el seguimiento de
+  // este alumno en Prácticas (normalmente quien crea la ficha, pero puede
+  // no ser su tutor/a real — p. ej. el coordinador de FCT). Equipo
+  // directivo puede cambiarlo más adelante si hace falta reasignarlo.
+  responsablePracticasId String?
+  responsablePracticas   User?   @relation("PracticaResponsable", fields: [responsablePracticasId], references: [id])
 
   dni             String?
   fechaNacimiento DateTime?
@@ -574,7 +613,14 @@ model Convenio {
 
   tipologia       String?
   estadoAcuerdo   String?
-  convalida       Boolean   @default(false)
+  // Horas convalidadas de las prácticas: 0 si no convalida ninguna, o el
+  // número de horas que sí se convalidan. Sustituye al antiguo checkbox
+  // "convalida" (sí/no), que no permitía indicar cuánto.
+  horasConvalidadas Int @default(0)
+  // Año del ciclo en el que el alumno hace estas prácticas concretas
+  // (un mismo ciclo tiene 2 años, y las prácticas se pueden hacer en
+  // cualquiera de los dos según el centro).
+  anyCurso String?
   quienAltaBajaSS String?
   fechaInicio     DateTime?
   fechaFin        DateTime?
@@ -597,11 +643,57 @@ model Convenio {
   cerradoPorId String?
   cerradoPor   User?     @relation("ConvenioCerradoPor", fields: [cerradoPorId], references: [id])
 
+  // Departamento al que pertenece este convenio (p. ej. Informàtica). Se usa
+  // para filtrar el catálogo de módulos profesionales del ciclo elegido, y
+  // para saber a qué profesores enviar las notas.
+  departamentoId String?
+  departamento   Departamento? @relation(fields: [departamentoId], references: [id])
+  // Grupo/ciclo del alumno para el que se eligieron los módulos (p. ej.
+  // "DAM1"). Se guarda tal cual, independientemente del curso real del
+  // alumno, porque un convenio se puede reutilizar de un curso a otro.
+  cicloGrupo     String?
+  modulos        ConvenioModulo[]
+
   prorrogas           Prorroga[]
   tutoriasSeguimiento TutoriaSeguimiento[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+}
+
+// Catálogo de módulos profesionales por ciclo formativo (DAM, ASIX, SIMIX...)
+// con las horas oficiales a realizar en el centro y en la empresa. Es un
+// catálogo de centro, no depende de ningún alumno ni convenio concreto.
+model ModuloProfesional {
+  id             String   @id @default(cuid())
+  schoolId       String
+  school         School   @relation(fields: [schoolId], references: [id])
+  cicloFormativo String   // "DAM" | "ASIX" | "SIMIX" (prefijo del grupo, sin el número)
+  codigo         String   // "0485"
+  nombre         String   // "Programació."
+  horasCentro    Int
+  horasEmpresa   Int
+  orden          Int      @default(0)
+  convenios      ConvenioModulo[]
+
+  @@unique([schoolId, cicloFormativo, codigo])
+}
+
+// Módulo profesional concreto elegido dentro de un convenio, con las horas
+// de empresa (editable: parte del total oficial, o el total si se hace
+// completo) y la nota una vez evaluado.
+model ConvenioModulo {
+  id                  String            @id @default(cuid())
+  convenioId          String
+  convenio            Convenio          @relation(fields: [convenioId], references: [id], onDelete: Cascade)
+  moduloProfesionalId String
+  moduloProfesional   ModuloProfesional @relation(fields: [moduloProfesionalId], references: [id])
+  horasEmpresa         Int              // autocompletado desde el catálogo al elegirlo, pero editable
+  nota                 String?
+  notaEnviada          Boolean          @default(false)
+  createdAt            DateTime         @default(now())
+
+  @@unique([convenioId, moduloProfesionalId])
 }
 
 // Las 3 tutorías de seguimiento de un convenio en prácticas: inicial, media
@@ -724,6 +816,7 @@ model HorarioBloque {
 // Queda constancia de quién cubrió a quién y cuándo.
 enum EstadoCobertura {
   PENDIENTE
+  ACEPTADA
   ASIGNADA
   RECHAZADA
 }

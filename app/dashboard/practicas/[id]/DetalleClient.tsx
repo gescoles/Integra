@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { calcularEdad } from "@/lib/fechas";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -12,12 +13,17 @@ import {
   ChevronDown,
   ChevronUp,
   Award,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
-import { eliminarConvenio, eliminarProrroga, eliminarFichaAlumno } from "../actions";
+import { eliminarConvenio, eliminarProrroga, eliminarFichaAlumno, cambiarResponsablePracticas } from "../actions";
+import { ButtonSpinner } from "../../components/ButtonSpinner";
 import { ConvenioFormModal } from "./ConvenioFormModal";
 import { ProrrogaFormModal } from "./ProrrogaFormModal";
 import { CerrarConvenioModal } from "./CerrarConvenioModal";
 import { TutoriaSeguimientoBlock } from "./TutoriaSeguimientoBlock";
+import { ModulosConvenioBlock } from "./ModulosConvenioBlock";
 import { EditFichaModal } from "./EditFichaModal";
 import { useLocale, useGuardadoTransition } from "../../SchoolContext";
 import { translate } from "../../i18n";
@@ -39,11 +45,20 @@ type Prorroga = {
   tutorEmpresaCorreo: string | null;
   observaciones: string | null;
 };
+type ModuloConvenio = {
+  id: string;
+  moduloProfesionalId: string;
+  codigo: string;
+  nombre: string;
+  horasEmpresa: number;
+  notaEnviada: boolean;
+};
 type Convenio = {
   id: string;
   tipologia: string | null;
   estadoAcuerdo: string | null;
-  convalida: boolean;
+  horasConvalidadas: number;
+  anyCurso: string | null;
   quienAltaBajaSS: string | null;
   fechaInicio: string | null;
   fechaFin: string | null;
@@ -58,6 +73,10 @@ type Convenio = {
   notaFinal: string | null;
   fechaCierre: string | null;
   cerradoPorNombre: string | null;
+  departamentoId: string | null;
+  departamentoNombre: string | null;
+  cicloGrupo: string | null;
+  modulos: ModuloConvenio[];
   tutoriasSeguimiento: Tutoria[];
   prorrogas: Prorroga[];
 };
@@ -66,11 +85,17 @@ type Ficha = {
   alumnoNombre: string;
   alumnoCurso: string;
   alumnoAvatarUrl: string | null;
+  alumnoFechaNacimiento: string | null;
+  alumnoTipoDocumento: string | null;
+  alumnoNumeroDocumento: string | null;
+  alumnoDireccion: string | null;
   promocion: string;
   cicloFormativo: string | null;
   anyTitulacion: string | null;
   tutorImesId: string | null;
   tutorImesNombre: string | null;
+  responsablePracticasId: string | null;
+  responsablePracticasNombre: string | null;
   dni: string | null;
   fechaNacimiento: string | null;
   telefono: string | null;
@@ -161,9 +186,14 @@ function ConvenioCard({ convenio, fichaId, esDirectivo }: { convenio: Convenio; 
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4 text-slate-400" />
               <h3 className="text-sm font-bold text-[#0B1D4D]">{convenio.empresaNombre ?? translate(locale, "practicas.sinEmpresa")}</h3>
-              {convenio.convalida && (
+              {convenio.anyCurso && (
+                <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
+                  {convenio.anyCurso === "Primer" ? "1º año" : "2º año"}
+                </span>
+              )}
+              {convenio.horasConvalidadas > 0 && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
-                  <CheckCircle2 className="h-2.5 w-2.5" /> {translate(locale, "practicas.convalida")}
+                  <CheckCircle2 className="h-2.5 w-2.5" /> {convenio.horasConvalidadas}h convalidades
                 </span>
               )}
               <span
@@ -249,8 +279,22 @@ function ConvenioCard({ convenio, fichaId, esDirectivo }: { convenio: Convenio; 
               fichaId={fichaId}
               tutorias={convenio.tutoriasSeguimiento}
               bloqueado={soloLectura}
+              convenioFechaInicio={convenio.fechaInicio}
+              convenioFechaFin={convenio.fechaFin}
             />
           </div>
+
+          {/* Módulos profesionales y notas */}
+          <ModulosConvenioBlock
+            convenioId={convenio.id}
+            fichaId={fichaId}
+            departamentoId={convenio.departamentoId}
+            departamentoNombre={convenio.departamentoNombre}
+            cicloGrupo={convenio.cicloGrupo}
+            modulos={convenio.modulos}
+            notaFinal={convenio.notaFinal}
+            bloqueado={soloLectura}
+          />
 
           {/* Prórrogas */}
           <div className="mt-4 border-t border-slate-100 pt-3">
@@ -278,10 +322,12 @@ export function DetalleClient({
   ficha,
   convenios,
   esDirectivo,
+  profesores = [],
 }: {
   ficha: Ficha;
   convenios: Convenio[];
   esDirectivo: boolean;
+  profesores?: { id: string; name: string }[];
 }) {
   const { locale } = useLocale();
   const router = useRouter();
@@ -351,13 +397,25 @@ export function DetalleClient({
             </div>
             <div>
               <h2 className="text-base font-bold text-[#0B1D4D]">{ficha.alumnoNombre}</h2>
-              <p className="text-xs text-slate-400">{ficha.alumnoCurso}</p>
+              <p className="text-xs text-slate-400">
+                {ficha.alumnoCurso}
+                {ficha.alumnoFechaNacimiento && <> · {calcularEdad(new Date(ficha.alumnoFechaNacimiento))} años</>}
+              </p>
             </div>
             <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${ficha.promocion === "PRIMERA" ? "bg-blue-50 text-[#FD5249]" : "bg-violet-50 text-violet-600"}`}>
               {ficha.promocion === "PRIMERA" ? translate(locale, "practicas.primeraPromocion") : translate(locale, "practicas.segundaPromocion")}
             </span>
           </div>
-          <EditFichaModal ficha={ficha} alumnoCurso={ficha.alumnoCurso} />
+          <EditFichaModal
+            ficha={ficha}
+            alumnoCurso={ficha.alumnoCurso}
+            alumnoDatos={{
+              fechaNacimiento: ficha.alumnoFechaNacimiento,
+              tipoDocumento: ficha.alumnoTipoDocumento,
+              numeroDocumento: ficha.alumnoNumeroDocumento,
+              direccion: ficha.alumnoDireccion,
+            }}
+          />
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
@@ -368,6 +426,16 @@ export function DetalleClient({
           <div>
             <div className="text-[10px] font-semibold uppercase text-slate-400">{translate(locale, "practicas.tutorImes")}</div>
             <div className="text-slate-600">{ficha.tutorImesNombre ?? "—"}</div>
+          </div>
+          <div>
+            <div className="mb-0.5 text-[10px] font-semibold uppercase text-slate-400">Responsable de prácticas</div>
+            <ResponsablePracticasCampo
+              fichaId={ficha.id}
+              valorActual={ficha.responsablePracticasId}
+              nombreActual={ficha.responsablePracticasNombre}
+              profesores={profesores}
+              editable={esDirectivo}
+            />
           </div>
           <div>
             <div className="text-[10px] font-semibold uppercase text-slate-400">{translate(locale, "practicas.dni")}</div>
@@ -417,6 +485,85 @@ export function DetalleClient({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function ResponsablePracticasCampo({
+  fichaId,
+  valorActual,
+  nombreActual,
+  profesores,
+  editable,
+}: {
+  fichaId: string;
+  valorActual: string | null;
+  nombreActual: string | null;
+  profesores: { id: string; name: string }[];
+  editable: boolean;
+}) {
+  const router = useRouter();
+  const [editando, setEditando] = useState(false);
+  const [valor, setValor] = useState(valorActual ?? "");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!editable) {
+    return <div className="text-slate-600">{nombreActual ?? "—"}</div>;
+  }
+
+  if (!editando) {
+    return (
+      <button
+        onClick={() => setEditando(true)}
+        className="flex items-center gap-1.5 text-slate-600 hover:text-[#FD5249]"
+        title="Cambiar quién lleva las prácticas de este alumno"
+      >
+        {nombreActual ?? "—"}
+        <Pencil className="h-3 w-3 text-slate-400" />
+      </button>
+    );
+  }
+
+  async function handleGuardar() {
+    if (!valor) {
+      setError("Elige a alguien.");
+      return;
+    }
+    setPending(true);
+    setError(null);
+    try {
+      await cambiarResponsablePracticas(fichaId, valor);
+      router.refresh();
+      setEditando(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo cambiar.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div>
+      <div className="flex items-center gap-1.5">
+        <select
+          value={valor}
+          onChange={(e) => setValor(e.target.value)}
+          className="rounded-md border border-slate-200 px-2 py-1 text-xs outline-none focus:border-[#FD5249]"
+        >
+          <option value="" disabled>Selecciona...</option>
+          {profesores.map((p) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+        <button onClick={handleGuardar} disabled={pending} className="rounded-md p-1 text-emerald-600 hover:bg-emerald-50">
+          {pending ? <ButtonSpinner /> : <Check className="h-3.5 w-3.5" />}
+        </button>
+        <button onClick={() => { setEditando(false); setValor(valorActual ?? ""); setError(null); }} className="rounded-md p-1 text-slate-400 hover:bg-slate-100">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {error && <p className="mt-1 text-[11px] text-red-600">{error}</p>}
     </div>
   );
 }

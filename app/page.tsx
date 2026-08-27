@@ -3,6 +3,7 @@ import { Logo, HexLogo } from "./components/Logo";
 import { Reveal } from "./components/Reveal";
 import { HistoriasDemo } from "./components/HistoriasDemo";
 import { ModulosInteractivo } from "./components/ModulosInteractivo";
+import { CTAConLoader } from "./components/CTAConLoader";
 import { SiteHeader } from "./components/SiteHeader";
 import { SiteFooter } from "./components/SiteFooter";
 import {
@@ -182,12 +183,12 @@ function Hero() {
           pensada para el día a día real de un centro educativo.
         </p>
         <div className="mt-7 flex items-center gap-3">
-          <Link href="/solicitar?tipo=demo" className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
+          <CTAConLoader href="/solicitar?tipo=demo" className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
             Solicitar demo
-          </Link>
-          <Link href="/solicitar?tipo=registro" className="flex items-center gap-2 rounded-lg bg-[#FD5249] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-transform hover:-translate-y-0.5 hover:bg-[#D7463E] hover:shadow-md">
+          </CTAConLoader>
+          <CTAConLoader href="/solicitar?tipo=registro" className="flex items-center gap-2 rounded-lg bg-[#FD5249] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-transform hover:-translate-y-0.5 hover:bg-[#D7463E] hover:shadow-md">
             <ShieldCheck className="h-4 w-4" /> Registrar mi centro
-          </Link>
+          </CTAConLoader>
         </div>
         <div className="mt-5 flex items-center gap-5 text-xs text-slate-500">
           <span className="flex items-center gap-1">
@@ -551,9 +552,9 @@ function CTABanner() {
           <a href="/#funciones" className="rounded-lg border border-white px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10">
             Conocer funciones
           </a>
-          <Link href="/solicitar?tipo=registro" className="rounded-lg bg-[#FD5249] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]">
+          <CTAConLoader href="/solicitar?tipo=registro" className="rounded-lg bg-[#FD5249] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]">
             Registrar mi centro
-          </Link>
+          </CTAConLoader>
         </div>
       </div>
     </section>

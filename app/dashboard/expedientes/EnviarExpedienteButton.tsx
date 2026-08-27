@@ -18,9 +18,10 @@ export function EnviarExpedienteButton({ expedienteId }: { expedienteId: string 
   const [firmaDireccion, setFirmaDireccion] = useState<string | null>(null);
   const [firmaTutor, setFirmaTutor] = useState<string | null>(null);
   const [firmaCoordinador, setFirmaCoordinador] = useState<string | null>(null);
+  const [firmaAlumno, setFirmaAlumno] = useState<string | null>(null);
 
   async function handleSubmit(formData: FormData) {
-    if (!firmaDireccion || !firmaTutor || !firmaCoordinador) {
+    if (!firmaDireccion || !firmaTutor || !firmaCoordinador || !firmaAlumno) {
       setError(translate(locale, "expedientes.avisoFaltanFirmas"));
       return;
     }
@@ -28,6 +29,7 @@ export function EnviarExpedienteButton({ expedienteId }: { expedienteId: string 
     formData.set("firmaDireccion", firmaDireccion);
     formData.set("firmaTutor", firmaTutor);
     formData.set("firmaCoordinador", firmaCoordinador);
+    formData.set("firmaAlumno", firmaAlumno);
 
     setError(null);
     setPending(true);
@@ -86,6 +88,7 @@ export function EnviarExpedienteButton({ expedienteId }: { expedienteId: string 
                 <SignaturePad label={translate(locale, "expedientes.direccionCentro")} onChange={setFirmaDireccion} />
                 <SignaturePad label={translate(locale, "expedientes.firmaTutor")} onChange={setFirmaTutor} />
                 <SignaturePad label={translate(locale, "expedientes.coordinadorDepartamento")} onChange={setFirmaCoordinador} />
+                <SignaturePad label="Alumne/a" onChange={setFirmaAlumno} />
               </div>
 
               <div className="flex justify-end gap-2 pt-2">

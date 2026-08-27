@@ -503,12 +503,9 @@ export function ExpedientesClient({
               </div>
             )}
 
-            {/* Expedientes: Coordinación/Dirección/SuperAdmin pueden abrir
-                uno cuando quieran, sin depender de llegar a las 3
-                incidencias. El resto de roles solo ven los que ya existan
-                (para descargarlos), sin poder crear ninguno. */}
-            {(esDirectivo || seleccionada.expedientes.length > 0) && (
-              <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+            {/* Expedientes: ahora cualquier rol puede abrirlos, editarlos
+                y enviarlos, no solo Coordinación/Dirección/SuperAdmin. */}
+            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
                 <div className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">
                   <ShieldAlert className="h-3.5 w-3.5" /> {translate(locale, "expedientes.expedientesTitulo")}
                 </div>
@@ -546,7 +543,7 @@ export function ExpedientesClient({
                           >
                             <FileText className="h-3 w-3" /> Word
                           </a>
-                          {esDirectivo && exp.estado !== "ENVIADO" && (
+                          {exp.estado !== "ENVIADO" && (
                             <>
                               <ExpedienteFormModal
                                 incidenciaId={seleccionada.id}
@@ -562,15 +559,12 @@ export function ExpedientesClient({
                   </div>
                 )}
 
-                {esDirectivo && (
-                  <ExpedienteFormModal
-                    incidenciaId={seleccionada.id}
-                    descripcionInicial={seleccionada.descripcion}
-                    modoCrear={seleccionada.expedientes.length > 0}
-                  />
-                )}
+                <ExpedienteFormModal
+                  incidenciaId={seleccionada.id}
+                  descripcionInicial={seleccionada.descripcion}
+                  modoCrear={seleccionada.expedientes.length > 0}
+                />
               </div>
-            )}
 
             {/* Historial */}
             <div className="mt-5 border-t border-slate-100 pt-4">

@@ -48,6 +48,7 @@ export async function getExpedienteData(expedienteId: string) {
     firmaDireccion: exp.firmaDireccion,
     firmaTutor: exp.firmaTutor,
     firmaCoordinador: exp.firmaCoordinador,
+    firmaAlumno: exp.firmaAlumno,
   };
 }
 
@@ -241,11 +242,12 @@ export async function buildExpedientePdf(data: ExpedienteData): Promise<Uint8Arr
   drawParagraph(`Data de tancament: ${data.fechaTancament}`, { bold: true, size: 10, gap: 12 });
 
   newPageIfNeeded(70);
-  const colWidth = maxWidth / 3;
+  const colWidth = maxWidth / 4;
   const firmas = [
     { label: "Direcció del centre", nombre: data.direccionNombre, firma: data.firmaDireccion },
     { label: "Tutor/a de l'alumne/a", nombre: data.tutorNombre, firma: data.firmaTutor },
     { label: "Coordinador de Departament", nombre: data.coordinadorNombre, firma: data.firmaCoordinador },
+    { label: "Alumne/a", nombre: data.alumnoNombre, firma: data.firmaAlumno },
   ];
   for (let i = 0; i < firmas.length; i++) {
     const f = firmas[i];
@@ -315,6 +317,7 @@ export async function buildExpedienteDocx(data: ExpedienteData) {
   const firmaDireccionRun = firmaRun(data.firmaDireccion);
   const firmaTutorRun = firmaRun(data.firmaTutor);
   const firmaCoordinadorRun = firmaRun(data.firmaCoordinador);
+  const firmaAlumnoRun = firmaRun(data.firmaAlumno);
 
   const sectionHeader = (text: string) =>
     new Paragraph({
@@ -475,10 +478,11 @@ export async function buildExpedienteDocx(data: ExpedienteData) {
                   new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Direcció del centre", bold: true, size: 20 })] })] }),
                   new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Tutor/a de l'alumne/a", bold: true, size: 20 })] })] }),
                   new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Coordinador de Departament", bold: true, size: 20 })] })] }),
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Alumne/a", bold: true, size: 20 })] })] }),
                 ],
               }),
               new TableRow({
-                children: [firmaDireccionRun, firmaTutorRun, firmaCoordinadorRun].map(
+                children: [firmaDireccionRun, firmaTutorRun, firmaCoordinadorRun, firmaAlumnoRun].map(
                   (run) => new TableCell({ children: [new Paragraph({ children: run ? [run] : [] })] })
                 ),
               }),
@@ -487,6 +491,7 @@ export async function buildExpedienteDocx(data: ExpedienteData) {
                   new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: data.direccionNombre || "—", size: 20 })] })] }),
                   new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: data.tutorNombre || "—", size: 20 })] })] }),
                   new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: data.coordinadorNombre || "—", size: 20 })] })] }),
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: data.alumnoNombre || "—", size: 20 })] })] }),
                 ],
               }),
             ],

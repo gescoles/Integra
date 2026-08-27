@@ -5,6 +5,10 @@ import { DashboardHeader } from "../components/DashboardHeader";
 import { translate } from "../i18n";
 import { ModuleLocked } from "../components/ModuleLocked";
 import { ExpedientesClient } from "./ExpedientesClient";
+import { ExpedientesFormalesClient } from "./ExpedientesFormalesClient";
+import { ExpulsionesClient } from "./ExpulsionesClient";
+import { obtenerAlumnosEnProcesoExpulsion, obtenerAlumnosConTresIncidenciasSinExpediente } from "@/lib/disciplinaHelpers";
+import { DisciplinaTabs } from "./DisciplinaTabs";
 import { SchoolPicker, SchoolSwitcher } from "../components/SchoolPicker";
 
 export const dynamic = "force-dynamic";
@@ -94,13 +98,29 @@ async function getExpedientesData(schoolId: string, soloPropiasDeUserId?: string
   const alumnos = alumnosRaw.map((a) => ({ id: a.id, nombre: a.nombre, curso: a.curso, avatarUrl: a.avatarUrl, profesorId: a.profesorId }));
   const profesores = profesoresRaw.map((p) => ({ id: p.id, name: p.name ?? p.email }));
 
-  return { rows, alumnos, profesores };
+  // La pestaña "Expedients" es la misma información, solo que aplanada:
+  // un expediente por fila, con los datos de su incidencia y alumno ya
+  // incluidos, en vez de anidados dentro de la incidencia.
+  const expedientesFormales = rows.flatMap((inc) =>
+    inc.expedientes.map((e) => ({
+      ...e,
+      alumnoId: inc.alumnoId,
+      alumnoNombre: inc.alumnoNombre,
+      alumnoCurso: inc.alumnoCurso,
+      tutorNombre: inc.tutorNombre,
+      incidenciaId: inc.id,
+      incidenciaDescripcion: inc.descripcion,
+      createdAt: inc.createdAt,
+    }))
+  );
+
+  return { rows, alumnos, profesores, expedientesFormales };
 }
 
 export default async function ExpedientesPage({
   searchParams,
 }: {
-  searchParams: { school?: string };
+  searchParams: { school?: string; vista?: string };
 }) {
   const session = await getServerSession(authOptions);
   const locale = session?.user.locale ?? "ES";
@@ -109,6 +129,8 @@ export default async function ExpedientesPage({
   const role = session?.user.role ?? "PROFESOR";
   const isSuperAdmin = role === "SUPERADMIN";
   const isEquipoDirectivo = role === "COORDINADOR" || role === "ADMIN_CENTRO";
+  const vista =
+    searchParams.vista === "expedientes" ? "expedientes" : searchParams.vista === "expulsiones" ? "expulsiones" : "incidencias";
 
   if (isSuperAdmin) {
     const schools = await prisma.school.findMany({
@@ -132,12 +154,26 @@ export default async function ExpedientesPage({
       );
     }
 
-    const { rows, alumnos, profesores } = await getExpedientesData(searchParams.school);
+    const { rows, alumnos, profesores, expedientesFormales } = await getExpedientesData(searchParams.school);
+    const alumnosExpulsion = vista === "expulsiones" ? await obtenerAlumnosEnProcesoExpulsion(searchParams.school) : [];
+    const pendientesRevision = vista === "expedientes" ? await obtenerAlumnosConTresIncidenciasSinExpediente(searchParams.school) : [];
     return (
       <div>
         <DashboardHeader title={translate(locale, "expedientes.title")} subtitle={translate(locale, "expedientes.subtitle")} userName={userName} role={role} />
         <SchoolSwitcher schools={schools} currentSchoolId={searchParams.school} locale={locale} basePath="/dashboard/expedientes" />
-        <ExpedientesClient rows={rows} alumnos={alumnos} profesores={profesores} currentUserId={userId} esDirectivo />
+        <DisciplinaTabs vista={vista} />
+        {vista === "incidencias" ? (
+          <ExpedientesClient rows={rows} alumnos={alumnos} profesores={profesores} currentUserId={userId} esDirectivo />
+        ) : vista === "expedientes" ? (
+          <ExpedientesFormalesClient
+            expedientes={expedientesFormales.map((e) => ({ ...e, esDirectivo: true }))}
+            alumnos={alumnos}
+            profesores={profesores}
+            pendientesRevision={pendientesRevision}
+          />
+        ) : (
+          <ExpulsionesClient alumnos={alumnosExpulsion} />
+        )}
       </div>
     );
   }
@@ -165,7 +201,9 @@ export default async function ExpedientesPage({
     );
   }
 
-  const { rows, alumnos, profesores } = await getExpedientesData(schoolId, isEquipoDirectivo ? undefined : userId);
+  const { rows, alumnos, profesores, expedientesFormales } = await getExpedientesData(schoolId, isEquipoDirectivo ? undefined : userId);
+  const alumnosExpulsion = vista === "expulsiones" ? await obtenerAlumnosEnProcesoExpulsion(schoolId) : [];
+  const pendientesRevision = vista === "expedientes" ? await obtenerAlumnosConTresIncidenciasSinExpediente(schoolId) : [];
 
   return (
     <div>
@@ -176,7 +214,19 @@ export default async function ExpedientesPage({
         role={role}
         notificationCount={0}
       />
-      <ExpedientesClient rows={rows} alumnos={alumnos} profesores={profesores} currentUserId={userId} esDirectivo={isEquipoDirectivo} />
+      <DisciplinaTabs vista={vista} />
+      {vista === "incidencias" ? (
+        <ExpedientesClient rows={rows} alumnos={alumnos} profesores={profesores} currentUserId={userId} esDirectivo={isEquipoDirectivo} />
+      ) : vista === "expedientes" ? (
+        <ExpedientesFormalesClient
+          expedientes={expedientesFormales.map((e) => ({ ...e, esDirectivo: isEquipoDirectivo }))}
+          alumnos={alumnos}
+          profesores={profesores}
+          pendientesRevision={pendientesRevision}
+        />
+      ) : (
+        <ExpulsionesClient alumnos={alumnosExpulsion} />
+      )}
     </div>
   );
 }

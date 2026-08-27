@@ -51,6 +51,20 @@ export async function esUsuarioActualDirectivo(): Promise<boolean> {
   return esDirectivo(session?.user.role);
 }
 
+/** El id del usuario con sesión iniciada — para poder preseleccionarlo
+ * como tutor por defecto (equipo directivo también puede ser tutor de
+ * sus propios alumnos, y así no tiene que buscarse en la lista cada vez). */
+export async function obtenerMiUsuarioId(): Promise<string | null> {
+  const session = await getServerSession(authOptions);
+  return session?.user.id ?? null;
+}
+
+/** Si el usuario actual es SuperAdmin (plataforma), no solo directivo de centro. */
+export async function esUsuarioActualSuperAdmin(): Promise<boolean> {
+  const session = await getServerSession(authOptions);
+  return session?.user.role === "SUPERADMIN";
+}
+
 export async function actualizarGruposDelCentro(formData: FormData) {
   const session = await getServerSession(authOptions);
   if (!session?.user.schoolId || !esDirectivo(session.user.role)) {

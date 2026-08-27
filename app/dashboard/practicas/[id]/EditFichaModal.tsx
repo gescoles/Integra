@@ -26,7 +26,22 @@ type Ficha = {
   nuss: string | null;
 };
 
-export function EditFichaModal({ ficha, alumnoCurso }: { ficha: Ficha; alumnoCurso: string }) {
+type AlumnoDatos = {
+  fechaNacimiento: string | null;
+  tipoDocumento: string | null;
+  numeroDocumento: string | null;
+  direccion: string | null;
+};
+
+export function EditFichaModal({
+  ficha,
+  alumnoCurso,
+  alumnoDatos,
+}: {
+  ficha: Ficha;
+  alumnoCurso: string;
+  alumnoDatos: AlumnoDatos;
+}) {
   const router = useRouter();
   const { locale } = useLocale();
   const [open, setOpen] = useState(false);
@@ -97,9 +112,12 @@ export function EditFichaModal({ ficha, alumnoCurso }: { ficha: Ficha; alumnoCur
                   <input type="hidden" name="cicloFormativo" value={alumnoCurso} />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.anyTitulacion")}</label>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                    {translate(locale, "practicas.anyTitulacion")} <span className="text-red-500">*</span>
+                  </label>
                   <select
                     name="anyTitulacion"
+                    required
                     defaultValue={ficha.anyTitulacion ?? ""}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                   >
@@ -124,10 +142,18 @@ export function EditFichaModal({ ficha, alumnoCurso }: { ficha: Ficha; alumnoCur
                   </div>
                 </div>
                 <div>
-                  <CampoDesactivable label={translate(locale, "practicas.dni")} name="dni" defaultValue={ficha.dni ?? ""} initialmenteDesactivado={!ficha.dni} />
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.dni")}</label>
+                  <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-500">
+                    <Lock className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    {alumnoDatos.tipoDocumento ? `${alumnoDatos.tipoDocumento} ${alumnoDatos.numeroDocumento ?? ""}`.trim() : "—"}
+                  </div>
                 </div>
                 <div>
-                  <CampoDesactivable label={translate(locale, "practicas.fechaNacimiento")} name="fechaNacimiento" type="date" defaultValue={fmtDate(ficha.fechaNacimiento)} initialmenteDesactivado={!ficha.fechaNacimiento} />
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.fechaNacimiento")}</label>
+                  <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-500">
+                    <Lock className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    {alumnoDatos.fechaNacimiento ? new Date(alumnoDatos.fechaNacimiento).toLocaleDateString("es-ES") : "—"}
+                  </div>
                 </div>
                 <div>
                   <CampoTelefonoDesactivable
@@ -141,7 +167,11 @@ export function EditFichaModal({ ficha, alumnoCurso }: { ficha: Ficha; alumnoCur
                   <CampoDesactivable label={translate(locale, "practicas.correoAlumno")} name="correoAlumno" type="email" defaultValue={ficha.correoAlumno ?? ""} initialmenteDesactivado={!ficha.correoAlumno} />
                 </div>
                 <div className="col-span-2">
-                  <CampoDesactivable label={translate(locale, "practicas.direccion")} name="direccion" defaultValue={ficha.direccion ?? ""} initialmenteDesactivado={!ficha.direccion} />
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "practicas.direccion")}</label>
+                  <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-500">
+                    <Lock className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    {alumnoDatos.direccion ?? "—"}
+                  </div>
                 </div>
                 <div>
                   <CampoDesactivable label={translate(locale, "practicas.cap")} name="cap" defaultValue={ficha.cap ?? ""} initialmenteDesactivado={!ficha.cap} />

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { GuardiaStatus } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { sendGuardiaEmail, sendCoberturaEmail, sendSolicitudCoberturaEmail, sendCoberturaResueltaEmail, sendSolicitudRechazadaEmail, sendGuardiaEliminadaEmail, sendGuardiaModificadaEmail, sendCoberturaEliminadaEmail, sendCoberturaModificadaEmail } from "@/lib/email";
+import { sendGuardiaEmail, sendCoberturaEmail, sendSolicitudCoberturaEmail, sendCoberturaResueltaEmail, sendSolicitudRechazadaEmail, sendGuardiaEliminadaEmail, sendGuardiaModificadaEmail, sendCoberturaEliminadaEmail, sendCoberturaModificadaEmail, sendAusenciaAceptadaEmail } from "@/lib/email";
 import { notifyUsers } from "@/lib/notifications";
 
 function esDirectivo(role?: string) {
@@ -234,6 +234,54 @@ export async function crearSolicitudCobertura(formData: FormData) {
 }
 
 // Dirección resuelve una solicitud pendiente, eligiendo quién la cubre.
+// Dirección acepta el aviso de ausencia (sin asignar sustituto todavía).
+// A partir de aquí ya se puede "Gestionar guardia" para buscar a alguien.
+export async function aceptarAusencia(coberturaId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user.id || !esDirectivo(session.user.role)) {
+    throw new Error("Solo Coordinación, Dirección o SuperAdmin puede aceptar un aviso de ausencia.");
+  }
+
+  const cobertura = await prisma.coberturaGuardia.findUnique({
+    where: { id: coberturaId },
+    include: { profesorAusente: { select: { name: true, email: true } } },
+  });
+  if (!cobertura) throw new Error("No se ha encontrado la solicitud.");
+  if (cobertura.estado !== "PENDIENTE") throw new Error("Esta solicitud ya no está pendiente.");
+
+  await prisma.coberturaGuardia.update({
+    where: { id: coberturaId },
+    data: { estado: "ACEPTADA" },
+  });
+
+  const ausenteNombre = cobertura.profesorAusente.name ?? cobertura.profesorAusente.email;
+
+  await notifyUsers([cobertura.profesorAusenteId], {
+    schoolId: cobertura.schoolId,
+    tipo: "AUSENCIA_ACEPTADA",
+    titulo: "Tu aviso de ausencia ha sido aceptado",
+    mensaje: `${cobertura.horaInicio}–${cobertura.horaFin}${cobertura.grupo ? ` · ${cobertura.grupo}` : ""}`,
+    link: "/dashboard/guardias",
+    relatedId: cobertura.id,
+  });
+
+  try {
+    if (cobertura.profesorAusente.email) {
+      await sendAusenciaAceptadaEmail({
+        to: cobertura.profesorAusente.email,
+        ausenteNombre,
+        fecha: cobertura.fecha,
+        horaInicio: cobertura.horaInicio,
+        horaFin: cobertura.horaFin,
+      });
+    }
+  } catch {
+    // No pasa nada si falla el email; la notificación en la app ya ha avisado.
+  }
+
+  revalidatePath("/dashboard/guardias");
+}
+
 export async function asignarSustitutoCobertura(coberturaId: string, profesorSustitutoId: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user.id || !esDirectivo(session.user.role)) {
@@ -245,6 +293,9 @@ export async function asignarSustitutoCobertura(coberturaId: string, profesorSus
     include: { profesorAusente: { select: { name: true, email: true } } },
   });
   if (!cobertura) throw new Error("No se ha encontrado la solicitud.");
+  if (cobertura.estado === "PENDIENTE") {
+    throw new Error("Primero tienes que aceptar el aviso de ausencia, antes de buscar sustituto.");
+  }
 
   const sustituto = await prisma.user.findUnique({ where: { id: profesorSustitutoId }, select: { name: true, email: true } });
   if (!sustituto) throw new Error("No se ha encontrado al profesor sustituto.");
@@ -365,13 +416,14 @@ export async function obtenerSolicitudesPendientes(schoolIdParam?: string) {
   if (!schoolId) return [];
 
   const solicitudes = await prisma.coberturaGuardia.findMany({
-    where: { schoolId, estado: "PENDIENTE" },
+    where: { schoolId, estado: { in: ["PENDIENTE", "ACEPTADA"] } },
     include: { profesorAusente: { select: { id: true, name: true, email: true } } },
     orderBy: { fecha: "asc" },
   });
 
   return solicitudes.map((s) => ({
     id: s.id,
+    estado: s.estado,
     profesorAusenteId: s.profesorAusenteId,
     profesorAusenteNombre: s.profesorAusente.name ?? s.profesorAusente.email,
     fecha: s.fecha.toISOString(),
@@ -427,6 +479,7 @@ export async function obtenerGuardiaProgramadaParaEditar(id: string, origen: "gu
     grupo: c.grupo ?? "",
     asignatura: c.asignatura ?? "",
     trabajoAlumnos: c.trabajoAlumnos ?? "",
+    profesorSustitutoId: c.profesorSustitutoId ?? "",
   };
 }
 
@@ -479,21 +532,79 @@ export async function actualizarGuardiaProgramada(
     const horaFin = ((formData.get("horaFin") as string) || "").trim();
     const asignatura = ((formData.get("asignatura") as string) || "").trim() || null;
     const trabajoAlumnos = ((formData.get("trabajoAlumnos") as string) || "").trim() || null;
+    const nuevoSustitutoId = ((formData.get("profesorSustitutoId") as string) || "").trim() || null;
     if (!horaInicio || !horaFin) throw new Error("Las horas son obligatorias.");
     if (horaFin <= horaInicio) throw new Error("La hora de fin debe ser posterior a la de inicio.");
 
     const fecha = new Date(`${fechaRaw}T00:00:00Z`);
 
+    const anterior = await prisma.coberturaGuardia.findUnique({
+      where: { id },
+      include: { profesorSustituto: { select: { id: true, name: true, email: true } } },
+    });
+    if (!anterior) throw new Error("No se ha encontrado la cobertura.");
+
+    const cambiaSustituto = nuevoSustitutoId && nuevoSustitutoId !== anterior.profesorSustitutoId;
+
     const cobertura = await prisma.coberturaGuardia.update({
       where: { id },
-      data: { horaInicio, horaFin, ubicacion, grupo, asignatura, trabajoAlumnos, fecha },
+      data: {
+        horaInicio,
+        horaFin,
+        ubicacion,
+        grupo,
+        asignatura,
+        trabajoAlumnos,
+        fecha,
+        ...(cambiaSustituto ? { profesorSustitutoId: nuevoSustitutoId } : {}),
+      },
       include: {
         profesorSustituto: { select: { name: true, email: true } },
         profesorAusente: { select: { name: true } },
       },
     });
 
-    if (cobertura.profesorSustituto?.email) {
+    if (cambiaSustituto) {
+      // Al profesor sustituto anterior: ya no hace falta que vaya.
+      if (anterior.profesorSustituto?.email) {
+        try {
+          await sendCoberturaEliminadaEmail({
+            to: anterior.profesorSustituto.email,
+            sustitutoNombre: anterior.profesorSustituto.name ?? anterior.profesorSustituto.email,
+            ausenteNombre: cobertura.profesorAusente?.name ?? "otro profesor",
+            fecha,
+            horaInicio,
+            horaFin,
+          });
+        } catch {
+          // No bloqueamos por un fallo de email.
+        }
+      }
+      // Al profesor sustituto nuevo: toda la información, como si fuera
+      // una asignación nueva.
+      if (cobertura.profesorSustituto?.email) {
+        try {
+          await avisarSustituto({
+            schoolId: cobertura.schoolId,
+            coberturaId: cobertura.id,
+            profesorSustitutoId: nuevoSustitutoId!,
+            ausenteNombre: cobertura.profesorAusente?.name ?? "otro profesor",
+            sustitutoNombre: cobertura.profesorSustituto.name ?? cobertura.profesorSustituto.email,
+            sustitutoEmail: cobertura.profesorSustituto.email,
+            asignatura,
+            grupo,
+            ubicacion,
+            trabajoAlumnos,
+            fecha,
+            horaInicio,
+            horaFin,
+          });
+        } catch {
+          // No bloqueamos por un fallo de email.
+        }
+      }
+    } else if (cobertura.profesorSustituto?.email) {
+      // Mismo sustituto: solo avisamos de que han cambiado datos.
       try {
         await sendCoberturaModificadaEmail({
           to: cobertura.profesorSustituto.email,

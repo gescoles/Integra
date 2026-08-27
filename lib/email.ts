@@ -92,12 +92,11 @@ export async function sendSalidaCreadaEmail(params: {
   to: string[];
   creadorNombre: string;
   curso: string;
-  tipo: string;
+  tipo: string | null;
   actividad: string;
   fecha: Date;
   horaSalida: string;
   horaVuelta: string | null;
-  vueltaDirectaCasa?: boolean;
   numAlumnos: number;
 }) {
   if (params.to.length === 0) return;
@@ -120,12 +119,10 @@ export async function sendSalidaCreadaEmail(params: {
         <h2 style="color:#0B1D4D; margin-bottom: 8px;">${params.creadorNombre} ha propuesto una salida</h2>
         <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
           <p style="margin:0;"><strong>Actividad:</strong> ${params.actividad}</p>
-          <p style="margin:8px 0 0;"><strong>Tipo:</strong> ${params.tipo}</p>
+          <p style="margin:8px 0 0;"><strong>Tipo:</strong> ${params.tipo ?? "—"}</p>
           <p style="margin:8px 0 0;"><strong>Curso / Grupo:</strong> ${params.curso}</p>
           <p style="margin:8px 0 0;"><strong>Fecha:</strong> ${fechaFmt}</p>
-          <p style="margin:8px 0 0;"><strong>Horario:</strong> ${params.horaSalida} — ${
-      params.vueltaDirectaCasa ? "vuelven directamente a casa" : params.horaVuelta
-    }</p>
+          <p style="margin:8px 0 0;"><strong>Horario:</strong> ${params.horaSalida} — ${params.horaVuelta}</p>
           <p style="margin:8px 0 0;"><strong>Nº de alumnos:</strong> ${params.numAlumnos}</p>
         </div>
         <p style="color:#64748B; font-size:13px;">
@@ -173,6 +170,57 @@ export async function sendSalidaAprobadaEmail(params: {
   });
 }
 
+export async function sendSalidaDetalleAcompananteEmail(params: {
+  to: string;
+  profesorNombre: string;
+  actividad: string;
+  curso: string;
+  tipo: string | null;
+  fecha: Date;
+  horaSalida: string;
+  horaVuelta: string | null;
+  numAlumnos: number;
+  responsableNombre: string;
+  departamentoNombre: string | null;
+  informacion: string | null;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Acompañas en la salida: ${params.actividad}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.profesorNombre},</h2>
+        <p style="margin:0 0 12px;">Te han asignado como acompañante en esta salida, ya aprobada. Aquí tienes todos los detalles:</p>
+        <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
+          <p style="margin:0;"><strong>Actividad:</strong> ${params.actividad}</p>
+          <p style="margin:8px 0 0;"><strong>Curso/Grupo:</strong> ${params.curso}</p>
+          ${params.tipo ? `<p style="margin:8px 0 0;"><strong>Tipo:</strong> ${params.tipo}</p>` : ""}
+          <p style="margin:8px 0 0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0;"><strong>Horario:</strong> ${params.horaSalida}${params.horaVuelta ? ` — ${params.horaVuelta}` : ""}</p>
+          <p style="margin:8px 0 0;"><strong>Nº de alumnos:</strong> ${params.numAlumnos}</p>
+          <p style="margin:8px 0 0;"><strong>Responsable:</strong> ${params.responsableNombre}</p>
+          ${params.departamentoNombre ? `<p style="margin:8px 0 0;"><strong>Departamento:</strong> ${params.departamentoNombre}</p>` : ""}
+          ${params.informacion ? `<p style="margin:8px 0 0;"><strong>Información:</strong> ${params.informacion}</p>` : ""}
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Este correo se ha enviado automáticamente desde Docentium.
+        </p>
+      </div>
+    `,
+  });
+}
+
 export async function sendSalidaRechazadaEmail(params: {
   to: string;
   profesorNombre: string;
@@ -203,6 +251,177 @@ export async function sendSalidaRechazadaEmail(params: {
         </div>
         <p style="color:#64748B; font-size:13px;">
           Habla con el equipo directivo de tu centro si necesitas más información.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendSalidaAnuladaEmail(params: {
+  to: string;
+  profesorNombre: string;
+  actividad: string;
+  fecha: Date;
+  motivo: string;
+  anuladoPorNombre: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Salida anulada: ${params.actividad}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.profesorNombre},</h2>
+        <p style="margin:0 0 12px;">La siguiente salida, ya aprobada, ha sido anulada por ${params.anuladoPorNombre}.</p>
+        <div style="background:#FEF2F2; border-radius:8px; padding:16px; margin:16px 0; border:1px solid #FECACA;">
+          <p style="margin:0;"><strong>Actividad:</strong> ${params.actividad}</p>
+          <p style="margin:8px 0 0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0; color:#DC2626;"><strong>Estado: Anulada</strong></p>
+          <p style="margin:8px 0 0;"><strong>Motivo:</strong> ${params.motivo}</p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Habla con dirección de tu centro si necesitas más información.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendSalidaEliminadaEmail(params: {
+  to: string;
+  profesorNombre: string;
+  actividad: string;
+  curso: string;
+  fecha: Date;
+  eliminadoPorNombre: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Salida eliminada: ${params.actividad}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.profesorNombre},</h2>
+        <p style="margin:0 0 12px;">La siguiente salida ha sido eliminada por ${params.eliminadoPorNombre}. Ya no tienes que contar con ella.</p>
+        <div style="background:#FEF2F2; border-radius:8px; padding:16px; margin:16px 0; border:1px solid #FECACA;">
+          <p style="margin:0;"><strong>Actividad:</strong> ${params.actividad}</p>
+          <p style="margin:8px 0 0;"><strong>Curso/Grupo:</strong> ${params.curso}</p>
+          <p style="margin:8px 0 0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0; color:#DC2626;"><strong>Estado: Eliminada</strong></p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Este correo se ha enviado automáticamente desde Docentium.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendSalidaYaNoAcompananteEmail(params: {
+  to: string;
+  profesorNombre: string;
+  actividad: string;
+  curso: string;
+  fecha: Date;
+  quitadoPorNombre: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Ya no acompañas en: ${params.actividad}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.profesorNombre},</h2>
+        <p style="margin:0 0 12px;">${params.quitadoPorNombre} te ha quitado como acompañante de esta salida. La salida sigue adelante, pero ya no formas parte de ella — no hace falta que cuentes con este día.</p>
+        <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
+          <p style="margin:0;"><strong>Actividad:</strong> ${params.actividad}</p>
+          <p style="margin:8px 0 0;"><strong>Curso/Grupo:</strong> ${params.curso}</p>
+          <p style="margin:8px 0 0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Este correo se ha enviado automáticamente desde Docentium.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendSalidaModificadaEmail(params: {
+  to: string;
+  profesorNombre: string;
+  actividad: string;
+  curso: string;
+  tipo: string | null;
+  fecha: Date;
+  horaSalida: string;
+  horaVuelta: string | null;
+  numAlumnos: number;
+  responsableNombre: string;
+  departamentoNombre: string | null;
+  informacion: string | null;
+  modificadoPorNombre: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Salida modificada: ${params.actividad}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.profesorNombre},</h2>
+        <p style="margin:0 0 12px;">${params.modificadoPorNombre} ha modificado esta salida. Aquí tienes la información actualizada:</p>
+        <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
+          <p style="margin:0;"><strong>Actividad:</strong> ${params.actividad}</p>
+          <p style="margin:8px 0 0;"><strong>Curso/Grupo:</strong> ${params.curso}</p>
+          ${params.tipo ? `<p style="margin:8px 0 0;"><strong>Tipo:</strong> ${params.tipo}</p>` : ""}
+          <p style="margin:8px 0 0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0;"><strong>Horario:</strong> ${params.horaSalida}${params.horaVuelta ? ` — ${params.horaVuelta}` : ""}</p>
+          <p style="margin:8px 0 0;"><strong>Nº de alumnos:</strong> ${params.numAlumnos}</p>
+          <p style="margin:8px 0 0;"><strong>Responsable:</strong> ${params.responsableNombre}</p>
+          ${params.departamentoNombre ? `<p style="margin:8px 0 0;"><strong>Departamento:</strong> ${params.departamentoNombre}</p>` : ""}
+          ${params.informacion ? `<p style="margin:8px 0 0;"><strong>Información:</strong> ${params.informacion}</p>` : ""}
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Este correo se ha enviado automáticamente desde Docentium.
         </p>
       </div>
     `,
@@ -579,6 +798,45 @@ export async function sendSolicitudCoberturaEmail(params: {
   });
 }
 
+export async function sendAusenciaAceptadaEmail(params: {
+  to: string;
+  ausenteNombre: string;
+  fecha: Date;
+  horaInicio: string;
+  horaFin: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  });
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Tu aviso de ausencia ha sido aceptado`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.ausenteNombre},</h2>
+        <p style="color:#64748B; font-size:13px; margin-top:0;">
+          Dirección ha aceptado tu aviso de ausencia. Ahora están buscando quién te cubre.
+        </p>
+        <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
+          <p style="margin:0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0;"><strong>Hora:</strong> ${params.horaInicio} – ${params.horaFin}</p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          En cuanto te asignen sustituto/a, te llegará otro aviso con quién es.
+          Este aviso se ha generado automáticamente desde Docentium, en Guardias.
+        </p>
+      </div>
+    `,
+  });
+}
+
 export async function sendCoberturaResueltaEmail(params: {
   to: string;
   ausenteNombre: string;
@@ -867,4 +1125,61 @@ export async function sendSolicitudCentroEmail(params: {
       </div>
     `,
   });
+}
+
+export async function sendNotasConvenioEmail(params: {
+  destinatarios: { name: string | null; email: string }[];
+  alumnoNombre: string;
+  empresaNombre: string | null;
+  departamentoNombre: string;
+  notaFinal: string;
+  modulos: { codigo: string; nombre: string }[];
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const filas = params.modulos
+    .map(
+      (m) => `
+      <tr>
+        <td style="padding:8px 12px; border-bottom:1px solid #E2E8F0;">${m.codigo}</td>
+        <td style="padding:8px 12px; border-bottom:1px solid #E2E8F0;">${m.nombre}</td>
+      </tr>`
+    )
+    .join("");
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #0f172a;">
+      <h2 style="color:#0B1D4D; margin-bottom: 4px;">Nota de pràctiques — ${params.alumnoNombre}</h2>
+      <p style="color:#64748B; margin-top:0;">Departament de ${params.departamentoNombre}${params.empresaNombre ? ` · Empresa: ${params.empresaNombre}` : ""}</p>
+      <div style="background:#F1F5F9; border-radius:8px; padding:14px 16px; margin:16px 0; text-align:center;">
+        <span style="font-size:13px; color:#64748B;">Nota final</span><br/>
+        <span style="font-size:22px; font-weight:bold; color:#0B1D4D;">${params.notaFinal}</span>
+      </div>
+      <p style="color:#334155; font-size:13px; margin-bottom:6px;">Mòduls avaluats en aquest conveni:</p>
+      <table style="width:100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background:#F1F5F9; text-align:left;">
+            <th style="padding:8px 12px;">Mòdul</th>
+            <th style="padding:8px 12px;">Nom</th>
+          </tr>
+        </thead>
+        <tbody>${filas}</tbody>
+      </table>
+      <p style="color:#94A3B8; font-size:13px; margin-top:20px;">
+        Aquest correu s'ha enviat automàticament des de Docentium.
+      </p>
+    </div>
+  `;
+
+  await Promise.all(
+    params.destinatarios.map((d) =>
+      transporter.sendMail({
+        from: `Docentium <${from}>`,
+        to: d.email,
+        subject: `Nota de pràctiques · ${params.alumnoNombre}`,
+        html,
+      })
+    )
+  );
 }

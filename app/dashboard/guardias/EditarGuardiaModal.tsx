@@ -28,15 +28,19 @@ type DatosCobertura = {
   grupo: string;
   asignatura: string;
   trabajoAlumnos: string;
+  profesorSustitutoId: string;
 };
+type Profesor = { id: string; name: string };
 
 export function EditarGuardiaModal({
   id,
   origen,
+  profesores = [],
   onClose,
 }: {
   id: string;
   origen: "guardia" | "cobertura";
+  profesores?: Profesor[];
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -212,6 +216,26 @@ export function EditarGuardiaModal({
                   />
                 </div>
               </>
+            )}
+
+            {datos.origen === "cobertura" && (
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                  Profesor/a de guardia
+                </label>
+                <select
+                  name="profesorSustitutoId"
+                  defaultValue={datos.profesorSustitutoId}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+                >
+                  {profesores.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+                <p className="mt-1 text-[11px] text-slate-400">
+                  Si eliges a otra persona, se avisa a la anterior de que ya no hace falta que vaya, y a la nueva con toda la información.
+                </p>
+              </div>
             )}
 
             <p className="rounded-lg bg-blue-50 px-3 py-2.5 text-xs text-[#FD5249]">

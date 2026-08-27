@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, X, Search } from "lucide-react";
+import { Plus, Pencil, X, Search, Lock } from "lucide-react";
 import { crearIncidencia, actualizarIncidencia } from "./actions";
 import { ButtonSpinner } from "../components/ButtonSpinner";
 import { useLocale } from "../SchoolContext";
@@ -60,9 +60,24 @@ export function IncidenciaFormModal({
   const [busquedaAlumno, setBusquedaAlumno] = useState("");
   const [buscadorAbierto, setBuscadorAbierto] = useState(false);
   const [familiaInformada, setFamiliaInformada] = useState(incidencia?.familiaInformada ?? false);
-  const [tutorSeleccionado, setTutorSeleccionado] = useState(incidencia?.tutorId ?? "");
   const formRef = useRef<HTMLFormElement>(null);
   const isEdit = Boolean(incidencia);
+
+  // El tutor nunca se elige a mano: es siempre el tutor/a asignado al
+  // alumno (ya sea el que viene del buscador, o el que ya tenía al editar
+  // una incidencia existente). Se busca en la lista completa de alumnos,
+  // que ya trae el profesorId de cada uno.
+  const tutorId = useMemo(() => {
+    if (isEdit) return incidencia?.tutorId ?? "";
+    if (!alumnoSeleccionado) return "";
+    const enLista = alumnos.find((a) => a.id === alumnoSeleccionado.id);
+    return enLista?.profesorId ?? alumnoSeleccionado.profesorId ?? "";
+  }, [isEdit, incidencia, alumnoSeleccionado, alumnos]);
+
+  const tutorNombre = useMemo(() => {
+    if (!tutorId) return null;
+    return profesores.find((p) => p.id === tutorId)?.name ?? null;
+  }, [tutorId, profesores]);
 
   const alumnosFiltrados = useMemo(() => {
     const q = busquedaAlumno.trim().toLowerCase();
@@ -75,7 +90,6 @@ export function IncidenciaFormModal({
     setError(null);
     if (!alumnoFijo) {
       setAlumnoSeleccionado(null);
-      setTutorSeleccionado(incidencia?.tutorId ?? "");
     }
     formRef.current?.reset();
   }
@@ -94,6 +108,11 @@ export function IncidenciaFormModal({
       }
       formData.set("alumnoId", alumnoSeleccionado.id);
     }
+    if (!tutorId) {
+      setError("Este alumno no tiene ningún tutor/a asignado todavía. Asígnaselo desde Tutorías antes de crear la incidencia.");
+      return;
+    }
+    formData.set("tutorId", tutorId);
     formData.set("familiaInformada", familiaInformada ? "on" : "off");
     setPending(true);
     setError(null);
@@ -194,7 +213,6 @@ export function IncidenciaFormModal({
                                 onMouseDown={() => {
                                   setAlumnoSeleccionado(a);
                                   setBusquedaAlumno("");
-                                  if (a.profesorId) setTutorSeleccionado(a.profesorId);
                                 }}
                                 className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-slate-50"
                               >
@@ -245,18 +263,10 @@ export function IncidenciaFormModal({
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                     {translate(locale, "expedientes.tutorResponsable")} <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    name="tutorId"
-                    required
-                    value={tutorSeleccionado}
-                    onChange={(e) => setTutorSeleccionado(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
-                  >
-                    <option value="" disabled>—</option>
-                    {profesores.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
+                  <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-500">
+                    <Lock className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    {tutorNombre ?? (alumnoSeleccionado ? "Este alumno no tiene tutor/a asignado" : "Elige primero un alumno")}
+                  </div>
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">
@@ -271,8 +281,10 @@ export function IncidenciaFormModal({
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "expedientes.lugar")}</label>
-                  <input name="lugar" defaultValue={incidencia?.lugar ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                    {translate(locale, "expedientes.lugar")} <span className="text-red-500">*</span>
+                  </label>
+                  <input name="lugar" required defaultValue={incidencia?.lugar ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
                 </div>
               </div>
 
@@ -284,13 +296,17 @@ export function IncidenciaFormModal({
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "expedientes.observaciones")}</label>
-                <textarea name="observaciones" rows={2} defaultValue={incidencia?.observaciones ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                  {translate(locale, "expedientes.observaciones")} <span className="text-red-500">*</span>
+                </label>
+                <textarea name="observaciones" rows={2} required defaultValue={incidencia?.observaciones ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "expedientes.medidasAplicadas")}</label>
-                <textarea name="medidasAplicadas" rows={2} defaultValue={incidencia?.medidasAplicadas ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                  {translate(locale, "expedientes.medidasAplicadas")} <span className="text-red-500">*</span>
+                </label>
+                <textarea name="medidasAplicadas" rows={2} required defaultValue={incidencia?.medidasAplicadas ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
               </div>
 
               <div className="rounded-lg bg-slate-50 p-3">

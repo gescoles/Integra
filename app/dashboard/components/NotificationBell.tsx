@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, CheckCheck } from "lucide-react";
-import { getMyNotifications, marcarNotificacionLeida, marcarTodasLeidas } from "../notificationsActions";
+import { Bell, CheckCheck, X, Trash2 } from "lucide-react";
+import { getMyNotifications, marcarNotificacionLeida, marcarTodasLeidas, eliminarNotificacion, eliminarTodasNotificaciones } from "../notificationsActions";
 import { useLocale } from "../SchoolContext";
 import { translate } from "../i18n";
 
@@ -76,6 +76,20 @@ export function NotificationBell() {
     await marcarTodasLeidas();
   }
 
+  async function handleEliminar(e: ReactMouseEvent, id: string) {
+    e.stopPropagation();
+    const n = notificaciones.find((x) => x.id === id);
+    setNotificaciones((prev) => prev.filter((x) => x.id !== id));
+    if (n && !n.leida) setNoLeidas((prev) => Math.max(0, prev - 1));
+    await eliminarNotificacion(id);
+  }
+
+  async function handleEliminarTodas() {
+    setNotificaciones([]);
+    setNoLeidas(0);
+    await eliminarTodasNotificaciones();
+  }
+
   return (
     <div ref={containerRef} className="relative">
       <button
@@ -94,15 +108,26 @@ export function NotificationBell() {
         <div className="absolute right-0 top-full z-30 mt-2 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
             <span className="text-sm font-bold text-[#0B1D4D]">{translate(locale, "notif.titulo")}</span>
-            {noLeidas > 0 && (
-              <button
-                onClick={handleMarcarTodas}
-                className="flex items-center gap-1 text-xs font-semibold text-[#FD5249] hover:underline"
-              >
-                <CheckCheck className="h-3.5 w-3.5" />
-                {translate(locale, "notif.marcarTodas")}
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              {noLeidas > 0 && (
+                <button
+                  onClick={handleMarcarTodas}
+                  className="flex items-center gap-1 text-xs font-semibold text-[#FD5249] hover:underline"
+                >
+                  <CheckCheck className="h-3.5 w-3.5" />
+                  {translate(locale, "notif.marcarTodas")}
+                </button>
+              )}
+              {notificaciones.length > 0 && (
+                <button
+                  onClick={handleEliminarTodas}
+                  className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-red-600 hover:underline"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Borrar todas
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="max-h-96 overflow-y-auto">
@@ -110,20 +135,29 @@ export function NotificationBell() {
               <p className="px-4 py-10 text-center text-sm text-slate-400">{translate(locale, "notif.sinNotificaciones")}</p>
             ) : (
               notificaciones.map((n) => (
-                <button
+                <div
                   key={n.id}
                   onClick={() => handleClickNotif(n)}
-                  className={`flex w-full flex-col gap-0.5 border-b border-slate-50 px-4 py-3 text-left last:border-0 hover:bg-slate-50 ${
+                  className={`group flex w-full cursor-pointer items-start gap-2 border-b border-slate-50 px-4 py-3 text-left last:border-0 hover:bg-slate-50 ${
                     !n.leida ? "bg-blue-50/50" : ""
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    {!n.leida && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#FD5249]" />}
-                    <span className="text-sm font-semibold text-slate-700">{n.titulo}</span>
+                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <div className="flex items-center gap-2">
+                      {!n.leida && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#FD5249]" />}
+                      <span className="text-sm font-semibold text-slate-700">{n.titulo}</span>
+                    </div>
+                    <p className="text-xs text-slate-500">{n.mensaje}</p>
+                    <span className="text-[10px] text-slate-400">{tiempoRelativo(n.createdAt, locale)}</span>
                   </div>
-                  <p className="text-xs text-slate-500">{n.mensaje}</p>
-                  <span className="text-[10px] text-slate-400">{tiempoRelativo(n.createdAt, locale)}</span>
-                </button>
+                  <button
+                    onClick={(e) => handleEliminar(e, n.id)}
+                    title="Eliminar"
+                    className="shrink-0 rounded p-1 text-slate-300 opacity-0 hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               ))
             )}
           </div>

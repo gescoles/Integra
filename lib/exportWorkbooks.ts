@@ -212,6 +212,7 @@ const SALIDA_ESTADO_LABELS_EXPORT: Record<string, string> = {
   PENDIENTE: "Pendiente",
   APROBADA: "Aprobada",
   RECHAZADA: "Rechazada",
+  ANULADA: "Anulada",
 };
 
 /**
@@ -270,7 +271,7 @@ export async function buildSalidasWorkbook(schoolId: string, responsableId?: str
         tipo: s.tipo,
         fecha: s.fecha.toLocaleDateString("es-ES"),
         horaSalida: s.horaSalida,
-        horaVuelta: s.vueltaDirectaCasa ? "Vuelven directo a casa" : s.horaVuelta ?? "—",
+        horaVuelta: s.horaVuelta ?? "—",
         responsable: s.responsable?.name ?? s.responsable?.email ?? "—",
         acompanantes: s.profesoresIds.map((id) => nombrePorId.get(id) ?? "—").join(", ") || "—",
         numAlumnos: s.numAlumnos,
@@ -346,7 +347,7 @@ export async function buildPracticasWorkbook(schoolId: string) {
     { header: "NUSS", key: "nuss", width: 14 },
     { header: "Tipología convenio", key: "tipologia", width: 16 },
     { header: "Estado acuerdo", key: "estadoAcuerdo", width: 14 },
-    { header: "Convalida", key: "convalida", width: 10 },
+    { header: "Hores convalidades", key: "horasConvalidadas", width: 14 },
     { header: "Alta/baja SS", key: "quienAltaBajaSS", width: 16 },
     { header: "Fecha inicio", key: "fechaInicio", width: 12 },
     { header: "Fecha fin", key: "fechaFin", width: 12 },
@@ -394,7 +395,7 @@ export async function buildPracticasWorkbook(schoolId: string) {
           ...datosAlumno,
           tipologia: "—",
           estadoAcuerdo: "—",
-          convalida: "—",
+          horasConvalidadas: "—",
           quienAltaBajaSS: "—",
           fechaInicio: "—",
           fechaFin: "—",
@@ -435,7 +436,7 @@ export async function buildPracticasWorkbook(schoolId: string) {
           ...datosAlumno,
           tipologia: c.tipologia ?? "—",
           estadoAcuerdo: c.estadoAcuerdo ?? "—",
-          convalida: c.convalida ? "Sí" : "No",
+          horasConvalidadas: c.horasConvalidadas,
           quienAltaBajaSS: c.quienAltaBajaSS ?? "—",
           fechaInicio: c.fechaInicio ? c.fechaInicio.toLocaleDateString("es-ES") : "—",
           fechaFin: c.fechaFin ? c.fechaFin.toLocaleDateString("es-ES") : "—",

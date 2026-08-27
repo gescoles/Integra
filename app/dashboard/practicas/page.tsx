@@ -11,10 +11,18 @@ import { SchoolPicker, SchoolSwitcher } from "../components/SchoolPicker";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-async function getFichasData(schoolId: string, soloTutorId?: string) {
-  const [fichasRaw, alumnosRaw, profesoresRaw] = await Promise.all([
+async function getFichasData(schoolId: string, soloProfesorId?: string) {
+  const [fichasRaw, alumnosRaw, profesoresRaw, school] = await Promise.all([
     prisma.practicaAlumno.findMany({
-      where: { schoolId, ...(soloTutorId ? { tutorImesId: soloTutorId } : {}) },
+      // Un profesor ve una ficha si es el tutor/a académico real del
+      // alumno, O si es quien lleva las prácticas (responsable) — no
+      // hace falta ser las dos cosas a la vez.
+      where: {
+        schoolId,
+        ...(soloProfesorId
+          ? { OR: [{ tutorImesId: soloProfesorId }, { responsablePracticasId: soloProfesorId }] }
+          : {}),
+      },
       include: {
         alumno: { select: { id: true, nombre: true, curso: true, avatarUrl: true } },
         tutorImes: { select: { id: true, name: true, email: true } },
@@ -24,7 +32,17 @@ async function getFichasData(schoolId: string, soloTutorId?: string) {
     }),
     prisma.alumno.findMany({
       where: { schoolId },
-      select: { id: true, nombre: true, curso: true, avatarUrl: true },
+      select: {
+        id: true,
+        nombre: true,
+        curso: true,
+        avatarUrl: true,
+        fechaNacimiento: true,
+        tipoDocumento: true,
+        numeroDocumento: true,
+        direccion: true,
+        profesor: { select: { name: true, email: true } },
+      },
       orderBy: { nombre: "asc" },
     }),
     prisma.user.findMany({
@@ -32,6 +50,7 @@ async function getFichasData(schoolId: string, soloTutorId?: string) {
       select: { id: true, name: true, email: true },
       orderBy: { name: "asc" },
     }),
+    prisma.school.findUnique({ where: { id: schoolId }, select: { grupos: true } }),
   ]);
 
   const rows = fichasRaw.map((f) => {
@@ -56,10 +75,16 @@ async function getFichasData(schoolId: string, soloTutorId?: string) {
 
   // Alumnos que todavía NO tienen ficha creada (para el selector de "nueva ficha")
   const idsConFicha = new Set(fichasRaw.map((f) => f.alumno.id));
-  const alumnosSinFicha = alumnosRaw.filter((a) => !idsConFicha.has(a.id));
+  const alumnosSinFicha = alumnosRaw
+    .filter((a) => !idsConFicha.has(a.id))
+    .map((a) => ({
+      ...a,
+      fechaNacimiento: a.fechaNacimiento ? a.fechaNacimiento.toISOString() : null,
+      profesorNombre: a.profesor?.name ?? a.profesor?.email ?? null,
+    }));
   const profesores = profesoresRaw.map((p) => ({ id: p.id, name: p.name ?? p.email }));
 
-  return { rows, alumnosSinFicha, profesores };
+  return { rows, alumnosSinFicha, profesores, gruposCentro: school?.grupos ?? [] };
 }
 
 export default async function PracticasPage({
@@ -97,13 +122,13 @@ export default async function PracticasPage({
       );
     }
 
-    const { rows, alumnosSinFicha, profesores } = await getFichasData(searchParams.school);
+    const { rows, alumnosSinFicha, profesores, gruposCentro } = await getFichasData(searchParams.school);
     return (
       <div>
         <DashboardHeader title={translate(locale, "practicas.title")} subtitle={translate(locale, "practicas.subtitle.superadmin")} userName={userName} role={role} />
         <SchoolSwitcher schools={schools} currentSchoolId={searchParams.school} locale={locale} basePath="/dashboard/practicas" />
         <div className="mb-5 flex justify-end">
-          <FichaAlumnoFormModal alumnos={alumnosSinFicha} userName={userName} />
+          <FichaAlumnoFormModal alumnos={alumnosSinFicha} userName={userName} gruposCentro={gruposCentro} />
         </div>
         <PracticasClient rows={rows} profesores={profesores} showFilters schoolId={searchParams.school} />
       </div>
@@ -136,7 +161,7 @@ export default async function PracticasPage({
 
   if (!userId) return null;
 
-  const { rows, alumnosSinFicha, profesores } = await getFichasData(schoolId, isProfesor ? userId : undefined);
+  const { rows, alumnosSinFicha, profesores, gruposCentro } = await getFichasData(schoolId, isProfesor ? userId : undefined);
 
   return (
     <div>
@@ -148,7 +173,7 @@ export default async function PracticasPage({
         notificationCount={0}
       />
       <div className="mb-5 flex justify-end">
-        <FichaAlumnoFormModal alumnos={alumnosSinFicha} userName={userName} />
+        <FichaAlumnoFormModal alumnos={alumnosSinFicha} userName={userName} gruposCentro={gruposCentro} />
       </div>
       <PracticasClient rows={rows} profesores={profesores} showFilters={isEquipoDirectivo} schoolId={schoolId} />
     </div>

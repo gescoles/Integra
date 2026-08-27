@@ -9,6 +9,7 @@ import { ButtonSpinner } from "../components/ButtonSpinner";
 import { CursoSelect } from "../components/CursoSelect";
 import { PhoneInput } from "../components/PhoneInput";
 import { TutorSelect } from "../components/TutorSelect";
+import { DocumentoIdentidadInput } from "../components/DocumentoIdentidadInput";
 import { useLocale, useGuardadoTransition } from "../SchoolContext";
 import { translate } from "../i18n";
 
@@ -22,6 +23,11 @@ type Alumno = {
   avatarUrl: string | null;
   profesorId: string;
   profesorNombre: string;
+  totalTutorias: number;
+  fechaNacimiento: string | null;
+  tipoDocumento: string | null;
+  numeroDocumento: string | null;
+  direccion: string | null;
   contactos: Contacto[];
 };
 
@@ -66,6 +72,16 @@ export function MisAlumnosClient({
     });
   }
 
+  // El curso se guarda entero (p. ej. "CFGM Sistemes Informàtics 1"). Aquí
+  // lo separamos en "estudios" (el nombre del ciclo, sin el número final)
+  // y "curso" (solo el número de curso), para poder mostrarlos en columnas
+  // separadas.
+  function separarEstudiosYCurso(curso: string) {
+    const match = curso.match(/^(.*?)\s*(\d+)$/);
+    if (!match) return { estudios: curso, curso: "—" };
+    return { estudios: match[1].trim(), curso: match[2] };
+  }
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6">
       <div className="mb-4 flex flex-wrap gap-3">
@@ -104,6 +120,7 @@ export function MisAlumnosClient({
             <thead>
               <tr className="border-b border-slate-100 text-slate-400">
                 <th className="pb-3 pr-4 font-medium">{translate(locale, "misAlumnos.colAlumno")}</th>
+                <th className="pb-3 pr-4 font-medium">Estudios</th>
                 <th className="pb-3 pr-4 font-medium">{translate(locale, "misAlumnos.colCiclo")}</th>
                 <th className="pb-3 pr-4 font-medium">{translate(locale, "misAlumnos.colEdad")}</th>
                 <th className="pb-3 pr-4 font-medium">{translate(locale, "misAlumnos.colRiesgo")}</th>
@@ -125,7 +142,8 @@ export function MisAlumnosClient({
                       <span className="font-semibold text-slate-700">{a.nombre}</span>
                     </div>
                   </td>
-                  <td className="py-3 pr-4 text-slate-500">{a.curso}</td>
+                  <td className="py-3 pr-4 text-slate-500">{separarEstudiosYCurso(a.curso).estudios}</td>
+                  <td className="py-3 pr-4 text-slate-500">{separarEstudiosYCurso(a.curso).curso}</td>
                   <td className="py-3 pr-4 text-slate-500">{a.edad ?? "—"}</td>
                   <td className="py-3 pr-4">
                     <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${RIESGO_COLORS[a.riesgo]}`}>
@@ -201,13 +219,9 @@ function EditarAlumnoModal({ alumno, onClose }: { alumno: Alumno; onClose: () =>
               <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "misAlumnos.nombre")}</label>
               <input name="nombre" defaultValue={alumno.nombre} required className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
             </div>
-            <div>
+            <div className="col-span-2">
               <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "misAlumnos.colCiclo")}</label>
               <CursoSelect name="curso" defaultValue={alumno.curso} required />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "misAlumnos.colEdad")}</label>
-              <input name="edad" type="number" required min={0} max={99} defaultValue={alumno.edad ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
             </div>
             <div className="col-span-2">
               <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "misAlumnos.colRiesgo")}</label>
@@ -217,6 +231,33 @@ function EditarAlumnoModal({ alumno, onClose }: { alumno: Alumno; onClose: () =>
                 ))}
               </select>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-slate-700">Fecha de nacimiento</label>
+              <input
+                name="fechaNacimiento"
+                type="date"
+                required
+                max={new Date().toISOString().slice(0, 10)}
+                defaultValue={alumno.fechaNacimiento ? alumno.fechaNacimiento.slice(0, 10) : ""}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-slate-700">Documento</label>
+              <DocumentoIdentidadInput defaultTipo={alumno.tipoDocumento ?? "DNI"} defaultNumero={alumno.numeroDocumento ?? ""} />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-semibold text-slate-700">Dirección</label>
+            <input
+              name="direccion"
+              required
+              defaultValue={alumno.direccion ?? ""}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+            />
           </div>
 
           <TutorSelect name="tutorId" defaultValue={alumno.profesorId} />
