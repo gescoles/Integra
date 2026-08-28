@@ -85,7 +85,7 @@ export default async function SalidasPage({
     session?.user.name || session?.user.email.split("@")[0] || "Usuario";
   const role = session?.user.role ?? "PROFESOR";
   const isSuperAdmin = role === "SUPERADMIN";
-  const isEquipoDirectivo = role === "COORDINADOR" || role === "ADMIN_CENTRO";
+  const isEquipoDirectivo = role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
   const isProfesor = role === "PROFESOR";
 
   if (isSuperAdmin) {

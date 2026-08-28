@@ -247,7 +247,7 @@ export default async function TutoriasPage({
   }
 
   const isProfesor = role === "PROFESOR";
-  const isCoordinacion = role === "COORDINADOR" || role === "ADMIN_CENTRO";
+  const isCoordinacion = role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
 
   // El Profesor solo ve su propio listado de alumnos, sin pestañas.
   if (isProfesor && userId) {

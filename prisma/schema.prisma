@@ -11,10 +11,19 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum EstadoPresencia {
+  DISPONIBLE
+  AUSENTE
+  DESCONECTADO
+}
+
 enum Role {
   SUPERADMIN
   ADMIN_CENTRO
   COORDINADOR
+  // Mismos permisos que Coordinador/Admin. de Centro en todo lo demás,
+  // pero es quien gestiona de verdad la compra del material (Material).
+  ADMINISTRACION
   PROFESOR
 }
 
@@ -65,10 +74,11 @@ model School {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @default(now()) @updatedAt
   users     User[]
+  alumnos   Alumno[]
   tutorias  Tutoria[]
   guardias  Guardia[]
   material  MaterialRequest[]
-  alumnos   Alumno[]
+  chatMensajes ChatMensaje[]
   avisos    Aviso[]
   noticias  Noticia[]
   salidas   Salida[]
@@ -348,6 +358,14 @@ model User {
   tutorias     Tutoria[]
   guardias     Guardia[]
   material     MaterialRequest[]
+  materialValidado MaterialRequest[] @relation("MaterialValidadoPor")
+  materialComprado MaterialRequest[] @relation("MaterialCompradoPor")
+  // Chat interno entre usuarios del centro (no confundir con el asistente
+  // de IA, que es aparte). El estado se pone a mano desde el propio chat;
+  // no se calcula solo a partir de la sesión.
+  estadoPresencia   EstadoPresencia @default(DESCONECTADO)
+  mensajesEnviados  ChatMensaje[]   @relation("ChatEmisor")
+  mensajesRecibidos ChatMensaje[]   @relation("ChatReceptor")
   horario      HorarioBloque[]
   eventos      CalendarEvento[]
   alumnos      Alumno[]
@@ -766,9 +784,9 @@ enum MaterialCategoria {
 }
 
 enum MaterialEstado {
-  EN_STOCK
-  BAJO_STOCK
-  AGOTADO
+  PENDIENTE_VALIDACION
+  VALIDADO_PENDIENTE_COMPRA
+  COMPRADO
 }
 
 model MaterialRequest {
@@ -786,7 +804,17 @@ model MaterialRequest {
   enlace        String?
   justificacion String
   categoria     MaterialCategoria @default(OTROS)
-  estado        MaterialEstado    @default(EN_STOCK)
+  estado        MaterialEstado    @default(PENDIENTE_VALIDACION)
+  // Quién lo valida (Administración/equipo directivo) y cuándo — a partir
+  // de aquí el profesor pasa a ver "Validado / pendiente de compra".
+  validadoPorId String?
+  validadoPor   User?             @relation("MaterialValidadoPor", fields: [validadoPorId], references: [id])
+  validadoEn    DateTime?
+  // Quién marca que ya se ha comprado y cuándo — a partir de aquí se
+  // avisa al profesor de que puede pasar a recogerlo por secretaría.
+  compradoPorId String?
+  compradoPor   User?             @relation("MaterialCompradoPor", fields: [compradoPorId], references: [id])
+  compradoEn    DateTime?
   createdAt     DateTime          @default(now())
 }
 
@@ -821,6 +849,13 @@ enum EstadoCobertura {
   RECHAZADA
 }
 
+enum EstadoJustificante {
+  PENDIENTE
+  RECIBIDO
+  NO_ENTREGADO
+  NO_APLICA
+}
+
 model CoberturaGuardia {
   id                  String          @id @default(cuid())
   schoolId            String
@@ -845,6 +880,13 @@ model CoberturaGuardia {
   // profesor sepa por qué sin tener que preguntar por otro lado.
   motivoRechazo       String?
   estado              EstadoCobertura @default(ASIGNADA)
+  // El justificante médico/oficial de la ausencia — se marca a mano desde
+  // el panel de dirección, independientemente de si ya se ha aceptado o
+  // asignado sustituto.
+  estadoJustificante  EstadoJustificante @default(PENDIENTE)
+  justificanteUrl     String?
+  justificanteNombre  String?
+  justificanteFecha   DateTime?
   creadoPorId         String
   creadoPor           User            @relation("CoberturaCreador", fields: [creadoPorId], references: [id])
   createdAt           DateTime        @default(now())
@@ -917,4 +959,23 @@ model Noticia {
   publishedAt      DateTime?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @default(now()) @updatedAt
+}
+
+// Chat interno entre usuarios del mismo centro (distinto del asistente de
+// IA). Conversaciones 1 a 1, sin agrupar en un modelo de "conversación"
+// aparte — se calculan al vuelo a partir de emisor+receptor.
+model ChatMensaje {
+  id         String   @id @default(cuid())
+  schoolId   String
+  school     School   @relation(fields: [schoolId], references: [id])
+  emisorId   String
+  emisor     User     @relation("ChatEmisor", fields: [emisorId], references: [id])
+  receptorId String
+  receptor   User     @relation("ChatReceptor", fields: [receptorId], references: [id])
+  texto      String
+  leido      Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([emisorId, receptorId])
+  @@index([receptorId, leido])
 }

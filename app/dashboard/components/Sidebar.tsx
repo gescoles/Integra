@@ -2,8 +2,7 @@
 
 import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Home,
   Landmark,
@@ -19,7 +18,6 @@ import {
   Clock,
   Settings,
   DatabaseBackup,
-  LogOut,
   BookOpen,
   Briefcase,
   UsersRound,
@@ -31,13 +29,18 @@ import {
   CheckSquare,
   Bot,
   Newspaper,
+  MessageCircle,
+  Search,
+  HelpCircle,
 } from "lucide-react";
 import { HexLogo } from "@/app/components/Logo";
 import { ROLE_LABELS_FULL } from "../constants";
 import { SchoolBadge } from "./SchoolBadge";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { UserProfileButton } from "./UserProfileButton";
-import { useLocale } from "../SchoolContext";
+import { NotificationBell } from "./NotificationBell";
+import { useLocale, useChatInterno, useSidebarColapsado } from "../SchoolContext";
+import { buscarAlumnosGlobal } from "../busquedaActions";
 import { translate, TranslationKey } from "../i18n";
 
 const superadminSections: {
@@ -125,15 +128,24 @@ const centroProximamente = [
 
 export function Sidebar({
   userName,
+  userEmail,
   role,
   contractedModules = [],
 }: {
   userName: string;
+  userEmail: string;
   role: string;
   contractedModules?: string[];
 }) {
   const pathname = usePathname();
   const { locale } = useLocale();
+  const { totalNoLeidos, abrir: abrirChat, notificaciones: notificacionesChat } = useChatInterno();
+  const { colapsado: sidebarColapsado, toggle: toggleSidebar } = useSidebarColapsado();
+  const [chatNotifAbierto, setChatNotifAbierto] = useState(false);
+  const router = useRouter();
+  const [busqueda, setBusqueda] = useState("");
+  const [resultadosBusqueda, setResultadosBusqueda] = useState<{ id: string; nombre: string; curso: string; avatarUrl: string | null }[]>([]);
+  const [busquedaAbierta, setBusquedaAbierta] = useState(false);
   const roleLabel = ROLE_LABELS_FULL[role] ?? role;
   const isSuperAdmin = role === "SUPERADMIN";
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -144,21 +156,139 @@ export function Sidebar({
     setMobileOpen(false);
   }, [pathname]);
 
+  // Búsqueda de alumnos en la barra superior, con una pequeña pausa
+  // (debounce) para no lanzar una consulta en cada letra que se escribe.
+  useEffect(() => {
+    if (busqueda.trim().length < 2) {
+      setResultadosBusqueda([]);
+      return;
+    }
+    const id = setTimeout(() => {
+      buscarAlumnosGlobal(busqueda).then(setResultadosBusqueda);
+    }, 300);
+    return () => clearTimeout(id);
+  }, [busqueda]);
+
   return (
     <>
-      {/* Barra superior solo para móvil/tablet: logo + botón de menú */}
-      <div className="fixed inset-x-0 top-0 z-30 flex items-center justify-between bg-[#0B1D4D] px-4 py-3 lg:hidden">
+      {/* Barra superior, siempre visible (no solo en móvil): menú/logo en
+          móvil, buscador, chat, notificaciones, ayuda y el usuario con su
+          desplegable. El padding-top extra respeta la "zona segura" del
+          teléfono (barra de estado, notch) — sin esto, en la app envuelta
+          con Capacitor esta barra queda escondida detrás de la hora/batería
+          del sistema. */}
+      <div className={`fixed inset-x-0 top-0 z-30 flex items-center gap-3 border-b border-slate-200 bg-white px-4 pb-3 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] lg:px-6 ${sidebarColapsado ? "" : "lg:left-64"}`}>
         <div className="flex items-center gap-2">
-          <HexLogo size={26} />
-          <span className="text-sm font-bold text-white">Docentium</span>
+          <button
+            onClick={() => {
+              if (window.innerWidth < 1024) {
+                setMobileOpen(true);
+              } else {
+                toggleSidebar();
+              }
+            }}
+            aria-label="Abrir/cerrar menú"
+            className="rounded-lg p-1.5 text-[#0B1D4D] hover:bg-slate-100"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
         </div>
-        <button
-          onClick={() => setMobileOpen(true)}
-          aria-label="Abrir menú"
-          className="rounded-lg p-1.5 text-white hover:bg-white/10"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
+
+        {/* Buscador: construido y listo (búsqueda de alumnos de verdad),
+            mómentaneamente oculto a petición — para volver a mostrarlo,
+            basta con descomentar este bloque. */}
+        {/* <div className="relative w-full max-w-xs"> ... </div> */}
+
+        <div className="flex-1" />
+
+        <div className="flex shrink-0 items-center gap-2">
+          {contractedModules.includes("comunicacion") && (
+            <div className="relative">
+              <button
+                onClick={() => setChatNotifAbierto((v) => !v)}
+                aria-label="Chat"
+                className="relative rounded-lg border border-slate-200 bg-white p-2.5 hover:bg-slate-50"
+              >
+                <MessageCircle className="h-4 w-4 text-slate-500" />
+                {totalNoLeidos > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                    {totalNoLeidos > 99 ? "99+" : totalNoLeidos}
+                  </span>
+                )}
+              </button>
+
+              {chatNotifAbierto && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setChatNotifAbierto(false)} />
+                  <div className="absolute right-0 top-full z-50 mt-2 w-72 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                    <div className="border-b border-slate-100 px-3.5 py-2.5 text-sm font-bold text-[#0B1D4D]">
+                      Mensajes
+                    </div>
+                    {notificacionesChat.length === 0 ? (
+                      <p className="px-4 py-6 text-center text-xs text-slate-400">No tienes mensajes nuevos.</p>
+                    ) : (
+                      <div className="max-h-72 overflow-y-auto">
+                        {notificacionesChat.map((n) => (
+                          <button
+                            key={n.id}
+                            onClick={() => {
+                              setChatNotifAbierto(false);
+                              abrirChat(n.id);
+                            }}
+                            className="flex w-full items-center gap-2.5 border-b border-slate-50 px-3.5 py-2.5 text-left hover:bg-slate-50"
+                          >
+                            <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-slate-100">
+                              {n.avatarUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={n.avatarUrl} alt="" className="h-full w-full object-cover" />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-xs font-bold text-slate-400">
+                                  {n.nombre.slice(0, 2).toUpperCase()}
+                                </div>
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold text-slate-700">{n.nombre}</p>
+                              <p className="truncate text-xs text-slate-400">{n.texto}</p>
+                            </div>
+                            {n.cantidad > 1 && (
+                              <span className="flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full bg-[#FD5249] px-1 text-[10px] font-bold text-white">
+                                {n.cantidad}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      onClick={() => {
+                        setChatNotifAbierto(false);
+                        abrirChat();
+                      }}
+                      className="w-full border-t border-slate-100 px-3.5 py-2.5 text-center text-xs font-semibold text-[#FD5249] hover:bg-slate-50"
+                    >
+                      Abrir chat
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          <NotificationBell />
+
+          <button
+            aria-label="Ayuda"
+            title="Ayuda"
+            className="hidden rounded-lg border border-slate-200 bg-white p-2.5 text-slate-400 hover:bg-slate-50 sm:block"
+          >
+            <HelpCircle className="h-4 w-4" />
+          </button>
+
+          <div className="ml-1 h-8 w-px bg-slate-200" />
+
+          <UserProfileButton userName={userName} userEmail={userEmail} roleLabel={roleLabel} locale={locale} />
+        </div>
       </div>
 
       {/* Fondo oscuro al abrir el menú en móvil */}
@@ -170,11 +300,11 @@ export function Sidebar({
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-[#0B1D4D] transition-transform duration-200 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-[#0B1D4D] transition-transform duration-200 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        } ${sidebarColapsado ? "lg:-translate-x-full" : "lg:translate-x-0"}`}
       >
-        <div className="flex items-center justify-between gap-2.5 px-6 py-4">
+        <div className="flex items-center justify-between gap-2.5 px-6 pb-4 pt-[calc(env(safe-area-inset-top,0px)+1rem)] lg:pt-4">
           <div className="flex items-center gap-2.5">
             <HexLogo size={44} />
             <div className="leading-tight">
@@ -239,7 +369,7 @@ export function Sidebar({
             esta ficha de alumnos, así que siempre está disponible.
             Coordinación/Dirección ven, además, la opción de consultar todo
             el centro (no solo sus propios alumnos tutorizados). */}
-        {!isSuperAdmin && (role === "COORDINADOR" || role === "ADMIN_CENTRO") && (
+        {!isSuperAdmin && (role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION") && (
           <div className="pt-1">
             <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
               {translate(locale, "nav.alumnos")}
@@ -279,7 +409,7 @@ export function Sidebar({
           </Link>
         )}
 
-        {!isSuperAdmin && (role === "COORDINADOR" || role === "ADMIN_CENTRO") && (
+        {!isSuperAdmin && (role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION") && (
           <Link
             href="/dashboard/grupos"
             className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -357,7 +487,7 @@ export function Sidebar({
                 {/* "Aprobaciones" es un submenú de Salidas en concreto, así
                     que va justo debajo de ese enlace, no del último módulo
                     de toda la lista. */}
-                {item.key === "salidas" && (role === "COORDINADOR" || role === "ADMIN_CENTRO") && (
+                {item.key === "salidas" && (role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION") && (
                   <Link
                     href="/dashboard/salidas/aprobaciones"
                     className={`ml-6 flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors ${
@@ -454,13 +584,6 @@ export function Sidebar({
             <SchoolBadge variant="dark" compact />
           </div>
         )}
-        <UserProfileButton userName={userName} roleLabel={roleLabel} locale={locale} />
-        <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
-          className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white"
-        >
-          <LogOut className="h-4 w-4" /> {translate(locale, "sidebar.cerrarSesion")}
-        </button>
       </div>
     </aside>
     </>

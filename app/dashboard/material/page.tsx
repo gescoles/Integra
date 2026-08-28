@@ -43,7 +43,7 @@ export default async function MaterialPage({
     session?.user.name || session?.user.email.split("@")[0] || "Usuario";
   const role = session?.user.role ?? "COORDINADOR";
   const isSuperAdmin = role === "SUPERADMIN";
-  const isCoordinacion = role === "COORDINADOR" || role === "ADMIN_CENTRO";
+  const isCoordinacion = role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
 
   // SuperAdmin: elige cualquier centro y ve/gestiona TODO su material.
   // Coordinación/Dirección: ve TODO el material de su propio centro (de

@@ -19,6 +19,7 @@ import { ComunidadPanel } from "./components/ComunidadPanel";
 import { GuardiaAlerta } from "./components/GuardiaAlerta";
 import {
   ShieldCheck,
+  Package,
   BookOpen,
   Users,
   MessageCircle,
@@ -119,6 +120,9 @@ export async function CoordinadorHome({
     : 0;
   const guardiasQueDebeCubrir = hasGuardias ? await contarGuardiasPendientesDeCubrir(schoolId, userId) : 0;
   const alumnosPendientesExpulsion = await contarAlumnosConTresIncidenciasSinExpediente(schoolId);
+  const materialPendienteValidar = await prisma.materialRequest.count({
+    where: { schoolId, estado: "PENDIENTE_VALIDACION" },
+  });
 
   const hoy = startOfToday();
   const finHoy = endOfToday();
@@ -342,6 +346,23 @@ export async function CoordinadorHome({
             </span>
           </div>
           <span className="text-xs font-semibold text-red-700 underline">Revisar en Expedients</span>
+        </Link>
+      )}
+
+      {materialPendienteValidar > 0 && (
+        <Link
+          href="/dashboard/material"
+          className="mb-5 flex items-center justify-between rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 hover:bg-amber-100"
+        >
+          <div className="flex items-center gap-2.5">
+            <Package className="h-4 w-4 shrink-0 text-amber-600" />
+            <span className="text-sm font-semibold text-amber-800">
+              {materialPendienteValidar === 1
+                ? "1 material pendiente de validar."
+                : `${materialPendienteValidar} materiales pendientes de validar.`}
+            </span>
+          </div>
+          <span className="text-xs font-semibold text-amber-700 underline">Revisar en Material</span>
         </Link>
       )}
 

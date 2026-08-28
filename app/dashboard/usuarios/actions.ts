@@ -7,7 +7,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { Role, UserStatus } from "@prisma/client";
 import { generatePassword } from "@/lib/generatePassword";
-import { sendPasswordEmail } from "@/lib/email";
+import { sendPasswordEmail, sendInvitacionMicrosoftEmail } from "@/lib/email";
 import { generateAvatarUrl } from "@/lib/avatar";
 
 export async function createUser(formData: FormData) {
@@ -16,6 +16,7 @@ export async function createUser(formData: FormData) {
   const dni = (formData.get("dni") as string)?.trim();
   const role = formData.get("role") as Role;
   const schoolId = (formData.get("schoolId") as string) || null;
+  const loginMicrosoft = formData.get("loginMicrosoft") === "on";
   const autoPassword = formData.get("autoPassword") === "on";
   const manualPassword = formData.get("password") as string;
 
@@ -27,8 +28,21 @@ export async function createUser(formData: FormData) {
     throw new Error("Ya existe un usuario con ese email.");
   }
 
+  if (dni) {
+    const existingDni = await prisma.user.findUnique({ where: { dni } });
+    if (existingDni) {
+      throw new Error("Ese DNI ya ha sido introducido por otro usuario. Revísalo o déjalo en blanco.");
+    }
+  }
+
+  // Con inicio de sesión por Microsoft no hace falta que nadie escriba ni
+  // vea ninguna contraseña — igualmente se guarda un hash aleatorio por
+  // dentro, solo para cumplir con el campo obligatorio de la base de
+  // datos; nunca se usa ni se comunica a nadie.
   let plainPassword: string;
-  if (autoPassword) {
+  if (loginMicrosoft) {
+    plainPassword = generatePassword(20);
+  } else if (autoPassword) {
     plainPassword = generatePassword(8);
   } else {
     if (!manualPassword || manualPassword.length < 8) {
@@ -41,28 +55,51 @@ export async function createUser(formData: FormData) {
   const avatarUrl = generateAvatarUrl(name);
   const departamentoIds = formData.getAll("departamentoIds") as string[];
 
-  await prisma.user.create({
-    data: {
-      name,
-      email,
-      dni: dni || null,
-      passwordHash,
-      role,
-      schoolId,
-      avatarUrl,
-      // Los departamentos se guardan en el lado que corresponda según el
-      // rol: como profesor perteneciente a ellos, o como coordinador que
-      // los lleva.
-      ...(role === "PROFESOR" && departamentoIds.length > 0
-        ? { departamentos: { connect: departamentoIds.map((id) => ({ id })) } }
-        : {}),
-      ...(role === "COORDINADOR" && departamentoIds.length > 0
-        ? { departamentosCoordinados: { connect: departamentoIds.map((id) => ({ id })) } }
-        : {}),
-    },
-  });
+  try {
+    await prisma.user.create({
+      data: {
+        name,
+        email,
+        dni: dni || null,
+        passwordHash,
+        role,
+        schoolId,
+        avatarUrl,
+        // Los departamentos se guardan en el lado que corresponda según el
+        // rol: como profesor perteneciente a ellos, o como coordinador que
+        // los lleva.
+        ...(role === "PROFESOR" && departamentoIds.length > 0
+          ? { departamentos: { connect: departamentoIds.map((id) => ({ id })) } }
+          : {}),
+        ...(role === "COORDINADOR" && departamentoIds.length > 0
+          ? { departamentosCoordinados: { connect: departamentoIds.map((id) => ({ id })) } }
+          : {}),
+      },
+    });
+  } catch (e: any) {
+    if (e?.code === "P2002") {
+      const campo = Array.isArray(e?.meta?.target) ? e.meta.target[0] : e?.meta?.target;
+      throw new Error(
+        campo === "dni"
+          ? "Ese DNI ya ha sido introducido por otro usuario."
+          : campo === "email"
+            ? "Ya existe un usuario con ese email."
+            : "Ya existe un usuario con ese dato (email o DNI duplicado)."
+      );
+    }
+    throw e;
+  }
 
-  if (autoPassword) {
+  if (loginMicrosoft) {
+    try {
+      await sendInvitacionMicrosoftEmail(email, name);
+    } catch (e) {
+      console.error("Error enviando email de invitación Microsoft:", e);
+      throw new Error(
+        "El usuario se creó correctamente, pero no se pudo enviar el correo de invitación. Revisa la configuración de email (variables SMTP_*)."
+      );
+    }
+  } else if (autoPassword) {
     try {
       await sendPasswordEmail(email, name, plainPassword);
     } catch (e) {

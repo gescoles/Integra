@@ -28,7 +28,7 @@ export async function createSalida(formData: FormData) {
   const horaSalida = (formData.get("horaSalida") as string)?.trim();
   const horaVuelta = (formData.get("horaVuelta") as string)?.trim();
   const rolActual = session.user.role;
-  const esDirectivoSesion = rolActual === "SUPERADMIN" || rolActual === "COORDINADOR" || rolActual === "ADMIN_CENTRO";
+  const esDirectivoSesion = rolActual === "SUPERADMIN" || rolActual === "COORDINADOR" || rolActual === "ADMIN_CENTRO" || rolActual === "ADMINISTRACION";
   // Un profesor siempre es el responsable de la salida que crea — aunque
   // manipule el formulario, aquí se ignora lo que mande y se fuerza a que
   // sea él mismo.
@@ -94,7 +94,7 @@ export async function createSalida(formData: FormData) {
   let avisoError: string | undefined;
   try {
     const equipoDirectivo = await prisma.user.findMany({
-      where: { schoolId, role: { in: ["COORDINADOR", "ADMIN_CENTRO"] } },
+      where: { schoolId, role: { in: ["COORDINADOR", "ADMIN_CENTRO", "ADMINISTRACION"] } },
       select: { id: true, email: true },
     });
     const creador = await prisma.user.findUnique({
@@ -139,7 +139,7 @@ export async function createSalida(formData: FormData) {
 export async function aprobarSalida(id: string) {
   const session = await getServerSession(authOptions);
   const role = session?.user.role;
-  if (!session?.user.id || (role !== "SUPERADMIN" && role !== "COORDINADOR" && role !== "ADMIN_CENTRO")) {
+  if (!session?.user.id || (role !== "SUPERADMIN" && role !== "COORDINADOR" && role !== "ADMIN_CENTRO" && role !== "ADMINISTRACION")) {
     throw new Error("No autorizado.");
   }
 
@@ -173,7 +173,7 @@ export async function aprobarSalida(id: string) {
     // la salida (si tiene uno asignado), para que todo el mundo se entere
     // de la decisión, no solo quien la haya aprobado.
     const equipoDirectivo = await prisma.user.findMany({
-      where: { schoolId: salida.schoolId, role: { in: ["COORDINADOR", "ADMIN_CENTRO"] } },
+      where: { schoolId: salida.schoolId, role: { in: ["COORDINADOR", "ADMIN_CENTRO", "ADMINISTRACION"] } },
       select: { id: true, email: true },
     });
     const profesoresDepartamento = salida.departamento
@@ -253,7 +253,7 @@ export async function aprobarSalida(id: string) {
 export async function rechazarSalida(id: string) {
   const session = await getServerSession(authOptions);
   const role = session?.user.role;
-  if (!session?.user.id || (role !== "SUPERADMIN" && role !== "COORDINADOR" && role !== "ADMIN_CENTRO")) {
+  if (!session?.user.id || (role !== "SUPERADMIN" && role !== "COORDINADOR" && role !== "ADMIN_CENTRO" && role !== "ADMINISTRACION")) {
     throw new Error("No autorizado.");
   }
 
@@ -277,7 +277,7 @@ export async function rechazarSalida(id: string) {
 
   try {
     const equipoDirectivo = await prisma.user.findMany({
-      where: { schoolId: salida.schoolId, role: { in: ["COORDINADOR", "ADMIN_CENTRO"] } },
+      where: { schoolId: salida.schoolId, role: { in: ["COORDINADOR", "ADMIN_CENTRO", "ADMINISTRACION"] } },
       select: { id: true, email: true },
     });
     const destinatarios = new Set([salida.creadoPor.email, ...equipoDirectivo.map((u) => u.email)]);
@@ -325,7 +325,7 @@ export async function anularSalida(id: string, motivo: string) {
   const role = session?.user.role;
   // Anular lo puede hacer todo el equipo directivo (Coordinador y
   // Admin. de Centro), igual que aprobar/rechazar.
-  if (!session?.user.id || (role !== "SUPERADMIN" && role !== "COORDINADOR" && role !== "ADMIN_CENTRO")) {
+  if (!session?.user.id || (role !== "SUPERADMIN" && role !== "COORDINADOR" && role !== "ADMIN_CENTRO" && role !== "ADMINISTRACION")) {
     throw new Error("No autorizado.");
   }
 
@@ -405,7 +405,7 @@ export async function deleteSalida(id: string) {
   const role = session.user.role;
   const puedeGestionarTodo =
     role === "SUPERADMIN" ||
-    ((role === "COORDINADOR" || role === "ADMIN_CENTRO") && salida.schoolId === session.user.schoolId);
+    ((role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION") && salida.schoolId === session.user.schoolId);
 
   if (!puedeGestionarTodo) {
     if (salida.creadoPorId !== session.user.id) {
@@ -468,7 +468,7 @@ export async function editarSalida(formData: FormData) {
   const role = session.user.role;
   const puedeGestionarTodo =
     role === "SUPERADMIN" ||
-    ((role === "COORDINADOR" || role === "ADMIN_CENTRO") && salidaActual.schoolId === session.user.schoolId);
+    ((role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION") && salidaActual.schoolId === session.user.schoolId);
 
   if (!puedeGestionarTodo) {
     if (salidaActual.creadoPorId !== session.user.id) {

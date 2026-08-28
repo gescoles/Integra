@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DatabaseBackup, RotateCcw, Clock, HardDrive, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { crearCopiaSeguridad, listarCopiasSeguridad, restaurarDesdeArchivo } from "./actions";
+import { crearCopiaSeguridad, crearCopiaExcelModulos, listarCopiasSeguridad, restaurarDesdeArchivo } from "./actions";
 import { ButtonSpinner } from "../components/ButtonSpinner";
 import { AssemblingLogo } from "../components/AssemblingLogo";
 import { useLocale } from "../SchoolContext";
@@ -28,6 +28,7 @@ export function BackupClient() {
   const [copias, setCopias] = useState<Copia[]>([]);
   const [cargando, setCargando] = useState(true);
   const [creando, setCreando] = useState(false);
+  const [creandoExcel, setCreandoExcel] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exito, setExito] = useState<string | null>(null);
 
@@ -58,6 +59,25 @@ export function BackupClient() {
       setError(e instanceof Error ? e.message : "No se pudo crear la copia de seguridad.");
     } finally {
       setCreando(false);
+    }
+  }
+
+  async function handleCrearExcel() {
+    setCreandoExcel(true);
+    setError(null);
+    setExito(null);
+    try {
+      const resultados = await crearCopiaExcelModulos();
+      const fallidos = resultados.filter((r) => !r.ok);
+      if (fallidos.length > 0) {
+        setError(`Se ha completado con algún fallo: ${fallidos.map((f) => f.centro).join(", ")}.`);
+      } else {
+        setExito("Copia en Excel por módulos guardada en Drive correctamente.");
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo generar la copia en Excel.");
+    } finally {
+      setCreandoExcel(false);
     }
   }
 
@@ -94,7 +114,7 @@ export function BackupClient() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50">
             <DatabaseBackup className="h-5 w-5 text-[#FD5249]" />
@@ -108,6 +128,24 @@ export function BackupClient() {
           >
             {creando ? <ButtonSpinner /> : <DatabaseBackup className="h-4 w-4" />}
             {translate(locale, "backup.crearBoton")}
+          </button>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50">
+            <HardDrive className="h-5 w-5 text-emerald-600" />
+          </div>
+          <h3 className="mt-3 text-sm font-bold text-[#0B1D4D]">Copia en Excel por módulos</h3>
+          <p className="mt-1 text-xs text-slate-500">
+            Un Excel por módulo (Tutorías, Material, Salidas, Prácticas), guardado en Drive con una carpeta por centro y por fecha — lo mismo que se hace solo cada noche.
+          </p>
+          <button
+            onClick={handleCrearExcel}
+            disabled={creandoExcel}
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+          >
+            {creandoExcel ? <ButtonSpinner /> : <HardDrive className="h-4 w-4" />}
+            {creandoExcel ? "Generando..." : "Copiar en Excel ahora"}
           </button>
         </div>
 

@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { generarCopiaSeguridad, restaurarCopiaSeguridad, type CopiaSeguridad } from "@/lib/backup";
 import { ensureSubfolder, uploadGenericFileToDrive, listFilesInFolder, downloadFileFromDrive } from "@/lib/googleDrive";
+import { ejecutarBackupExcelModulos } from "@/lib/backupExcel";
 import { revalidatePath } from "next/cache";
 
 function esSuperAdmin(role?: string) {
@@ -31,6 +32,26 @@ export async function crearCopiaSeguridad() {
   await uploadGenericFileToDrive(folderId, nombre, buffer, "application/json");
 
   revalidatePath("/dashboard/backup");
+}
+
+// El botón "Copia en Excel por módulos": lo mismo que hace el backup
+// automático de cada noche, pero disparado a mano — una carpeta por
+// centro, una subcarpeta por módulo, y dentro la fecha de hoy.
+export async function crearCopiaExcelModulos() {
+  const session = await getServerSession(authOptions);
+  if (!esSuperAdmin(session?.user.role)) throw new Error("Solo el SuperAdmin puede generar copias de seguridad.");
+
+  const { resultados } = await ejecutarBackupExcelModulos();
+
+  const fallidos = resultados.filter((r) => !r.ok);
+  if (fallidos.length > 0 && fallidos.length === resultados.length) {
+    // Si TODOS los centros han fallado, es casi seguro un problema de
+    // conexión con Drive — lo mostramos como error de verdad, no como aviso.
+    throw new Error(fallidos[0].error ?? "No se pudo completar la copia en ningún centro.");
+  }
+
+  revalidatePath("/dashboard/backup");
+  return resultados;
 }
 
 export async function listarCopiasSeguridad() {

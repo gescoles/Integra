@@ -14,7 +14,7 @@ export default async function FichaPracticaPage({ params }: { params: { id: stri
   const locale = session?.user.locale ?? "ES";
   const userName = session?.user.name || session?.user.email.split("@")[0] || "Usuario";
   const role = session?.user.role ?? "PROFESOR";
-  const esDirectivo = role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO";
+  const esDirectivo = role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
 
   const ficha = await prisma.practicaAlumno.findUnique({
     where: { id: params.id },
@@ -48,7 +48,7 @@ export default async function FichaPracticaPage({ params }: { params: { id: stri
 
   const puedeGestionar =
     role === "SUPERADMIN" ||
-    ((role === "COORDINADOR" || role === "ADMIN_CENTRO") && ficha.schoolId === session?.user.schoolId) ||
+    ((role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION") && ficha.schoolId === session?.user.schoolId) ||
     ficha.responsablePracticasId === session?.user.id ||
     ficha.tutorImesId === session?.user.id;
 

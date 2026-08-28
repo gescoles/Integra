@@ -26,3 +26,4 @@ export const USER_AVATARS_BUCKET = "user-avatars";
 export const HISTORIAS_BUCKET = "historias";
 export const ONBOARDING_BUCKET = "onboarding";
 export const NOTICIAS_BUCKET = "noticias";
+export const JUSTIFICANTES_BUCKET = "justificantes";

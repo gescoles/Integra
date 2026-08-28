@@ -7,9 +7,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sendGuardiaEmail, sendCoberturaEmail, sendSolicitudCoberturaEmail, sendCoberturaResueltaEmail, sendSolicitudRechazadaEmail, sendGuardiaEliminadaEmail, sendGuardiaModificadaEmail, sendCoberturaEliminadaEmail, sendCoberturaModificadaEmail, sendAusenciaAceptadaEmail } from "@/lib/email";
 import { notifyUsers } from "@/lib/notifications";
+import { getSupabaseAdmin, JUSTIFICANTES_BUCKET } from "@/lib/supabaseAdmin";
 
 function esDirectivo(role?: string) {
-  return role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO";
+  return role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
 }
 
 // Aviso al sustituto (notificación + email), reutilizado tanto cuando
@@ -195,7 +196,7 @@ export async function crearSolicitudCobertura(formData: FormData) {
   });
 
   const directivos = await prisma.user.findMany({
-    where: { schoolId, role: { in: ["COORDINADOR", "ADMIN_CENTRO"] } },
+    where: { schoolId, role: { in: ["COORDINADOR", "ADMIN_CENTRO", "ADMINISTRACION"] } },
     select: { id: true, email: true },
   });
 
@@ -278,6 +279,80 @@ export async function aceptarAusencia(coberturaId: string) {
   } catch {
     // No pasa nada si falla el email; la notificación en la app ya ha avisado.
   }
+
+  revalidatePath("/dashboard/guardias");
+}
+
+// Marca el estado del justificante a mano (Recibido / Pendiente / No
+// aplica), independientemente de si la ausencia ya está aceptada o no.
+export async function actualizarEstadoJustificante(coberturaId: string, estado: "PENDIENTE" | "RECIBIDO" | "NO_ENTREGADO" | "NO_APLICA") {
+  const session = await getServerSession(authOptions);
+  if (!session?.user.id || !esDirectivo(session.user.role)) {
+    throw new Error("Solo Coordinación, Dirección o SuperAdmin puede actualizar el justificante.");
+  }
+
+  const cobertura = await prisma.coberturaGuardia.findUnique({ where: { id: coberturaId } });
+  if (!cobertura || cobertura.schoolId !== session.user.schoolId) throw new Error("No se ha encontrado la solicitud.");
+  if (cobertura.estado === "PENDIENTE") {
+    throw new Error("Primero hay que aceptar la ausencia antes de gestionar el justificante.");
+  }
+
+  await prisma.coberturaGuardia.update({
+    where: { id: coberturaId },
+    data: { estadoJustificante: estado },
+  });
+
+  revalidatePath("/dashboard/guardias");
+}
+
+// Sube el archivo del justificante (PDF/JPG/PNG) y marca el estado como
+// Recibido automáticamente.
+export async function subirJustificante(coberturaId: string, formData: FormData) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user.id || !esDirectivo(session.user.role)) {
+    throw new Error("Solo Coordinación, Dirección o SuperAdmin puede subir un justificante.");
+  }
+
+  const cobertura = await prisma.coberturaGuardia.findUnique({ where: { id: coberturaId } });
+  if (!cobertura || cobertura.schoolId !== session.user.schoolId) throw new Error("No se ha encontrado la solicitud.");
+  if (cobertura.estado === "PENDIENTE") {
+    throw new Error("Primero hay que aceptar la ausencia antes de subir el justificante.");
+  }
+
+  const file = formData.get("justificante") as File | null;
+  if (!file || file.size === 0) throw new Error("No se ha seleccionado ningún archivo.");
+  const tiposPermitidos = ["application/pdf", "image/jpeg", "image/jpg", "image/png"];
+  if (!tiposPermitidos.includes(file.type)) {
+    throw new Error("El justificante debe ser un PDF, JPG o PNG.");
+  }
+  if (file.size > 8 * 1024 * 1024) {
+    throw new Error("El archivo no puede pesar más de 8 MB.");
+  }
+
+  const supabase = getSupabaseAdmin();
+  const ext = file.name.split(".").pop() || "pdf";
+  const path = `${cobertura.schoolId}/${coberturaId}-${Date.now()}.${ext}`;
+  const bytes = new Uint8Array(await file.arrayBuffer());
+
+  const { error: uploadError } = await supabase.storage
+    .from(JUSTIFICANTES_BUCKET)
+    .upload(path, bytes, { contentType: file.type, upsert: true });
+
+  if (uploadError) {
+    throw new Error(`No se pudo subir el justificante: ${uploadError.message}`);
+  }
+
+  const { data } = supabase.storage.from(JUSTIFICANTES_BUCKET).getPublicUrl(path);
+
+  await prisma.coberturaGuardia.update({
+    where: { id: coberturaId },
+    data: {
+      justificanteUrl: data.publicUrl,
+      justificanteNombre: file.name,
+      justificanteFecha: new Date(),
+      estadoJustificante: "RECIBIDO",
+    },
+  });
 
   revalidatePath("/dashboard/guardias");
 }
@@ -406,8 +481,9 @@ export async function rechazarSolicitud(coberturaId: string, motivoRechazo: stri
   revalidatePath("/dashboard/guardias");
 }
 
-// Solicitudes de cobertura pendientes de gestionar, para el listado que ve
-// dirección al entrar.
+// Solicitudes de cobertura, para la pantalla de "Solicitudes de ausencia"
+// que ve dirección — trae todas (no solo pendientes) para poder ofrecer
+// las pestañas Pendientes/Aceptadas/Rechazadas/Todas.
 export async function obtenerSolicitudesPendientes(schoolIdParam?: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user.id || !esDirectivo(session.user.role)) return [];
@@ -416,8 +492,11 @@ export async function obtenerSolicitudesPendientes(schoolIdParam?: string) {
   if (!schoolId) return [];
 
   const solicitudes = await prisma.coberturaGuardia.findMany({
-    where: { schoolId, estado: { in: ["PENDIENTE", "ACEPTADA"] } },
-    include: { profesorAusente: { select: { id: true, name: true, email: true } } },
+    where: { schoolId },
+    include: {
+      profesorAusente: { select: { id: true, name: true, email: true, avatarUrl: true } },
+      profesorSustituto: { select: { id: true, name: true, email: true } },
+    },
     orderBy: { fecha: "asc" },
   });
 
@@ -426,6 +505,7 @@ export async function obtenerSolicitudesPendientes(schoolIdParam?: string) {
     estado: s.estado,
     profesorAusenteId: s.profesorAusenteId,
     profesorAusenteNombre: s.profesorAusente.name ?? s.profesorAusente.email,
+    profesorAusenteAvatarUrl: s.profesorAusente.avatarUrl,
     fecha: s.fecha.toISOString(),
     horaInicio: s.horaInicio,
     horaFin: s.horaFin,
@@ -434,6 +514,13 @@ export async function obtenerSolicitudesPendientes(schoolIdParam?: string) {
     ubicacion: s.ubicacion,
     motivo: s.motivo,
     trabajoAlumnos: s.trabajoAlumnos,
+    estadoJustificante: s.estadoJustificante,
+    justificanteUrl: s.justificanteUrl,
+    justificanteNombre: s.justificanteNombre,
+    justificanteFecha: s.justificanteFecha ? s.justificanteFecha.toISOString() : null,
+    profesorSustitutoId: s.profesorSustitutoId,
+    profesorSustitutoNombre: s.profesorSustituto ? (s.profesorSustituto.name ?? s.profesorSustituto.email) : null,
+    createdAt: s.createdAt.toISOString(),
   }));
 }
 
@@ -776,7 +863,7 @@ export async function obtenerProfesoresDelCentro(schoolIdParam?: string) {
 export async function createGuardia(formData: FormData) {
   const session = await getServerSession(authOptions);
   const role = session?.user.role;
-  if (!session?.user.id || (role !== "SUPERADMIN" && role !== "COORDINADOR" && role !== "ADMIN_CENTRO")) {
+  if (!session?.user.id || (role !== "SUPERADMIN" && role !== "COORDINADOR" && role !== "ADMIN_CENTRO" && role !== "ADMINISTRACION")) {
     throw new Error("No autorizado.");
   }
 

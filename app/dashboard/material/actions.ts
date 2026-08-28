@@ -5,6 +5,12 @@ import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { MaterialCategoria } from "@prisma/client";
+import { notifyUsers } from "@/lib/notifications";
+import { sendMaterialNuevoEmail, sendMaterialValidadoEmail, sendMaterialCompradoEmail, sendMaterialModificadoEmail, sendMaterialEliminadoEmail } from "@/lib/email";
+
+function esAdministracion(role?: string) {
+  return role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
+}
 
 export async function createMaterial(formData: FormData) {
   const session = await getServerSession(authOptions);
@@ -29,21 +35,158 @@ export async function createMaterial(formData: FormData) {
   if (!enlace) throw new Error("El enlace donde comprarlo es obligatorio.");
   if (!justificacion) throw new Error("Explica por qué es necesario este material.");
 
-  await prisma.materialRequest.create({
+  const cantidad = Number(cantidadRaw) || 1;
+  const precioUnidad = Number(precioUnidadRaw) || 0;
+
+  const material = await prisma.materialRequest.create({
     data: {
       schoolId: session.user.schoolId,
       profesorId: session.user.id,
       nombre,
       curso,
       asignatura,
-      cantidad: Number(cantidadRaw) || 1,
-      precioUnidad: Number(precioUnidadRaw) || 0,
+      cantidad,
+      precioUnidad,
       proveedor,
       enlace,
       justificacion,
       categoria,
     },
   });
+
+  // Avisamos dentro de la app a Administración y equipo directivo (mismos
+  // permisos), pero el CORREO de la solicitud solo se manda a quien tenga
+  // el rol Administración específicamente, nadie más.
+  try {
+    const [creador, administracion, soloAdministracion] = await Promise.all([
+      prisma.user.findUnique({ where: { id: session.user.id }, select: { name: true, email: true } }),
+      prisma.user.findMany({
+        where: { schoolId: session.user.schoolId, role: { in: ["ADMINISTRACION", "COORDINADOR", "ADMIN_CENTRO"] } },
+        select: { id: true, name: true, email: true },
+      }),
+      prisma.user.findMany({
+        where: { schoolId: session.user.schoolId, role: "ADMINISTRACION" },
+        select: { id: true, name: true, email: true },
+      }),
+    ]);
+    const creadorNombre = creador?.name ?? creador?.email ?? "Un profesor";
+
+    await notifyUsers(
+      administracion.map((a) => a.id),
+      {
+        schoolId: session.user.schoolId,
+        tipo: "MATERIAL_NUEVO",
+        titulo: "Nueva solicitud de material",
+        mensaje: `${creadorNombre} ha pedido "${nombre}" (${curso}) — pendiente de validar.`,
+        link: "/dashboard/material",
+        relatedId: material.id,
+      }
+    );
+
+    await Promise.all(
+      soloAdministracion.map((a) =>
+        sendMaterialNuevoEmail({
+          to: a.email,
+          adminNombre: a.name ?? a.email,
+          profesorNombre: creadorNombre,
+          nombreMaterial: nombre,
+          curso,
+          cantidad,
+          precioUnidad,
+        })
+      )
+    );
+  } catch {
+    // El material ya se ha guardado; si el aviso falla no lo bloqueamos.
+  }
+
+  revalidatePath("/dashboard/material");
+  revalidatePath("/dashboard");
+}
+
+export async function validarMaterial(id: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user.id || !esAdministracion(session.user.role)) {
+    throw new Error("Solo Administración o equipo directivo puede validar un material.");
+  }
+
+  const material = await prisma.materialRequest.findUnique({
+    where: { id },
+    include: { profesor: { select: { name: true, email: true } } },
+  });
+  if (!material || material.schoolId !== session.user.schoolId) throw new Error("No se ha encontrado el material.");
+  if (material.estado !== "PENDIENTE_VALIDACION") throw new Error("Este material ya no está pendiente de validar.");
+
+  await prisma.materialRequest.update({
+    where: { id },
+    data: { estado: "VALIDADO_PENDIENTE_COMPRA", validadoPorId: session.user.id, validadoEn: new Date() },
+  });
+
+  try {
+    await notifyUsers([material.profesorId], {
+      schoolId: material.schoolId,
+      tipo: "MATERIAL_VALIDADO",
+      titulo: "Material aprobado",
+      mensaje: `"${material.nombre}" ha sido aprobado y está en curso de compra.`,
+      link: "/dashboard/material",
+      relatedId: material.id,
+    });
+
+    if (material.profesor.email) {
+      await sendMaterialValidadoEmail({
+        to: material.profesor.email,
+        profesorNombre: material.profesor.name ?? material.profesor.email,
+        nombreMaterial: material.nombre,
+      });
+    }
+  } catch {
+    // Ya se ha validado; si el aviso falla no lo bloqueamos.
+  }
+
+  revalidatePath("/dashboard/material");
+  revalidatePath("/dashboard");
+}
+
+export async function marcarMaterialComprado(id: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user.id || !esAdministracion(session.user.role)) {
+    throw new Error("Solo Administración o equipo directivo puede marcar un material como comprado.");
+  }
+
+  const material = await prisma.materialRequest.findUnique({
+    where: { id },
+    include: { profesor: { select: { name: true, email: true } } },
+  });
+  if (!material || material.schoolId !== session.user.schoolId) throw new Error("No se ha encontrado el material.");
+  if (material.estado !== "VALIDADO_PENDIENTE_COMPRA") {
+    throw new Error("Este material todavía no está validado, o ya se marcó como comprado.");
+  }
+
+  await prisma.materialRequest.update({
+    where: { id },
+    data: { estado: "COMPRADO", compradoPorId: session.user.id, compradoEn: new Date() },
+  });
+
+  try {
+    await notifyUsers([material.profesorId], {
+      schoolId: material.schoolId,
+      tipo: "MATERIAL_COMPRADO",
+      titulo: "Ya puedes recoger tu material",
+      mensaje: `"${material.nombre}" ya ha llegado — pasa a recogerlo por secretaría.`,
+      link: "/dashboard/material",
+      relatedId: material.id,
+    });
+
+    if (material.profesor.email) {
+      await sendMaterialCompradoEmail({
+        to: material.profesor.email,
+        profesorNombre: material.profesor.name ?? material.profesor.email,
+        nombreMaterial: material.nombre,
+      });
+    }
+  } catch {
+    // Ya se ha marcado comprado; si el aviso falla no lo bloqueamos.
+  }
 
   revalidatePath("/dashboard/material");
   revalidatePath("/dashboard");
@@ -57,7 +200,7 @@ export async function updateMaterial(formData: FormData) {
   const material = await prisma.materialRequest.findUnique({ where: { id } });
   const canManageAll =
     session.user.role === "SUPERADMIN" ||
-    ((session.user.role === "COORDINADOR" || session.user.role === "ADMIN_CENTRO") &&
+    ((session.user.role === "COORDINADOR" || session.user.role === "ADMIN_CENTRO" || session.user.role === "ADMINISTRACION") &&
       material?.schoolId === session.user.schoolId);
   if (!material || (material.profesorId !== session.user.id && !canManageAll)) {
     throw new Error("No puedes editar un material que no has pedido tú.");
@@ -97,6 +240,40 @@ export async function updateMaterial(formData: FormData) {
     },
   });
 
+  // Si quien edita no es el propio profesor que lo pidió (es decir, es
+  // Administración o equipo directivo tocando la solicitud de otro),
+  // avisamos al dueño de que se ha modificado.
+  if (material.profesorId !== session.user.id) {
+    try {
+      const [autorEdicion, dueño] = await Promise.all([
+        prisma.user.findUnique({ where: { id: session.user.id }, select: { name: true, email: true } }),
+        prisma.user.findUnique({ where: { id: material.profesorId }, select: { name: true, email: true } }),
+      ]);
+      const autorNombre = autorEdicion?.name ?? autorEdicion?.email ?? "Administración";
+
+      if (dueño) {
+        await notifyUsers([material.profesorId], {
+          schoolId: material.schoolId,
+          tipo: "MATERIAL_MODIFICADO",
+          titulo: "Tu material ha sido modificado",
+          mensaje: `${autorNombre} ha modificado "${nombre}".`,
+          link: "/dashboard/material",
+          relatedId: id,
+        });
+        if (dueño.email) {
+          await sendMaterialModificadoEmail({
+            to: dueño.email,
+            profesorNombre: dueño.name ?? dueño.email,
+            nombreMaterial: nombre,
+            modificadoPorNombre: autorNombre,
+          });
+        }
+      }
+    } catch {
+      // El material ya se ha actualizado; si el aviso falla no lo bloqueamos.
+    }
+  }
+
   revalidatePath("/dashboard/material");
   revalidatePath("/dashboard");
 }
@@ -108,13 +285,57 @@ export async function deleteMaterial(id: string) {
   const material = await prisma.materialRequest.findUnique({ where: { id } });
   const canManageAll =
     session.user.role === "SUPERADMIN" ||
-    ((session.user.role === "COORDINADOR" || session.user.role === "ADMIN_CENTRO") &&
+    ((session.user.role === "COORDINADOR" || session.user.role === "ADMIN_CENTRO" || session.user.role === "ADMINISTRACION") &&
       material?.schoolId === session.user.schoolId);
   if (!material || (material.profesorId !== session.user.id && !canManageAll)) {
     throw new Error("No puedes eliminar un material que no es tuyo.");
   }
 
+  // Si quien borra no es el propio profesor que lo pidió, avisamos al
+  // dueño ANTES de borrar de verdad — después ya no tendríamos sus datos.
+  const avisarADueño = material.profesorId !== session.user.id;
+  let datosParaAviso: { email: string; nombre: string; autorNombre: string } | null = null;
+
+  if (avisarADueño) {
+    try {
+      const [autorBorrado, dueño] = await Promise.all([
+        prisma.user.findUnique({ where: { id: session.user.id }, select: { name: true, email: true } }),
+        prisma.user.findUnique({ where: { id: material.profesorId }, select: { name: true, email: true } }),
+      ]);
+      if (dueño?.email) {
+        datosParaAviso = {
+          email: dueño.email,
+          nombre: dueño.name ?? dueño.email,
+          autorNombre: autorBorrado?.name ?? autorBorrado?.email ?? "Administración",
+        };
+      }
+    } catch {
+      // Si no se pueden obtener los datos, seguimos con el borrado igual.
+    }
+  }
+
   await prisma.materialRequest.delete({ where: { id } });
+
+  if (datosParaAviso) {
+    try {
+      await notifyUsers([material.profesorId], {
+        schoolId: material.schoolId,
+        tipo: "MATERIAL_ELIMINADO",
+        titulo: "Tu material ha sido eliminado",
+        mensaje: `${datosParaAviso.autorNombre} ha eliminado tu solicitud "${material.nombre}".`,
+        link: "/dashboard/material",
+      });
+      await sendMaterialEliminadoEmail({
+        to: datosParaAviso.email,
+        profesorNombre: datosParaAviso.nombre,
+        nombreMaterial: material.nombre,
+        eliminadoPorNombre: datosParaAviso.autorNombre,
+      });
+    } catch {
+      // El material ya se ha borrado; si el aviso falla no lo bloqueamos.
+    }
+  }
+
   revalidatePath("/dashboard/material");
   revalidatePath("/dashboard");
 }

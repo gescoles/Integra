@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -19,7 +20,7 @@ export default async function AbsentismoPage() {
   const schoolId = session?.user.schoolId;
   const userName = session?.user.name || session?.user.email?.split("@")[0] || "Usuario";
 
-  const esDirectivo = role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO";
+  const esDirectivo = role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
   if (!esDirectivo || !schoolId) redirect("/dashboard/guardias");
 
   // Contamos como "falta real" cualquier aviso que no haya sido rechazado
@@ -71,7 +72,9 @@ export default async function AbsentismoPage() {
         role={role}
         notificationCount={0}
       />
-      <GuardiasTabs activo="absentismo" />
+      <Suspense fallback={null}>
+        <GuardiasTabs />
+      </Suspense>
       <AbsentismoClient filas={filas} />
     </div>
   );

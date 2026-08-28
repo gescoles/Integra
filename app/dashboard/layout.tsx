@@ -4,9 +4,13 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Sidebar } from "./components/Sidebar";
 import { ChatWidget } from "./components/ChatWidget";
+import { ChatInternoWidget } from "./components/ChatInternoWidget";
 import { SavingOverlay } from "./components/SavingOverlay";
 import { GlobalSavingListener } from "./components/GlobalSavingListener";
 import { SchoolProvider } from "./SchoolContext";
+import { DashboardHeader } from "./components/DashboardHeader";
+import { ContenidoPrincipal } from "./components/ContenidoPrincipal";
+import { AlertTriangle } from "lucide-react";
 
 export default async function DashboardLayout({
   children,
@@ -40,25 +44,50 @@ export default async function DashboardLayout({
 
   const currentUser = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { avatarUrl: true, locale: true },
+    select: { avatarUrl: true, locale: true, status: true },
   });
+
+  const cuentaInactiva = currentUser?.status === "INACTIVO";
 
   return (
     <SchoolProvider
       school={schoolInfo}
       avatarUrl={currentUser?.avatarUrl ?? null}
       locale={currentUser?.locale ?? "ES"}
+      chatHabilitado={!cuentaInactiva && contractedModules.includes("comunicacion")}
     >
-      <div className="min-h-screen bg-slate-50">
+      <div className={`min-h-screen ${cuentaInactiva ? "bg-slate-200" : "bg-slate-50"}`}>
         <Sidebar
           userName={userName}
+          userEmail={session.user.email}
           role={session.user.role}
-          contractedModules={contractedModules}
+          contractedModules={cuentaInactiva ? [] : contractedModules}
         />
-        <div className="pt-14 lg:pl-64 lg:pt-0">
-          <div className="mx-auto max-w-7xl px-6 py-8 lg:px-10">{children}</div>
-        </div>
+        <ContenidoPrincipal>
+          {cuentaInactiva ? (
+            <div>
+              <DashboardHeader
+                title="Inicio"
+                subtitle="Panel de control"
+                userName={userName}
+                role={session.user.role}
+                cuentaInactiva
+              />
+              <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-white py-20 text-center opacity-60 grayscale">
+                <AlertTriangle className="h-10 w-10 text-red-400" />
+                <p className="text-base font-bold text-[#0B1D4D]">Tu cuenta está inactiva</p>
+                <p className="max-w-sm text-sm text-slate-500">
+                  No puedes usar ningún módulo mientras tu cuenta esté marcada como inactiva.
+                  Ponte en contacto con el administrador de tu centro para que la reactive.
+                </p>
+              </div>
+            </div>
+          ) : (
+            children
+          )}
+        </ContenidoPrincipal>
         <ChatWidget userName={userName} />
+        {!cuentaInactiva && contractedModules.includes("comunicacion") && <ChatInternoWidget />}
         <SavingOverlay />
         <GlobalSavingListener />
       </div>

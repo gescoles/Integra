@@ -93,7 +93,7 @@ export async function createAlumno(formData: FormData) {
   // Equipo directivo puede elegir a qué profesor asignar como tutor; un
   // Profesor siempre se asigna a sí mismo (no puede elegir a otro).
   const esDirectivo =
-    session.user.role === "SUPERADMIN" || session.user.role === "COORDINADOR" || session.user.role === "ADMIN_CENTRO";
+    session.user.role === "SUPERADMIN" || session.user.role === "COORDINADOR" || session.user.role === "ADMIN_CENTRO" || session.user.role === "ADMINISTRACION";
   const tutorIdElegido = (formData.get("tutorId") as string)?.trim();
   let profesorId = session.user.id;
   if (esDirectivo && tutorIdElegido) {
@@ -140,7 +140,7 @@ export async function updateAlumnoFicha(formData: FormData) {
   const alumno = await prisma.alumno.findUnique({ where: { id } });
   const esDirectivo =
     session.user.role === "SUPERADMIN" ||
-    ((session.user.role === "COORDINADOR" || session.user.role === "ADMIN_CENTRO") && alumno?.schoolId === session.user.schoolId);
+    ((session.user.role === "COORDINADOR" || session.user.role === "ADMIN_CENTRO" || session.user.role === "ADMINISTRACION") && alumno?.schoolId === session.user.schoolId);
   if (!alumno || (alumno.profesorId !== session.user.id && !esDirectivo)) {
     throw new Error("No puedes editar un alumno que no es tuyo.");
   }
@@ -341,7 +341,7 @@ export async function deleteAlumno(id: string) {
   const alumno = await prisma.alumno.findUnique({ where: { id } });
   const esDirectivo =
     session.user.role === "SUPERADMIN" ||
-    ((session.user.role === "COORDINADOR" || session.user.role === "ADMIN_CENTRO") && alumno?.schoolId === session.user.schoolId);
+    ((session.user.role === "COORDINADOR" || session.user.role === "ADMIN_CENTRO" || session.user.role === "ADMINISTRACION") && alumno?.schoolId === session.user.schoolId);
   // Un profesor solo puede eliminar los alumnos que ha creado/tutoriza él
   // mismo; dirección (Coordinador/Admin. de Centro) puede eliminar
   // cualquier alumno de su centro.

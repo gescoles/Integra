@@ -6,7 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
 function esDirectivo(role?: string) {
-  return role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO";
+  return role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
 }
 
 export async function crearDepartamento(formData: FormData) {

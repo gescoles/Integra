@@ -45,7 +45,7 @@ async function puedeGestionarFicha(fichaId: string) {
 
   const role = session.user.role;
   const esDirectivo =
-    role === "SUPERADMIN" || ((role === "COORDINADOR" || role === "ADMIN_CENTRO") && ficha.schoolId === session.user.schoolId);
+    role === "SUPERADMIN" || ((role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION") && ficha.schoolId === session.user.schoolId);
   const permitido = esDirectivo || ficha.responsablePracticasId === session.user.id;
 
   return { ok: permitido, ficha, session, esDirectivo };
@@ -193,7 +193,7 @@ export async function actualizarFichaAlumno(formData: FormData) {
 export async function cambiarResponsablePracticas(fichaId: string, nuevoResponsableId: string) {
   const session = await getServerSession(authOptions);
   const role = session?.user.role;
-  const esDirectivo = role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO";
+  const esDirectivo = role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
   if (!session?.user.id || !esDirectivo) {
     throw new Error("Solo Coordinación, Dirección o SuperAdmin puede cambiar el responsable de prácticas.");
   }
@@ -539,7 +539,7 @@ export async function cicloDeGrupo(grupo: string): Promise<string> {
 async function esDirectivoSesion() {
   const session = await getServerSession(authOptions);
   const role = session?.user.role;
-  const esDirectivo = role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO";
+  const esDirectivo = role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
   return { session, esDirectivo };
 }
 

@@ -17,6 +17,7 @@ export function CreateUserModal({ schools }: { schools: SchoolOption[] }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [autoPassword, setAutoPassword] = useState(false);
+  const [loginMicrosoft, setLoginMicrosoft] = useState(false);
   const [role, setRole] = useState("PROFESOR");
   const [schoolId, setSchoolId] = useState(schools[0]?.id ?? "");
   const [departamentos, setDepartamentos] = useState<DepartamentoOption[]>([]);
@@ -146,34 +147,53 @@ export function CreateUserModal({ schools }: { schools: SchoolOption[] }) {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                  Contraseña inicial
-                </label>
-                <input
-                  name="password"
-                  type="password"
-                  required={!autoPassword}
-                  disabled={autoPassword}
-                  minLength={8}
-                  placeholder={autoPassword ? "Se generará automáticamente" : "Mínimo 8 caracteres"}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249] disabled:bg-slate-50 disabled:text-slate-400"
-                />
-
-                <label className="mt-2.5 flex items-start gap-2 text-xs text-slate-600">
+                <label className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
                   <input
                     type="checkbox"
-                    name="autoPassword"
-                    checked={autoPassword}
-                    onChange={(e) => setAutoPassword(e.target.checked)}
+                    name="loginMicrosoft"
+                    checked={loginMicrosoft}
+                    onChange={(e) => setLoginMicrosoft(e.target.checked)}
                     className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-[#FD5249]"
                   />
                   <span>
-                    Generar una contraseña segura automáticamente y enviarla por
-                    email a esta dirección. El usuario no podrá cambiarla; solo
-                    tú podrás actualizarla más adelante desde su edición.
+                    <strong>Inicio de sesión con Microsoft/Teams.</strong> No hace falta poner
+                    contraseña — le llegará un correo para entrar directamente con su cuenta de
+                    Microsoft (tiene que ser exactamente el email que pongas arriba).
                   </span>
                 </label>
               </div>
+
+              {!loginMicrosoft && (
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                    Contraseña inicial
+                  </label>
+                  <input
+                    name="password"
+                    type="password"
+                    required={!autoPassword}
+                    disabled={autoPassword}
+                    minLength={8}
+                    placeholder={autoPassword ? "Se generará automáticamente" : "Mínimo 8 caracteres"}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249] disabled:bg-slate-50 disabled:text-slate-400"
+                  />
+
+                  <label className="mt-2.5 flex items-start gap-2 text-xs text-slate-600">
+                    <input
+                      type="checkbox"
+                      name="autoPassword"
+                      checked={autoPassword}
+                      onChange={(e) => setAutoPassword(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-[#FD5249]"
+                    />
+                    <span>
+                      Generar una contraseña segura automáticamente y enviarla por
+                      email a esta dirección. El usuario no podrá cambiarla; solo
+                      tú podrás actualizarla más adelante desde su edición.
+                    </span>
+                  </label>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>

@@ -58,7 +58,7 @@ export default async function AprobacionesPage({
   const userName = session?.user.name || session?.user.email.split("@")[0] || "Usuario";
   const role = session?.user.role ?? "PROFESOR";
   const isSuperAdmin = role === "SUPERADMIN";
-  const isEquipoDirectivo = role === "COORDINADOR" || role === "ADMIN_CENTRO";
+  const isEquipoDirectivo = role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
 
   // Solo el equipo directivo y el SuperAdmin pueden aprobar/rechazar salidas.
   if (!isSuperAdmin && !isEquipoDirectivo) {

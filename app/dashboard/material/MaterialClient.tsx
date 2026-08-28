@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Trash2, ExternalLink, FileSpreadsheet } from "lucide-react";
-import { deleteMaterial } from "./actions";
+import { Search, Trash2, ExternalLink, FileSpreadsheet, CheckCircle2, PackageCheck } from "lucide-react";
+import { deleteMaterial, validarMaterial, marcarMaterialComprado } from "./actions";
 import { MaterialFormModal } from "./MaterialFormModal";
-import { MATERIAL_CATEGORIA_LABELS, MATERIAL_CATEGORIA_COLORS } from "../constants";
+import { MATERIAL_CATEGORIA_LABELS, MATERIAL_CATEGORIA_COLORS, MATERIAL_ESTADO_LABELS, MATERIAL_ESTADO_COLORS, MATERIAL_ESTADO_DOT } from "../constants";
 import { useLocale, useGuardadoTransition } from "../SchoolContext";
 import { translate } from "../i18n";
 
@@ -18,6 +18,7 @@ type MaterialRow = {
   proveedor: string;
   enlace: string | null;
   categoria: string;
+  estado: string;
   justificacion: string;
   profesorId: string;
   profesorName: string;
@@ -75,6 +76,26 @@ export function MaterialClient({
         await deleteMaterial(id);
       } catch (e) {
         setError(e instanceof Error ? e.message : "No se pudo eliminar.");
+      }
+    });
+  }
+
+  function handleValidar(id: string) {
+    startTransition(async () => {
+      try {
+        await validarMaterial(id);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "No se pudo validar.");
+      }
+    });
+  }
+
+  function handleComprado(id: string) {
+    startTransition(async () => {
+      try {
+        await marcarMaterialComprado(id);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "No se pudo marcar como comprado.");
       }
     });
   }
@@ -150,6 +171,7 @@ export function MaterialClient({
                 <th className="pb-3 pr-4 font-medium">{translate(locale, "material.colPrecio")}</th>
                 <th className="pb-3 pr-4 font-medium">{translate(locale, "material.colProveedor")}</th>
                 <th className="pb-3 pr-4 font-medium">{translate(locale, "material.colSolicitadoPor")}</th>
+                <th className="pb-3 pr-4 font-medium">Estado</th>
                 <th className="pb-3 font-medium">{translate(locale, "material.colAcciones")}</th>
               </tr>
             </thead>
@@ -193,22 +215,49 @@ export function MaterialClient({
                       )}
                     </td>
                     <td className="py-4 pr-4 text-slate-600">{r.profesorName}</td>
+                    <td className="py-4 pr-4">
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${MATERIAL_ESTADO_COLORS[r.estado]}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${MATERIAL_ESTADO_DOT[r.estado]}`} />
+                        {MATERIAL_ESTADO_LABELS[r.estado]}
+                      </span>
+                    </td>
                     <td className="py-4">
-                      {isOwner ? (
-                        <div className="flex items-center gap-1">
-                          <MaterialFormModal userName={r.profesorName} material={r} trigger="icon" />
+                      <div className="flex items-center gap-1">
+                        {canManageAll && r.estado === "PENDIENTE_VALIDACION" && (
                           <button
-                            onClick={() => handleDelete(r.id, r.nombre)}
+                            onClick={() => handleValidar(r.id)}
                             disabled={isPending}
-                            title="Eliminar"
-                            className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                            title="Validar"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <CheckCircle2 className="h-4 w-4" /> Validar
                           </button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-300">—</span>
-                      )}
+                        )}
+                        {canManageAll && r.estado === "VALIDADO_PENDIENTE_COMPRA" && (
+                          <button
+                            onClick={() => handleComprado(r.id)}
+                            disabled={isPending}
+                            title="Marcar como comprado"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
+                          >
+                            <PackageCheck className="h-4 w-4" /> Comprado
+                          </button>
+                        )}
+                        {isOwner && (
+                          <>
+                            <MaterialFormModal userName={r.profesorName} material={r} trigger="icon" />
+                            <button
+                              onClick={() => handleDelete(r.id, r.nombre)}
+                              disabled={isPending}
+                              title="Eliminar"
+                              className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </>
+                        )}
+                        {!isOwner && !canManageAll && <span className="text-xs text-slate-300">—</span>}
+                      </div>
                     </td>
                   </tr>
                 );

@@ -103,7 +103,7 @@ async function getDatosCobertura(schoolId: string) {
 export default async function GuardiasPage({
   searchParams,
 }: {
-  searchParams: { school?: string };
+  searchParams: { school?: string; vista?: string };
 }) {
   const session = await getServerSession(authOptions);
   const locale = session?.user.locale ?? "ES";
@@ -137,20 +137,30 @@ export default async function GuardiasPage({
     const { rows, profesores } = await getGuardiasCentro(searchParams.school);
     const { horarios, guardias } = await getDatosCobertura(searchParams.school);
     const solicitudes = await obtenerSolicitudesPendientes(searchParams.school);
+    const vistaSuperAdmin = searchParams.vista ?? "solicitudes";
     return (
       <div>
         <DashboardHeader title={translate(locale, "guardias.title")} subtitle={translate(locale, "guardias.subtitle.superadmin")} userName={userName} role={role} />
         <SchoolSwitcher schools={schools} currentSchoolId={searchParams.school} locale={locale} basePath="/dashboard/guardias" />
-        <MisCoberturas modo="buscador" schoolId={searchParams.school} />
         <Suspense fallback={null}>
-          <SolicitudesPendientes solicitudes={solicitudes} profesores={profesores} guardias={guardias} horarios={horarios} />
+          <GuardiasTabs schoolId={searchParams.school} />
         </Suspense>
-        <CoberturaWizard schoolId={searchParams.school} profesores={profesores} horarios={horarios} guardias={guardias} />
-        <div className="mb-5 mt-8 flex items-center justify-between">
-          <h2 className="text-base font-bold text-[#0B1D4D]">{translate(locale, "guardias.programadas")}</h2>
-          <GuardiaFormModal schoolId={searchParams.school} profesores={profesores} />
-        </div>
-        <GuardiasClient rows={rows} profesores={profesores} />
+
+        {vistaSuperAdmin === "planificacion" ? (
+          <>
+            <MisCoberturas modo="buscador" schoolId={searchParams.school} />
+            <CoberturaWizard schoolId={searchParams.school} profesores={profesores} horarios={horarios} guardias={guardias} />
+            <div className="mb-5 mt-8 flex items-center justify-between">
+              <h2 className="text-base font-bold text-[#0B1D4D]">{translate(locale, "guardias.programadas")}</h2>
+              <GuardiaFormModal schoolId={searchParams.school} profesores={profesores} />
+            </div>
+            <GuardiasClient rows={rows} profesores={profesores} />
+          </>
+        ) : (
+          <Suspense fallback={null}>
+            <SolicitudesPendientes solicitudes={solicitudes} profesores={profesores} guardias={guardias} horarios={horarios} />
+          </Suspense>
+        )}
       </div>
     );
   }
@@ -234,25 +244,47 @@ export default async function GuardiasPage({
         role={role}
         notificationCount={0}
       />
-      {!isProfesor && <GuardiasTabs activo="guardias" />}
-      <div className="mb-8">
-        <AvisarAusenciaForm miHorario={miHorario} />
-      </div>
-      <MisCoberturas modo="propio" />
-      {role === "COORDINADOR" && <MisCoberturas modo="buscador" schoolId={schoolId} />}
       {!isProfesor && (
-        <>
-          <Suspense fallback={null}>
-          <SolicitudesPendientes solicitudes={solicitudes} profesores={profesores} guardias={guardias} horarios={horarios} />
+        <Suspense fallback={null}>
+          <GuardiasTabs schoolId={searchParams.school} />
         </Suspense>
-          <CoberturaWizard schoolId={schoolId} profesores={profesores} horarios={horarios} guardias={guardias} />
-          <div className="mb-5 mt-8 flex items-center justify-between">
-            <h2 className="text-base font-bold text-[#0B1D4D]">{translate(locale, "guardias.programadas")}</h2>
-            <GuardiaFormModal schoolId={schoolId} profesores={profesores} />
-          </div>
-        </>
       )}
-      {!isProfesor && <GuardiasClient rows={rows} profesores={profesores} />}
+
+      {(() => {
+        const vista = isProfesor ? "pedir" : (searchParams.vista ?? "solicitudes");
+
+        if (vista === "pedir") {
+          return (
+            <>
+              <div className="mb-8">
+                <AvisarAusenciaForm miHorario={miHorario} />
+              </div>
+              <MisCoberturas modo="propio" />
+            </>
+          );
+        }
+
+        if (vista === "planificacion" && !isProfesor) {
+          return (
+            <>
+              {role === "COORDINADOR" && <MisCoberturas modo="buscador" schoolId={schoolId} />}
+              <CoberturaWizard schoolId={schoolId} profesores={profesores} horarios={horarios} guardias={guardias} />
+              <div className="mb-5 mt-8 flex items-center justify-between">
+                <h2 className="text-base font-bold text-[#0B1D4D]">{translate(locale, "guardias.programadas")}</h2>
+                <GuardiaFormModal schoolId={schoolId} profesores={profesores} />
+              </div>
+              <GuardiasClient rows={rows} profesores={profesores} />
+            </>
+          );
+        }
+
+        // "solicitudes" — la vista por defecto para Coordinación/Dirección.
+        return (
+          <Suspense fallback={null}>
+            <SolicitudesPendientes solicitudes={solicitudes} profesores={profesores} guardias={guardias} horarios={horarios} />
+          </Suspense>
+        );
+      })()}
     </div>
   );
 }

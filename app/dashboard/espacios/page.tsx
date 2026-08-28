@@ -75,7 +75,7 @@ export default async function EspaciosPage({
   const userId = session?.user.id ?? "";
   const role = session?.user.role ?? "PROFESOR";
   const isSuperAdmin = role === "SUPERADMIN";
-  const isEquipoDirectivo = role === "COORDINADOR" || role === "ADMIN_CENTRO";
+  const isEquipoDirectivo = role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
 
   if (isSuperAdmin) {
     const schools = await prisma.school.findMany({

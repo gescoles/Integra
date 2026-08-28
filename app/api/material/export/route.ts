@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   const role = session?.user.role;
 
-  if (!session?.user || (role !== "SUPERADMIN" && role !== "COORDINADOR" && role !== "ADMIN_CENTRO")) {
+  if (!session?.user || (role !== "SUPERADMIN" && role !== "COORDINADOR" && role !== "ADMIN_CENTRO" && role !== "ADMINISTRACION")) {
     return new NextResponse("No autorizado.", { status: 403 });
   }
 

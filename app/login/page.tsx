@@ -230,6 +230,29 @@ export default function LoginPage() {
                 </button>
               </form>
 
+              <div className="mt-5 flex items-center gap-3">
+                <div className="h-px flex-1 bg-slate-200" />
+                <span className="text-xs text-slate-400">o</span>
+                <div className="h-px flex-1 bg-slate-200" />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setLoading(true);
+                  signIn("azure-ad", { callbackUrl: "/dashboard" });
+                }}
+                className="mt-5 flex w-full items-center justify-center gap-2.5 rounded-lg border border-slate-200 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                <svg width="18" height="18" viewBox="0 0 23 23" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="1" y="1" width="10" height="10" fill="#F25022" />
+                  <rect x="12" y="1" width="10" height="10" fill="#7FBA00" />
+                  <rect x="1" y="12" width="10" height="10" fill="#00A4EF" />
+                  <rect x="12" y="12" width="10" height="10" fill="#FFB900" />
+                </svg>
+                Iniciar sesión con Microsoft
+              </button>
+
               <div className="mt-7 flex items-center gap-3">
                 <div className="h-px flex-1 bg-slate-200" />
                 <span className="text-xs text-slate-400">¿Necesitas ayuda?</span>

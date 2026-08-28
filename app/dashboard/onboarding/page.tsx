@@ -50,7 +50,7 @@ export default async function OnboardingPage({
   const userName = session?.user.name || session?.user.email.split("@")[0] || "Usuario";
   const role = session?.user.role ?? "PROFESOR";
   const isSuperAdmin = role === "SUPERADMIN";
-  const esDirectivo = role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO";
+  const esDirectivo = role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
 
   if (isSuperAdmin) {
     const schools = await prisma.school.findMany({

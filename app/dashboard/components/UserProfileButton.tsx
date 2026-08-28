@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ChevronRight, Camera, X } from "lucide-react";
+import { ChevronDown, Camera, X, LogOut } from "lucide-react";
+import { signOut } from "next-auth/react";
 import { useUserAvatar } from "../SchoolContext";
 import { uploadMyAvatar } from "../profileActions";
 import { translate, AppLocale } from "../i18n";
@@ -9,14 +10,17 @@ import { ButtonSpinner } from "./ButtonSpinner";
 
 export function UserProfileButton({
   userName,
+  userEmail,
   roleLabel,
   locale,
 }: {
   userName: string;
+  userEmail: string;
   roleLabel: string;
   locale: AppLocale;
 }) {
   const { avatarUrl, setAvatarUrl } = useUserAvatar();
+  const [menuAbierto, setMenuAbierto] = useState(false);
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -60,30 +64,60 @@ export function UserProfileButton({
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-white/5"
-      >
-        <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#FD5249] text-[11px] font-bold text-white">
-          <span>{initials}</span>
-          {avatarUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={avatarUrl}
-              alt={userName}
-              className="absolute inset-0 h-full w-full object-cover"
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-              }}
-            />
-          )}
-        </div>
-        <div className="flex-1 overflow-hidden leading-tight">
-          <div className="truncate text-[13px] font-semibold text-white">{userName}</div>
-          <div className="truncate text-[10px] text-slate-400">{roleLabel}</div>
-        </div>
-        <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
-      </button>
+      <div className="relative">
+        <button
+          onClick={() => setMenuAbierto((v) => !v)}
+          className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2 text-left hover:bg-slate-50"
+        >
+          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#FD5249] text-xs font-bold text-white">
+            <span>{initials}</span>
+            {avatarUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={avatarUrl}
+                alt={userName}
+                className="absolute inset-0 h-full w-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+            )}
+          </div>
+          <div className="hidden overflow-hidden text-left leading-tight sm:block">
+            <div className="truncate text-[13px] font-semibold text-[#0B1D4D]">{userName}</div>
+            <div className="truncate text-[10px] text-slate-400">{roleLabel}</div>
+          </div>
+          <ChevronDown className={`hidden h-4 w-4 shrink-0 text-slate-400 transition-transform sm:block ${menuAbierto ? "rotate-180" : ""}`} />
+        </button>
+
+        {menuAbierto && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setMenuAbierto(false)} />
+            <div className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-lg">
+              <div className="border-b border-slate-100 px-3.5 py-2.5">
+                <div className="truncate text-sm font-semibold text-[#0B1D4D]">{userName}</div>
+                <div className="truncate text-xs text-slate-400">{roleLabel}</div>
+                <div className="mt-1 truncate text-xs text-slate-400">{userEmail}</div>
+              </div>
+              <button
+                onClick={() => {
+                  setMenuAbierto(false);
+                  setOpen(true);
+                }}
+                className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-slate-600 hover:bg-slate-50"
+              >
+                <Camera className="h-4 w-4 text-slate-400" /> {translate(locale, "perfil.elegirFoto")}
+              </button>
+              <button
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
+              >
+                <LogOut className="h-4 w-4" /> {translate(locale, "sidebar.cerrarSesion")}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
 
       {open && (
         <div

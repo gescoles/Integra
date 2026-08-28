@@ -1,22 +1,38 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 
-export function GuardiasTabs({ activo }: { activo: "guardias" | "absentismo" }) {
+const TABS = [
+  { key: "pedir", label: "Pedir Guardia" },
+  { key: "solicitudes", label: "Solicitudes de ausencias" },
+  { key: "planificacion", label: "Planificación de Guardias" },
+] as const;
+
+export function GuardiasTabs({ schoolId }: { schoolId?: string }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const enAbsentismo = pathname.includes("/absentismo");
+  const vista = enAbsentismo ? null : (searchParams.get("vista") ?? "solicitudes");
+  const schoolQuery = schoolId ? `&school=${schoolId}` : "";
+
   return (
-    <div className="mb-5 inline-flex gap-1 rounded-lg bg-slate-100 p-1">
+    <div className="mb-5 flex flex-wrap items-center gap-1 border-b border-slate-200">
+      {TABS.map((t) => (
+        <Link
+          key={t.key}
+          href={`/dashboard/guardias?vista=${t.key}${schoolQuery}`}
+          className={`border-b-2 px-3 py-2.5 text-sm font-semibold transition-colors ${
+            vista === t.key ? "border-[#FD5249] text-[#FD5249]" : "border-transparent text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          {t.label}
+        </Link>
+      ))}
       <Link
-        href="/dashboard/guardias"
-        className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-          activo === "guardias" ? "bg-white text-[#FD5249] shadow-sm" : "text-slate-500"
-        }`}
-      >
-        Guardias
-      </Link>
-      <Link
-        href="/dashboard/guardias/absentismo"
-        className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-          activo === "absentismo" ? "bg-white text-[#FD5249] shadow-sm" : "text-slate-500"
+        href={`/dashboard/guardias/absentismo${schoolId ? `?school=${schoolId}` : ""}`}
+        className={`border-b-2 px-3 py-2.5 text-sm font-semibold transition-colors ${
+          enAbsentismo ? "border-[#FD5249] text-[#FD5249]" : "border-transparent text-slate-500 hover:text-slate-700"
         }`}
       >
         Absentismo

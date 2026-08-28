@@ -77,7 +77,7 @@ export function MaterialFormModal({
           onClick={() => setOpen(true)}
           className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]"
         >
-          <Plus className="h-4 w-4" /> Añadir material
+          <Plus className="h-4 w-4" /> Solicitar material
         </button>
       )}
 
@@ -265,7 +265,7 @@ export function MaterialFormModal({
                   className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
                 >
                   {pending && <ButtonSpinner />}
-                  {pending ? "Guardando..." : isEdit ? "Guardar cambios" : "Guardar material"}
+                  {pending ? (isEdit ? "Guardando..." : "Solicitando...") : isEdit ? "Guardar cambios" : "Solicitar material"}
                 </button>
               </div>
             </form>

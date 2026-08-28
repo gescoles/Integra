@@ -1,9 +1,10 @@
 "use client";
 
-import { createContext, useContext, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppLocale } from "./i18n";
 import { updateMyLocale } from "./localeActions";
+import { obtenerResumenChat, obtenerNotificacionesChat } from "./chatActions";
 
 // Tiempo mínimo que se mantiene visible la transición de guardado, aunque
 // el guardado real termine antes: en local (o con buena conexión) puede
@@ -27,6 +28,20 @@ type DashboardMeta = {
   guardandoMensaje: string | null;
   empezarGuardado: (mensaje?: string) => void;
   terminarGuardado: () => void;
+  // Chat interno: se abre desde la barra superior, pero el panel en sí
+  // vive en un componente aparte (ChatInternoWidget) — comparten este
+  // estado para no tener que pasar props entre hermanos.
+  chatAbierto: boolean;
+  abrirChat: (conversacionConId?: string) => void;
+  cerrarChat: () => void;
+  chatAbrirConversacionId: string | null;
+  chatTotalNoLeidos: number;
+  setChatTotalNoLeidos: (n: number) => void;
+  chatNotificaciones: { id: string; nombre: string; avatarUrl: string | null; texto: string; createdAt: string; cantidad: number }[];
+  // Barra lateral de módulos: se puede esconder en escritorio con el botón
+  // de 3 líneas de arriba. Se recuerda entre visitas con localStorage.
+  sidebarColapsado: boolean;
+  toggleSidebar: () => void;
 };
 
 const DashboardMetaContext = createContext<DashboardMeta>({
@@ -39,17 +54,28 @@ const DashboardMetaContext = createContext<DashboardMeta>({
   guardandoMensaje: null,
   empezarGuardado: () => {},
   terminarGuardado: () => {},
+  chatAbierto: false,
+  abrirChat: () => {},
+  cerrarChat: () => {},
+  chatAbrirConversacionId: null,
+  chatTotalNoLeidos: 0,
+  setChatTotalNoLeidos: () => {},
+  chatNotificaciones: [],
+  sidebarColapsado: false,
+  toggleSidebar: () => {},
 });
 
 export function SchoolProvider({
   school,
   avatarUrl: initialAvatarUrl,
   locale: initialLocale,
+  chatHabilitado = false,
   children,
 }: {
   school: SchoolInfo;
   avatarUrl: string | null;
   locale: AppLocale;
+  chatHabilitado?: boolean;
   children: React.ReactNode;
 }) {
   const [locale, setLocaleState] = useState<AppLocale>(initialLocale);
@@ -62,7 +88,61 @@ export function SchoolProvider({
   const timerOcultarRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [guardandoVisible, setGuardandoVisible] = useState(false);
   const [guardandoMensaje, setGuardandoMensaje] = useState<string | null>(null);
+  const [chatAbierto, setChatAbierto] = useState(false);
+  const [chatAbrirConversacionId, setChatAbrirConversacionId] = useState<string | null>(null);
+  const [chatTotalNoLeidos, setChatTotalNoLeidos] = useState(0);
+  const [chatNotificaciones, setChatNotificaciones] = useState<
+    { id: string; nombre: string; avatarUrl: string | null; texto: string; createdAt: string; cantidad: number }[]
+  >([]);
+  const [sidebarColapsado, setSidebarColapsado] = useState(false);
   const router = useRouter();
+
+  // Recordamos si el usuario había escondido la barra lateral, para que
+  // no tenga que volver a esconderla cada vez que entra.
+  useEffect(() => {
+    const guardado = window.localStorage.getItem("sidebarColapsado");
+    if (guardado === "1") setSidebarColapsado(true);
+  }, []);
+
+  function toggleSidebar() {
+    setSidebarColapsado((prev) => {
+      const next = !prev;
+      window.localStorage.setItem("sidebarColapsado", next ? "1" : "0");
+      return next;
+    });
+  }
+
+  // Sondeo del chat en UN SOLO SITIO (antes vivía por separado en la barra
+  // y en el panel del chat, duplicando consultas cada pocos segundos y
+  // agotando el pool de conexiones a la base de datos). Cada 15 segundos
+  // basta de sobra para un chat de centro educativo.
+  useEffect(() => {
+    if (!chatHabilitado) return;
+    let cancelado = false;
+
+    async function sondear() {
+      const [resumen, notifs] = await Promise.all([obtenerResumenChat(), obtenerNotificacionesChat()]);
+      if (cancelado) return;
+      setChatTotalNoLeidos(resumen.totalNoLeidos);
+      setChatNotificaciones(notifs);
+    }
+
+    sondear();
+    const id = setInterval(sondear, 15_000);
+    return () => {
+      cancelado = true;
+      clearInterval(id);
+    };
+  }, [chatHabilitado]);
+
+
+  function abrirChat(conversacionConId?: string) {
+    setChatAbrirConversacionId(conversacionConId ?? null);
+    setChatAbierto(true);
+  }
+  function cerrarChat() {
+    setChatAbierto(false);
+  }
 
   function empezarGuardado(mensaje?: string) {
     contadorRef.current += 1;
@@ -117,7 +197,26 @@ export function SchoolProvider({
 
   return (
     <DashboardMetaContext.Provider
-      value={{ school, avatarUrl, setAvatarUrl, locale, setLocale, guardando: guardandoVisible, guardandoMensaje, empezarGuardado, terminarGuardado }}
+      value={{
+        school,
+        avatarUrl,
+        setAvatarUrl,
+        locale,
+        setLocale,
+        guardando: guardandoVisible,
+        guardandoMensaje,
+        empezarGuardado,
+        terminarGuardado,
+        chatAbierto,
+        abrirChat,
+        cerrarChat,
+        chatAbrirConversacionId,
+        chatTotalNoLeidos,
+        setChatTotalNoLeidos,
+        chatNotificaciones,
+        sidebarColapsado,
+        toggleSidebar,
+      }}
     >
       {children}
     </DashboardMetaContext.Provider>
@@ -128,6 +227,23 @@ export function useSchoolInfo() {
   return useContext(DashboardMetaContext).school;
 }
 
+export function useSidebarColapsado() {
+  const ctx = useContext(DashboardMetaContext);
+  return { colapsado: ctx.sidebarColapsado, toggle: ctx.toggleSidebar };
+}
+
+export function useChatInterno() {
+  const ctx = useContext(DashboardMetaContext);
+  return {
+    abierto: ctx.chatAbierto,
+    abrir: ctx.abrirChat,
+    cerrar: ctx.cerrarChat,
+    abrirConversacionId: ctx.chatAbrirConversacionId,
+    totalNoLeidos: ctx.chatTotalNoLeidos,
+    setTotalNoLeidos: ctx.setChatTotalNoLeidos,
+    notificaciones: ctx.chatNotificaciones,
+  };
+}
 export function useUserAvatar() {
   const { avatarUrl, setAvatarUrl } = useContext(DashboardMetaContext);
   return { avatarUrl, setAvatarUrl };

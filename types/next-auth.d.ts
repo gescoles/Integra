@@ -25,5 +25,6 @@ declare module "next-auth/jwt" {
     schoolId: string | null;
     locale: Locale;
     userId?: string;
+    ultimaComprobacion?: number;
   }
 }

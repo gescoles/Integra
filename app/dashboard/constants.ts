@@ -43,27 +43,28 @@ export const MATERIAL_CATEGORIA_COLORS: Record<string, string> = {
 };
 
 export const MATERIAL_ESTADO_LABELS: Record<string, string> = {
-  EN_STOCK: "En stock",
-  BAJO_STOCK: "Bajo stock",
-  AGOTADO: "Agotado",
+  PENDIENTE_VALIDACION: "Pendiente validación",
+  VALIDADO_PENDIENTE_COMPRA: "Validado / pendiente de compra",
+  COMPRADO: "Comprado",
 };
 
 export const MATERIAL_ESTADO_COLORS: Record<string, string> = {
-  EN_STOCK: "text-emerald-600",
-  BAJO_STOCK: "text-amber-600",
-  AGOTADO: "text-red-500",
+  PENDIENTE_VALIDACION: "text-amber-600",
+  VALIDADO_PENDIENTE_COMPRA: "text-blue-600",
+  COMPRADO: "text-emerald-600",
 };
 
 export const MATERIAL_ESTADO_DOT: Record<string, string> = {
-  EN_STOCK: "bg-emerald-500",
-  BAJO_STOCK: "bg-amber-500",
-  AGOTADO: "bg-red-500",
+  PENDIENTE_VALIDACION: "bg-amber-500",
+  VALIDADO_PENDIENTE_COMPRA: "bg-blue-500",
+  COMPRADO: "bg-emerald-500",
 };
 
 export const ROLE_LABELS_FULL: Record<string, string> = {
   SUPERADMIN: "Super Usuario",
   ADMIN_CENTRO: "Administrador de centro",
   COORDINADOR: "Coordinación / Dirección",
+  ADMINISTRACION: "Administración",
   PROFESOR: "Profesor",
 };
 

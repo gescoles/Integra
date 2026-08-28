@@ -45,6 +45,33 @@ export async function sendPasswordEmail(to: string, name: string, password: stri
   });
 }
 
+export async function sendInvitacionMicrosoftEmail(to: string, name: string) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+  const loginUrl = process.env.NEXTAUTH_URL ? `${process.env.NEXTAUTH_URL}/login` : "https://docentium.org/login";
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to,
+    subject: "Tu acceso a Docentium",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Bienvenido/a a Docentium, ${name}</h2>
+        <p>Se ha creado tu cuenta en la plataforma de gestión de tu centro educativo.</p>
+        <p>No hace falta ninguna contraseña nueva: entra con tu cuenta de Microsoft/Teams de siempre (<strong>${to}</strong>), pulsando en "Iniciar sesión con Microsoft" en la pantalla de acceso.</p>
+        <div style="margin:20px 0; text-align:center;">
+          <a href="${loginUrl}" style="background:#FD5249; color:#fff; padding:10px 20px; border-radius:8px; text-decoration:none; font-weight:bold;">
+            Ir a Docentium
+          </a>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Si tienes cualquier problema para entrar, contacta con el administrador de tu centro.
+        </p>
+      </div>
+    `,
+  });
+}
+
 export async function sendGuardiaEmail(params: {
   to: string;
   profesorName: string;
@@ -1182,4 +1209,135 @@ export async function sendNotasConvenioEmail(params: {
       })
     )
   );
+}
+
+export async function sendMaterialNuevoEmail(params: {
+  to: string;
+  adminNombre: string;
+  profesorNombre: string;
+  nombreMaterial: string;
+  curso: string;
+  cantidad: number;
+  precioUnidad: number;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+  const total = (params.cantidad * params.precioUnidad).toFixed(2);
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Nueva solicitud de material: ${params.nombreMaterial}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.adminNombre},</h2>
+        <p style="margin:0 0 12px;">${params.profesorNombre} ha pedido un material nuevo, pendiente de validar.</p>
+        <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
+          <p style="margin:0;"><strong>Material:</strong> ${params.nombreMaterial}</p>
+          <p style="margin:8px 0 0;"><strong>Curso:</strong> ${params.curso}</p>
+          <p style="margin:8px 0 0;"><strong>Cantidad:</strong> ${params.cantidad}</p>
+          <p style="margin:8px 0 0;"><strong>Total estimado:</strong> ${total} €</p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Puedes revisarlo y validarlo desde Docentium, en el apartado "Material".
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendMaterialValidadoEmail(params: {
+  to: string;
+  profesorNombre: string;
+  nombreMaterial: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Material aprobado: ${params.nombreMaterial}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.profesorNombre},</h2>
+        <p>Tu material <strong>"${params.nombreMaterial}"</strong> ha sido aprobado y ya está en curso de compra.</p>
+        <p style="color:#64748B; font-size:13px;">
+          Te avisaremos por aquí en cuanto llegue al centro y puedas pasar a recogerlo.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendMaterialCompradoEmail(params: {
+  to: string;
+  profesorNombre: string;
+  nombreMaterial: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Ya puedes recoger tu material: ${params.nombreMaterial}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.profesorNombre},</h2>
+        <p>Tu material <strong>"${params.nombreMaterial}"</strong> ya ha llegado al centro.</p>
+        <p>Puedes pasar a recogerlo por secretaría cuando puedas.</p>
+      </div>
+    `,
+  });
+}
+
+export async function sendMaterialModificadoEmail(params: {
+  to: string;
+  profesorNombre: string;
+  nombreMaterial: string;
+  modificadoPorNombre: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Tu solicitud de material ha sido modificada: ${params.nombreMaterial}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.profesorNombre},</h2>
+        <p>${params.modificadoPorNombre} ha modificado tu solicitud de material <strong>"${params.nombreMaterial}"</strong>.</p>
+        <p style="color:#64748B; font-size:13px;">
+          Puedes revisar los cambios desde Docentium, en el apartado "Material".
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendMaterialEliminadoEmail(params: {
+  to: string;
+  profesorNombre: string;
+  nombreMaterial: string;
+  eliminadoPorNombre: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Tu solicitud de material ha sido eliminada: ${params.nombreMaterial}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.profesorNombre},</h2>
+        <p>${params.eliminadoPorNombre} ha eliminado tu solicitud de material <strong>"${params.nombreMaterial}"</strong>.</p>
+        <p style="color:#64748B; font-size:13px;">
+          Si crees que ha sido un error, ponte en contacto con Administración.
+        </p>
+      </div>
+    `,
+  });
 }

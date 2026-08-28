@@ -132,9 +132,9 @@ const CATEGORIA_LABELS: Record<string, string> = {
 };
 
 const ESTADO_LABELS: Record<string, string> = {
-  EN_STOCK: "En stock",
-  BAJO_STOCK: "Bajo stock",
-  AGOTADO: "Agotado",
+  PENDIENTE_VALIDACION: "Pendiente validación",
+  VALIDADO_PENDIENTE_COMPRA: "Validado / pendiente de compra",
+  COMPRADO: "Comprado",
 };
 
 /**
@@ -169,7 +169,9 @@ export async function buildMaterialWorkbook(schoolId: string, profesorId?: strin
       { header: "Proveedor", key: "proveedor", width: 20 },
       { header: "Enlace", key: "enlace", width: 28 },
       { header: "Justificación", key: "justificacion", width: 34 },
-      { header: "Estado", key: "estado", width: 14 },
+      { header: "Estado", key: "estado", width: 22 },
+      { header: "Validado el", key: "validadoEn", width: 14 },
+      { header: "Comprado el", key: "compradoEn", width: 14 },
       { header: "Solicitado por", key: "profesor", width: 22 },
     ];
 
@@ -187,6 +189,8 @@ export async function buildMaterialWorkbook(schoolId: string, profesorId?: strin
         enlace: m.enlace ?? "—",
         justificacion: m.justificacion,
         estado: ESTADO_LABELS[m.estado] ?? m.estado,
+        validadoEn: m.validadoEn ? m.validadoEn.toLocaleDateString("es-ES") : "—",
+        compradoEn: m.compradoEn ? m.compradoEn.toLocaleDateString("es-ES") : "—",
         profesor: m.profesor?.name ?? m.profesor?.email ?? "—",
       });
       row.getCell("precioUnidad").numFmt = "#,##0.00 €";
@@ -196,7 +200,7 @@ export async function buildMaterialWorkbook(schoolId: string, profesorId?: strin
 
     zebraStripe(sheet);
     sheet.views = [{ state: "frozen", ySplit: 1 }];
-    sheet.autoFilter = { from: "A1", to: "K1" };
+    sheet.autoFilter = { from: "A1", to: "M1" };
   }
 
   if (workbook.worksheets.length === 0) {
