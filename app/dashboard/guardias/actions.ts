@@ -8,6 +8,8 @@ import { authOptions } from "@/lib/auth";
 import { sendGuardiaEmail, sendCoberturaEmail, sendSolicitudCoberturaEmail, sendCoberturaResueltaEmail, sendSolicitudRechazadaEmail, sendGuardiaEliminadaEmail, sendGuardiaModificadaEmail, sendCoberturaEliminadaEmail, sendCoberturaModificadaEmail, sendAusenciaAceptadaEmail } from "@/lib/email";
 import { notifyUsers } from "@/lib/notifications";
 import { getSupabaseAdmin, JUSTIFICANTES_BUCKET } from "@/lib/supabaseAdmin";
+import { ensureSubfolder, uploadGenericFileToDrive } from "@/lib/googleDrive";
+import { safeFileName } from "@/lib/exportWorkbooks";
 
 function esDirectivo(role?: string) {
   return role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
@@ -313,7 +315,10 @@ export async function subirJustificante(coberturaId: string, formData: FormData)
     throw new Error("Solo Coordinación, Dirección o SuperAdmin puede subir un justificante.");
   }
 
-  const cobertura = await prisma.coberturaGuardia.findUnique({ where: { id: coberturaId } });
+  const cobertura = await prisma.coberturaGuardia.findUnique({
+    where: { id: coberturaId },
+    include: { school: { select: { name: true } }, profesorAusente: { select: { name: true, email: true } } },
+  });
   if (!cobertura || cobertura.schoolId !== session.user.schoolId) throw new Error("No se ha encontrado la solicitud.");
   if (cobertura.estado === "PENDIENTE") {
     throw new Error("Primero hay que aceptar la ausencia antes de subir el justificante.");
@@ -343,6 +348,24 @@ export async function subirJustificante(coberturaId: string, formData: FormData)
   }
 
   const { data } = supabase.storage.from(JUSTIFICANTES_BUCKET).getPublicUrl(path);
+
+  // Copia también en Google Drive, en su propia carpeta por centro — igual
+  // que ya hacemos con las copias de seguridad en Excel. Si Drive falla
+  // por lo que sea, no bloqueamos la subida real (ya guardada en Supabase,
+  // que es lo que usa la propia app para mostrar el archivo).
+  try {
+    const rootFolderId = process.env.GOOGLE_DRIVE_BACKUP_FOLDER_ID;
+    if (rootFolderId) {
+      const ausenteNombre = cobertura.profesorAusente.name ?? cobertura.profesorAusente.email;
+      const fechaCorta = cobertura.fecha.toISOString().slice(0, 10);
+      const schoolFolderId = await ensureSubfolder(rootFolderId, safeFileName(cobertura.school.name));
+      const justificantesFolderId = await ensureSubfolder(schoolFolderId, "Justificantes Ausencias");
+      const nombreArchivo = `${safeFileName(ausenteNombre)} - ${fechaCorta}.${ext}`;
+      await uploadGenericFileToDrive(justificantesFolderId, nombreArchivo, Buffer.from(bytes), file.type);
+    }
+  } catch (e) {
+    console.error("No se pudo copiar el justificante en Google Drive:", e);
+  }
 
   await prisma.coberturaGuardia.update({
     where: { id: coberturaId },

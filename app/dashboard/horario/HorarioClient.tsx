@@ -6,6 +6,7 @@ import { addHorarioBloque, updateHorarioBloque, deleteHorarioBloque, moverHorari
 import { NowIndicator } from "../components/NowIndicator";
 import { useLocale, useGuardadoTransition } from "../SchoolContext";
 import { translate } from "../i18n";
+import { CursoSelect } from "../components/CursoSelect";
 
 type Bloque = {
   id: string;
@@ -413,24 +414,29 @@ export function HorarioClient({ bloques, readOnly = false }: { bloques: Bloque[]
 
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "horario.grupo")}</label>
-                <input
-                  name="grupo"
-                  required={!esGuardiaForm}
-                  defaultValue={editing?.grupo ?? ""}
-                  placeholder={translate(locale, "horario.grupoPlaceholder")}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
-                />
+                <CursoSelect name="grupo" defaultValue={editing?.grupo ?? ""} required={!esGuardiaForm} />
               </div>
 
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-slate-700">{translate(locale, "horario.aula")}</label>
-                <input
+                <select
                   name="aula"
                   required={!esGuardiaForm}
                   defaultValue={editing?.aula ?? ""}
-                  placeholder={translate(locale, "horario.aulaPlaceholder")}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
-                />
+                >
+                  <option value="" disabled>
+                    Selecciona...
+                  </option>
+                  {editing?.aula && !Array.from({ length: 51 }, (_, i) => `E${i}`).includes(editing.aula) && (
+                    <option value={editing.aula}>{editing.aula}</option>
+                  )}
+                  {Array.from({ length: 51 }, (_, i) => `E${i}`).map((aula) => (
+                    <option key={aula} value={aula}>
+                      {aula}
+                    </option>
+                  ))}
+                </select>
                 <p className="mt-1 text-[11px] text-slate-400">{translate(locale, "horario.aulaAyuda")}</p>
               </div>
 
