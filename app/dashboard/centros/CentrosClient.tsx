@@ -654,20 +654,16 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
               </div>
             )}
 
-            {hasImpact && (
-              <>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                  Escribe <span className="font-mono text-red-600">eliminar {deleteTarget.name}</span>{" "}
-                  para confirmar
-                </label>
-                <input
-                  value={deleteConfirmText}
-                  onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  placeholder={`eliminar ${deleteTarget.name}`}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-red-400"
-                />
-              </>
-            )}
+            <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Escribe <span className="font-mono text-red-600">Eliminar {deleteTarget.name}</span>{" "}
+              para confirmar
+            </label>
+            <input
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder={`Eliminar ${deleteTarget.name}`}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-red-400"
+            />
 
             <div className="mt-5 flex justify-end gap-3">
               <button
@@ -682,10 +678,7 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
                 disabled={
                   isDeleting ||
                   loadingImpact ||
-                  (hasImpact
-                    ? deleteConfirmText.trim().toLowerCase() !==
-                      `eliminar ${deleteTarget.name}`.toLowerCase()
-                    : false)
+                  deleteConfirmText.trim() !== `Eliminar ${deleteTarget.name}`
                 }
                 onClick={performDeleteSchool}
                 className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"

@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
   const fecha = new Date().toISOString().slice(0, 10);
   const sufijoProfesor = profesorIdParam && profesorNombre ? `_${safeFileName(profesorNombre)}` : "";
 
-  return new NextResponse(buffer, {
+  return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "Content-Disposition": `attachment; filename="Salidas_${safeFileName(school.name)}${sufijoProfesor}_${fecha}.xlsx"`,

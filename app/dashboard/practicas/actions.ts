@@ -228,15 +228,37 @@ export async function crearConvenio(formData: FormData) {
 
   validarConvenioObligatorio(formData);
   const { convalida: _convalida, ...camposBase } = CONVENIO_FIELDS(formData);
+  const empresaId = (formData.get("empresaId") as string)?.trim() || null;
 
   const convenio = await prisma.convenio.create({
     data: {
       practicaAlumnoId: fichaId,
+      empresaId,
       ...camposBase,
       ...CONVENIO_DEPARTAMENTO_FIELDS(formData),
       horasConvalidadas: horasConvalidadas(formData),
     },
   });
+
+  // Al vincular una empresa real de la base de datos, se marca como
+  // Activa sola — si falla esta parte, el convenio ya se ha guardado
+  // igualmente, así que no lo bloqueamos.
+  if (empresaId) {
+    try {
+      await prisma.empresa.update({ where: { id: empresaId }, data: { estado: "ACTIVO" } });
+      const usuarioConvenio = await prisma.user.findUnique({ where: { id: permiso.session.user.id }, select: { name: true, email: true } });
+      await prisma.empresaHistorial.create({
+        data: {
+          empresaId,
+          accion: "Convenio de prácticas vinculado",
+          usuarioId: permiso.session.user.id,
+          usuarioNombre: usuarioConvenio?.name ?? usuarioConvenio?.email ?? "—",
+        },
+      });
+    } catch {
+      // No pasa nada si esto falla; el convenio ya está guardado.
+    }
+  }
 
   revalidatePath(`/dashboard/practicas/${fichaId}`);
   return { id: convenio.id };
@@ -256,11 +278,29 @@ export async function actualizarConvenio(formData: FormData) {
 
   validarConvenioObligatorio(formData);
   const { convalida: _convalida, ...camposBase } = CONVENIO_FIELDS(formData);
+  const empresaId = (formData.get("empresaId") as string)?.trim() || null;
 
   await prisma.convenio.update({
     where: { id },
-    data: { ...camposBase, ...CONVENIO_DEPARTAMENTO_FIELDS(formData), horasConvalidadas: horasConvalidadas(formData) },
+    data: { empresaId, ...camposBase, ...CONVENIO_DEPARTAMENTO_FIELDS(formData), horasConvalidadas: horasConvalidadas(formData) },
   });
+
+  if (empresaId) {
+    try {
+      await prisma.empresa.update({ where: { id: empresaId }, data: { estado: "ACTIVO" } });
+      const usuarioConvenio = await prisma.user.findUnique({ where: { id: permiso.session.user.id }, select: { name: true, email: true } });
+      await prisma.empresaHistorial.create({
+        data: {
+          empresaId,
+          accion: "Convenio de prácticas vinculado",
+          usuarioId: permiso.session.user.id,
+          usuarioNombre: usuarioConvenio?.name ?? usuarioConvenio?.email ?? "—",
+        },
+      });
+    } catch {
+      // No pasa nada si esto falla; el convenio ya está guardado.
+    }
+  }
 
   revalidatePath(`/dashboard/practicas/${fichaId}`);
 }

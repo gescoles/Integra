@@ -14,9 +14,7 @@ import {
   Building2,
   GraduationCap,
   ShieldCheck,
-  CreditCard,
   Clock,
-  Settings,
   DatabaseBackup,
   BookOpen,
   Briefcase,
@@ -30,6 +28,8 @@ import {
   Bot,
   Newspaper,
   MessageCircle,
+  Handshake,
+  Award,
   Search,
   HelpCircle,
 } from "lucide-react";
@@ -39,7 +39,9 @@ import { SchoolBadge } from "./SchoolBadge";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { UserProfileButton } from "./UserProfileButton";
 import { NotificationBell } from "./NotificationBell";
+import { ThemeToggle } from "./ThemeToggle";
 import { useLocale, useChatInterno, useSidebarColapsado } from "../SchoolContext";
+import { BuscadorGlobal } from "./BuscadorGlobal";
 import { buscarAlumnosGlobal } from "../busquedaActions";
 import { translate, TranslationKey } from "../i18n";
 
@@ -86,11 +88,15 @@ const superadminSections: {
     descripcion: "Ajustes generales de Docentium, no de un centro en concreto.",
     items: [
       { href: "/dashboard/roles", labelKey: "nav.roles", icon: ShieldCheck },
-      { href: "/dashboard/planes", labelKey: "nav.planes", icon: CreditCard },
-      { href: "/dashboard/auditoria", labelKey: "nav.auditoria", icon: Clock },
+      { href: "/dashboard/superadmin/departamentos", labelKey: "nav.departamentosAdmin", icon: Building2 },
+      { href: "/dashboard/superadmin/certificaciones-catalogo", labelKey: "nav.certificacionesCatalogo", icon: Award },
+      { href: "/dashboard/superadmin/seguridad", labelKey: "nav.seguridadAccesos", icon: ShieldAlert },
+      // Desactivados de momento a petición: todavía no hacen nada.
+      // { href: "/dashboard/planes", labelKey: "nav.planes", icon: CreditCard },
+      // { href: "/dashboard/auditoria", labelKey: "nav.auditoria", icon: Clock },
       { href: "/dashboard/chatbot-admin", labelKey: "nav.chatbotAdmin", icon: Bot },
       { href: "/dashboard/noticias-admin", labelKey: "nav.noticiasAdmin", icon: Newspaper },
-      { href: "/dashboard/configuracion", labelKey: "nav.configuracion", icon: Settings },
+      // { href: "/dashboard/configuracion", labelKey: "nav.configuracion", icon: Settings },
     ],
   },
   {
@@ -111,6 +117,8 @@ const centroModulos: { key: string; href: string; labelKey: TranslationKey; icon
   { key: "expedientes", href: "/dashboard/expedientes", labelKey: "nav.expedientes", icon: AlertTriangle },
   { key: "onboarding", href: "/dashboard/onboarding", labelKey: "nav.onboarding", icon: FolderKanban },
   { key: "espacios", href: "/dashboard/espacios", labelKey: "nav.espacios", icon: Building2 },
+  { key: "empresas", href: "/dashboard/empresas", labelKey: "nav.empresas", icon: Handshake },
+  { key: "certificaciones", href: "/dashboard/certificaciones", labelKey: "nav.certificaciones", icon: Award },
 ];
 
 // Utilidades (Calendario y Horario): igual que los módulos de arriba, solo
@@ -194,12 +202,14 @@ export function Sidebar({
           </button>
         </div>
 
-        {/* Buscador: construido y listo (búsqueda de alumnos de verdad),
-            mómentaneamente oculto a petición — para volver a mostrarlo,
-            basta con descomentar este bloque. */}
-        {/* <div className="relative w-full max-w-xs"> ... </div> */}
+        {/* Buscador global: alumnos, profesorado, empresas y grupos, todo
+            desde un solo sitio — no toca la lógica de ningún módulo, solo
+            hace consultas de lectura propias. */}
+        <div className="hidden flex-1 sm:block">
+          <BuscadorGlobal />
+        </div>
 
-        <div className="flex-1" />
+        <div className="flex-1 sm:hidden" />
 
         <div className="flex shrink-0 items-center gap-2">
           {contractedModules.includes("comunicacion") && (
@@ -276,6 +286,8 @@ export function Sidebar({
           )}
 
           <NotificationBell />
+
+          <ThemeToggle />
 
           <button
             aria-label="Ayuda"

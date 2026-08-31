@@ -5,6 +5,7 @@ import { ActivityChart } from "./components/ActivityChart";
 import { PlansDonut } from "./components/PlansDonut";
 import { HistoriasBar } from "./components/HistoriasBar";
 import { translate, AppLocale } from "./i18n";
+import { contarAccesosBloqueadosActivos } from "./superadmin/seguridad/actions";
 import {
   Landmark,
   Users,
@@ -17,6 +18,7 @@ import {
   CreditCard,
   Settings,
   Bus,
+  ShieldAlert,
 } from "lucide-react";
 
 const quickActions = [
@@ -99,6 +101,7 @@ export async function SuperAdminHome({
   sevenDaysAgo.setHours(0, 0, 0, 0);
 
   const salidasPendientes = await prisma.salida.count({ where: { estado: "PENDIENTE" } });
+  const accesosBloqueadosCount = await contarAccesosBloqueadosActivos();
 
   const [
     centrosCount,
@@ -247,6 +250,23 @@ export async function SuperAdminHome({
           <span className="text-xs font-semibold text-amber-700 underline">
             {translate(locale, "home.revisarAhora")}
           </span>
+        </Link>
+      )}
+
+      {accesosBloqueadosCount > 0 && (
+        <Link
+          href="/dashboard/superadmin/seguridad"
+          className="mb-5 flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 hover:bg-red-100"
+        >
+          <div className="flex items-center gap-2.5">
+            <ShieldAlert className="h-4 w-4 shrink-0 text-red-600" />
+            <span className="text-sm font-semibold text-red-800">
+              {accesosBloqueadosCount === 1
+                ? "Hay 1 acceso bloqueado por intentos fallidos"
+                : `Hay ${accesosBloqueadosCount} accesos bloqueados por intentos fallidos`}
+            </span>
+          </div>
+          <span className="text-xs font-semibold text-red-700 underline">Revisar ahora</span>
         </Link>
       )}
 

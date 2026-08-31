@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { HexLogo } from "../components/Logo";
 import { AssemblingLogo } from "../dashboard/components/AssemblingLogo";
+import { comprobarBloqueoLogin } from "./actions";
 
 function NetworkBackground() {
   return (
@@ -84,6 +85,13 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
+
+    const { bloqueado } = await comprobarBloqueoLogin(email);
+    if (bloqueado) {
+      setLoading(false);
+      setError("Demasiados intentos fallidos con este correo. Espera 15 minutos e inténtalo de nuevo.");
+      return;
+    }
 
     const result = await signIn("credentials", {
       email,
@@ -209,6 +217,9 @@ export default function LoginPage() {
                       )}
                     </button>
                   </div>
+                  <Link href="/olvide-password" className="mt-1.5 inline-block text-xs font-semibold text-[#FD5249] hover:underline">
+                    ¿Has olvidado tu contraseña?
+                  </Link>
                 </div>
 
                 <label className="flex items-center gap-2 text-sm text-slate-600">

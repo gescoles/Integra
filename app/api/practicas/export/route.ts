@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   const buffer = await workbook.xlsx.writeBuffer();
   const fecha = new Date().toISOString().slice(0, 10);
 
-  return new NextResponse(buffer, {
+  return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "Content-Disposition": `attachment; filename="Practicas_${safeFileName(school.name)}_${fecha}.xlsx"`,

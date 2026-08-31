@@ -27,3 +27,4 @@ export const HISTORIAS_BUCKET = "historias";
 export const ONBOARDING_BUCKET = "onboarding";
 export const NOTICIAS_BUCKET = "noticias";
 export const JUSTIFICANTES_BUCKET = "justificantes";
+export const EMPRESAS_DOCUMENTOS_BUCKET = "empresas-documentos";

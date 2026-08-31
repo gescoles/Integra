@@ -91,14 +91,15 @@ export async function obtenerNotificacionesChat() {
 
   const porEmisor = new Map<string, { id: string; nombre: string; avatarUrl: string | null; texto: string; createdAt: string; cantidad: number }>();
   for (const m of noLeidos) {
-    const existente = porEmisor.get(m.emisorId);
+    const clave = m.emisorId ?? m.id; // sin emisor (borrado), cada mensaje cuenta aparte
+    const existente = porEmisor.get(clave);
     if (existente) {
       existente.cantidad += 1;
     } else {
-      porEmisor.set(m.emisorId, {
-        id: m.emisor.id,
-        nombre: m.emisor.name ?? m.emisor.email,
-        avatarUrl: m.emisor.avatarUrl,
+      porEmisor.set(clave, {
+        id: m.emisor?.id ?? "borrado",
+        nombre: m.emisor ? (m.emisor.name ?? m.emisor.email) : "Usuario no encontrado",
+        avatarUrl: m.emisor?.avatarUrl ?? null,
         texto: m.texto,
         createdAt: m.createdAt.toISOString(),
         cantidad: 1,

@@ -57,7 +57,11 @@ export function FichaAlumnoFormModal({
     const match = curso.match(/^(.*?)\s*(\d+)\s*$/);
 
     const hoy = new Date();
-    const finCursoActual = hoy.getMonth() >= 8 ? hoy.getFullYear() + 1 : hoy.getFullYear();
+    // Umbral en agosto (no septiembre): en agosto ya se está organizando
+    // el curso que va a empezar, así que cuenta como "el curso actual" a
+    // efectos de calcular cuándo se titula, aunque las clases no hayan
+    // arrancado todavía.
+    const finCursoActual = hoy.getMonth() >= 7 ? hoy.getFullYear() + 1 : hoy.getFullYear();
 
     if (!match) {
       // No termina en número: es un ciclo de 1 año sin más.

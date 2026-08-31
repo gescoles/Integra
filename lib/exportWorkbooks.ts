@@ -477,6 +477,201 @@ export async function buildPracticasWorkbook(schoolId: string) {
   return { workbook };
 }
 
+// Accesos: solo lo usa el SuperAdmin, así que es de toda la plataforma
+// (todos los centros a la vez), no de uno solo.
+export async function buildAccesosWorkbook() {
+  const [accesos, intentosFallidos, bloqueos] = await Promise.all([
+    prisma.registroAcceso.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { user: { select: { role: true, school: { select: { name: true } } } } },
+    }),
+    prisma.intentoLoginFallido.findMany({ orderBy: { createdAt: "desc" } }),
+    prisma.bloqueoAcceso.findMany({ orderBy: [{ estado: "asc" }, { createdAt: "desc" }] }),
+  ]);
+
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "Docentium";
+  workbook.created = new Date();
+
+  const hojaAccesos = workbook.addWorksheet("Accesos correctos");
+  hojaAccesos.columns = [
+    { header: "Nombre", key: "nombre", width: 26 },
+    { header: "Correo", key: "email", width: 28 },
+    { header: "Rol", key: "rol", width: 16 },
+    { header: "Centro", key: "centro", width: 24 },
+    { header: "Método", key: "metodo", width: 16 },
+    { header: "Fecha y hora", key: "fecha", width: 20 },
+  ];
+  styleHeaderRow(hojaAccesos.getRow(1));
+  accesos.forEach((a) => {
+    hojaAccesos.addRow({
+      nombre: a.nombre,
+      email: a.email,
+      rol: a.user?.role ?? "—",
+      centro: a.user?.school?.name ?? "—",
+      metodo: a.metodo === "microsoft" ? "Microsoft / Teams" : "Contraseña",
+      fecha: a.createdAt.toLocaleString("es-ES"),
+    });
+  });
+
+  const hojaFallidos = workbook.addWorksheet("Intentos fallidos");
+  hojaFallidos.columns = [
+    { header: "Correo", key: "email", width: 28 },
+    { header: "Fecha y hora", key: "fecha", width: 20 },
+  ];
+  styleHeaderRow(hojaFallidos.getRow(1));
+  intentosFallidos.forEach((i) => {
+    hojaFallidos.addRow({ email: i.email, fecha: i.createdAt.toLocaleString("es-ES") });
+  });
+
+  const hojaBloqueos = workbook.addWorksheet("Bloqueos de acceso");
+  hojaBloqueos.columns = [
+    { header: "Correo", key: "email", width: 28 },
+    { header: "Intentos", key: "cantidad", width: 10 },
+    { header: "Último intento", key: "ultimo", width: 18 },
+    { header: "Estado", key: "estado", width: 14 },
+    { header: "Resuelto por", key: "resueltoPor", width: 24 },
+    { header: "Acción de resolución", key: "accion", width: 30 },
+    { header: "Resuelto el", key: "resueltoEn", width: 18 },
+  ];
+  styleHeaderRow(hojaBloqueos.getRow(1));
+  bloqueos.forEach((b) => {
+    hojaBloqueos.addRow({
+      email: b.email,
+      cantidad: b.cantidadIntentos,
+      ultimo: b.ultimoIntento.toLocaleString("es-ES"),
+      estado: b.estado === "PENDIENTE" ? "Pendiente" : "Resuelto",
+      resueltoPor: b.resueltoPorNombre ?? "",
+      accion: b.accionResolucion ?? "",
+      resueltoEn: b.resueltoEn ? b.resueltoEn.toLocaleString("es-ES") : "",
+    });
+  });
+
+  return workbook;
+}
+
+const ESTADO_CERTIFICACION_LABEL: Record<string, string> = {
+  PROXIMAMENTE: "Próximamente",
+  PROGRAMADA: "Programada",
+  EN_CURSO: "En curso",
+  ACTIVA: "Activa",
+};
+
+// Copia por centro (para el backup automático en Drive, igual que
+// Tutorías/Material/Salidas/Prácticas): una pestaña por cada curso
+// académico, con todas las certificaciones de ese centro dentro,
+// tengan el estado que tengan (pendientes, en curso, completas...).
+export async function buildCertificacionesWorkbookPorCentro(schoolId: string) {
+  const certificaciones = await prisma.certificacion.findMany({
+    where: { schoolId },
+    orderBy: { createdAt: "desc" },
+    include: { creadoPor: { select: { name: true, email: true } } },
+  });
+
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "Docentium";
+  workbook.created = new Date();
+
+  const cursos = Array.from(new Set(certificaciones.map((c) => c.cursoAcademico))).sort();
+  const usedNames = new Set<string>();
+
+  // Si todavía no hay ninguna certificación, dejamos al menos una pestaña
+  // vacía para que el Excel no quede sin ninguna hoja (eso da error).
+  const listaCursos = cursos.length > 0 ? cursos : ["Sin certificaciones"];
+
+  for (const curso of listaCursos) {
+    const sheet = workbook.addWorksheet(sheetName(curso, usedNames));
+    sheet.columns = [
+      { header: "Categoría", key: "categoria", width: 22 },
+      { header: "Certificación", key: "nombre", width: 28 },
+      { header: "Grupo / Ciclo", key: "ciclo", width: 20 },
+      { header: "Horas", key: "horas", width: 8 },
+      { header: "Inicio preparación", key: "inicio", width: 16 },
+      { header: "Fin preparación", key: "fin", width: 16 },
+      { header: "Fecha examen", key: "examen", width: 14 },
+      { header: "Estado", key: "estado", width: 14 },
+      { header: "Modalidad", key: "modalidad", width: 14 },
+      { header: "Sede examen", key: "sede", width: 20 },
+      { header: "Creada por", key: "creadoPor", width: 24 },
+    ];
+    styleHeaderRow(sheet.getRow(1));
+
+    certificaciones
+      .filter((c) => c.cursoAcademico === curso)
+      .forEach((c) => {
+        sheet.addRow({
+          categoria: c.categoria,
+          nombre: c.nombreCertificacion,
+          ciclo: c.cicloFormativo,
+          horas: c.horas ?? "",
+          inicio: c.fechaInicioPreparacion.toLocaleDateString("es-ES"),
+          fin: c.fechaFinPreparacion ? c.fechaFinPreparacion.toLocaleDateString("es-ES") : "",
+          examen: c.fechaExamen ? c.fechaExamen.toLocaleDateString("es-ES") : "",
+          estado: ESTADO_CERTIFICACION_LABEL[c.estado] ?? c.estado,
+          modalidad: c.modalidad ?? "",
+          sede: c.sedeExamen ?? "",
+          creadoPor: c.creadoPor ? (c.creadoPor.name ?? c.creadoPor.email) : "",
+        });
+      });
+  }
+
+  return workbook;
+}
+
+// Certificaciones: también de toda la plataforma, con todas juntas y una
+// columna de Centro para poder distinguirlas — el SuperAdmin es el único
+// rol que necesita verlas todas mezcladas de golpe.
+export async function buildCertificacionesWorkbook() {
+  const certificaciones = await prisma.certificacion.findMany({
+    orderBy: [{ school: { name: "asc" } }, { createdAt: "desc" }],
+    include: { school: { select: { name: true } }, creadoPor: { select: { name: true, email: true } } },
+  });
+
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "Docentium";
+  workbook.created = new Date();
+
+  const sheet = workbook.addWorksheet("Certificaciones");
+  sheet.columns = [
+    { header: "Centro", key: "centro", width: 22 },
+    { header: "Categoría", key: "categoria", width: 22 },
+    { header: "Certificación", key: "nombre", width: 28 },
+    { header: "Curso", key: "curso", width: 12 },
+    { header: "Grupo / Ciclo", key: "ciclo", width: 20 },
+    { header: "Horas", key: "horas", width: 8 },
+    { header: "Inicio preparación", key: "inicio", width: 16 },
+    { header: "Fin preparación", key: "fin", width: 16 },
+    { header: "Fecha examen", key: "examen", width: 14 },
+    { header: "Estado", key: "estado", width: 14 },
+    { header: "Modalidad", key: "modalidad", width: 14 },
+    { header: "Sede examen", key: "sede", width: 20 },
+    { header: "Creada por", key: "creadoPor", width: 24 },
+    { header: "Fecha creación", key: "creada", width: 16 },
+  ];
+  styleHeaderRow(sheet.getRow(1));
+
+  certificaciones.forEach((c) => {
+    sheet.addRow({
+      centro: c.school.name,
+      categoria: c.categoria,
+      nombre: c.nombreCertificacion,
+      curso: c.cursoAcademico,
+      ciclo: c.cicloFormativo,
+      horas: c.horas ?? "",
+      inicio: c.fechaInicioPreparacion.toLocaleDateString("es-ES"),
+      fin: c.fechaFinPreparacion ? c.fechaFinPreparacion.toLocaleDateString("es-ES") : "",
+      examen: c.fechaExamen ? c.fechaExamen.toLocaleDateString("es-ES") : "",
+      estado: ESTADO_CERTIFICACION_LABEL[c.estado] ?? c.estado,
+      modalidad: c.modalidad ?? "",
+      sede: c.sedeExamen ?? "",
+      creadoPor: c.creadoPor ? (c.creadoPor.name ?? c.creadoPor.email) : "",
+      creada: c.createdAt.toLocaleDateString("es-ES"),
+    });
+  });
+
+  return workbook;
+}
+
 export function safeFileName(name: string) {
   return name.replace(/[^a-z0-9áéíóúñ]+/gi, "_");
 }

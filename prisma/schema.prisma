@@ -79,6 +79,8 @@ model School {
   guardias  Guardia[]
   material  MaterialRequest[]
   chatMensajes ChatMensaje[]
+  empresas  Empresa[]
+  certificaciones Certificacion[]
   avisos    Aviso[]
   noticias  Noticia[]
   salidas   Salida[]
@@ -102,10 +104,15 @@ model Departamento {
   schoolId      String
   school        School   @relation(fields: [schoolId], references: [id])
   nombre        String
+  // Qué ciclos/cursos formativos pertenecen a este departamento — para
+  // que al elegir un departamento al crear un convenio, solo salgan sus
+  // ciclos, no todos los del centro mezclados.
+  ciclosVinculados String[] @default([])
   profesores    User[]   @relation("DepartamentoProfesores")
   coordinadores User[]   @relation("DepartamentoCoordinadores")
   convenios     Convenio[]
   salidas       Salida[]
+  empresas      Empresa[]
   createdAt     DateTime @default(now())
 }
 
@@ -309,7 +316,7 @@ model IncidenciaEvento {
   tipo         String
   descripcion  String
   autorId      String?
-  autor        User?      @relation(fields: [autorId], references: [id])
+  autor        User?      @relation(fields: [autorId], references: [id], onDelete: SetNull)
   createdAt    DateTime   @default(now())
 }
 
@@ -360,6 +367,10 @@ model User {
   material     MaterialRequest[]
   materialValidado MaterialRequest[] @relation("MaterialValidadoPor")
   materialComprado MaterialRequest[] @relation("MaterialCompradoPor")
+  empresasCreadas Empresa[]
+  historialPropio UserHistorial[]
+  certificacionesCreadas Certificacion[]
+  registrosAcceso RegistroAcceso[]
   // Chat interno entre usuarios del centro (no confundir con el asistente
   // de IA, que es aparte). El estado se pone a mano desde el propio chat;
   // no se calcula solo a partir de la sesión.
@@ -514,7 +525,7 @@ model Notificacion {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  schoolId  String
+  schoolId  String?
   tipo      String
   titulo    String
   mensaje   String
@@ -558,7 +569,7 @@ model Salida {
   // profesor que la creó.
   motivoAnulacion String?
   anuladaPorId    String?
-  anuladaPor      User?    @relation("SalidaAnuladaPor", fields: [anuladaPorId], references: [id])
+  anuladaPor      User?    @relation("SalidaAnuladaPor", fields: [anuladaPorId], references: [id], onDelete: SetNull)
   fechaAnulacion  DateTime?
   // Departamento al que pertenece la salida: al aprobarla, se avisa a
   // todos los profesores y coordinadores de ese departamento.
@@ -593,14 +604,14 @@ model PracticaAlumno {
   // Tutorías/Mis Alumnos), nunca quien crea la ficha. Se rellena solo, a
   // partir del alumno elegido, y no se puede tocar desde aquí.
   tutorImesId String?
-  tutorImes   User?   @relation("PracticaTutorIMES", fields: [tutorImesId], references: [id])
+  tutorImes   User?   @relation("PracticaTutorIMES", fields: [tutorImesId], references: [id], onDelete: SetNull)
 
   // Responsable de prácticas = quien de verdad lleva el seguimiento de
   // este alumno en Prácticas (normalmente quien crea la ficha, pero puede
   // no ser su tutor/a real — p. ej. el coordinador de FCT). Equipo
   // directivo puede cambiarlo más adelante si hace falta reasignarlo.
   responsablePracticasId String?
-  responsablePracticas   User?   @relation("PracticaResponsable", fields: [responsablePracticasId], references: [id])
+  responsablePracticas   User?   @relation("PracticaResponsable", fields: [responsablePracticasId], references: [id], onDelete: SetNull)
 
   dni             String?
   fechaNacimiento DateTime?
@@ -628,6 +639,14 @@ model Convenio {
   id               String         @id @default(cuid())
   practicaAlumnoId String
   practicaAlumno   PracticaAlumno @relation(fields: [practicaAlumnoId], references: [id], onDelete: Cascade)
+
+  // Vínculo opcional con el módulo Empresas: si el convenio se creó
+  // eligiendo una empresa de la base de datos (en vez de escribiéndola a
+  // mano), queda enlazada aquí. Nada de lo que ya existía se toca — los
+  // campos de texto de la empresa siguen ahí igual, solo que ahora se
+  // pueden rellenar solos al elegir la empresa.
+  empresaId String?
+  empresa   Empresa? @relation(fields: [empresaId], references: [id], onDelete: SetNull)
 
   tipologia       String?
   estadoAcuerdo   String?
@@ -659,7 +678,7 @@ model Convenio {
   notaFinal    String?
   fechaCierre  DateTime?
   cerradoPorId String?
-  cerradoPor   User?     @relation("ConvenioCerradoPor", fields: [cerradoPorId], references: [id])
+  cerradoPor   User?     @relation("ConvenioCerradoPor", fields: [cerradoPorId], references: [id], onDelete: SetNull)
 
   // Departamento al que pertenece este convenio (p. ej. Informàtica). Se usa
   // para filtrar el catálogo de módulos profesionales del ciclo elegido, y
@@ -726,7 +745,7 @@ model TutoriaSeguimiento {
   resumen     String?
   medioContacto String?
   creadoPorId String?
-  creadoPor   User?                  @relation("TutoriaSeguimientoCreador", fields: [creadoPorId], references: [id])
+  creadoPor   User?                  @relation("TutoriaSeguimientoCreador", fields: [creadoPorId], references: [id], onDelete: SetNull)
   createdAt   DateTime               @default(now())
   updatedAt   DateTime               @default(now()) @updatedAt
 
@@ -808,12 +827,12 @@ model MaterialRequest {
   // Quién lo valida (Administración/equipo directivo) y cuándo — a partir
   // de aquí el profesor pasa a ver "Validado / pendiente de compra".
   validadoPorId String?
-  validadoPor   User?             @relation("MaterialValidadoPor", fields: [validadoPorId], references: [id])
+  validadoPor   User?             @relation("MaterialValidadoPor", fields: [validadoPorId], references: [id], onDelete: SetNull)
   validadoEn    DateTime?
   // Quién marca que ya se ha comprado y cuándo — a partir de aquí se
   // avisa al profesor de que puede pasar a recogerlo por secretaría.
   compradoPorId String?
-  compradoPor   User?             @relation("MaterialCompradoPor", fields: [compradoPorId], references: [id])
+  compradoPor   User?             @relation("MaterialCompradoPor", fields: [compradoPorId], references: [id], onDelete: SetNull)
   compradoEn    DateTime?
   createdAt     DateTime          @default(now())
 }
@@ -944,7 +963,7 @@ model Noticia {
   schoolId         String?
   school           School?          @relation(fields: [schoolId], references: [id])
   autorId          String?
-  autor            User?            @relation(fields: [autorId], references: [id])
+  autor            User?            @relation(fields: [autorId], references: [id], onDelete: SetNull)
   slug             String           @unique
   titulo           String
   resumen          String
@@ -968,14 +987,283 @@ model ChatMensaje {
   id         String   @id @default(cuid())
   schoolId   String
   school     School   @relation(fields: [schoolId], references: [id])
-  emisorId   String
-  emisor     User     @relation("ChatEmisor", fields: [emisorId], references: [id])
-  receptorId String
-  receptor   User     @relation("ChatReceptor", fields: [receptorId], references: [id])
+  // Opcionales a propósito: si se borra el usuario, el mensaje se queda
+  // (no desaparece la conversación), pero pierde el vínculo — la
+  // interfaz muestra "Usuario no encontrado" en su lugar.
+  emisorId   String?
+  emisor     User?    @relation("ChatEmisor", fields: [emisorId], references: [id], onDelete: SetNull)
+  receptorId String?
+  receptor   User?    @relation("ChatReceptor", fields: [receptorId], references: [id], onDelete: SetNull)
   texto      String
   leido      Boolean  @default(false)
   createdAt  DateTime @default(now())
 
   @@index([emisorId, receptorId])
   @@index([receptorId, leido])
+}
+
+// ── Módulo Empresas (independiente del de Prácticas/Convenios, a
+// propósito — no se toca nada de ese módulo). El "convenio" de cada
+// empresa vive aquí dentro, así que al borrar la empresa desaparece con
+// ella sin tocar ningún otro modelo.
+enum EmpresaEstado {
+  ACTIVO
+  INACTIVO
+}
+
+model Empresa {
+  id                String    @id @default(cuid())
+  schoolId          String
+  school            School    @relation(fields: [schoolId], references: [id])
+
+  razonSocial       String
+  nombreComercial   String
+  cif               String?
+  // "Sector" ahora es en realidad el departamento del centro al que
+  // pertenece la empresa (antes era texto libre) — se mantiene el nombre
+  // de columna por compatibilidad, pero guarda el nombre del departamento.
+  sector            String?
+  departamentoId    String?
+  departamento      Departamento? @relation(fields: [departamentoId], references: [id], onDelete: SetNull)
+  sitioWeb          String?
+  correoCorporativo String?
+
+  // Para la ficha de empresa: descripción general y datos rápidos de la
+  // propia empresa (no del convenio, ni de contacto).
+  descripcion       String?
+  anyoFundacion     Int?
+  numEmpleados      Int?
+  tamanoEmpresa     String?
+  tipoEmpresa       String?
+
+  contactoNombre    String?
+  contactoCargo     String?
+  contactoEmail     String?
+  // Correos de contacto extra, si con uno no basta — el principal sigue
+  // siendo contactoEmail de arriba.
+  contactoEmailsExtra String[] @default([])
+  telefonoDirecto   String?
+
+  telefono          String?
+  direccion         String?
+  codigoPostal      String?
+  ciudad            String?
+  provincia         String?
+
+  convenioVigente   Boolean   @default(false)
+  convenioInicio    DateTime?
+  convenioFin       DateTime?
+  renovableAuto     Boolean   @default(false)
+  vacantes          Int       @default(1)
+  modalidad         String?
+  horarioHabitual   String?
+
+  ciclosVinculados  String[]  @default([])
+  requisitos        String?
+  observaciones     String?
+
+  // Inactivo por defecto hasta que se asigne al menos un alumno — de
+  // momento se marca a mano; cuando exista una relación real con alumnos
+  // en prácticas, se podrá automatizar sin tocar este campo desde fuera.
+  estado            EmpresaEstado @default(INACTIVO)
+
+  creadoPorId       String?
+  creadoPor         User?     @relation(fields: [creadoPorId], references: [id], onDelete: SetNull)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @default(now()) @updatedAt
+
+  documentos        EmpresaDocumento[]
+  historial         EmpresaHistorial[]
+  notasObservaciones EmpresaObservacion[]
+  convenios         Convenio[]
+}
+
+model EmpresaDocumento {
+  id         String   @id @default(cuid())
+  empresaId  String
+  empresa    Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  nombre     String
+  url        String
+  createdAt  DateTime @default(now())
+}
+
+// Historial de cambios de cada empresa: quién ha hecho qué y cuándo.
+model EmpresaHistorial {
+  id            String   @id @default(cuid())
+  empresaId     String
+  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  accion        String
+  detalle       String?
+  usuarioId     String?
+  usuarioNombre String
+  createdAt     DateTime @default(now())
+}
+
+// Observaciones de una empresa, como un hilo de notas — cada persona
+// añade la suya, sin borrar las de los demás, con su fecha y su nombre.
+model EmpresaObservacion {
+  id            String   @id @default(cuid())
+  empresaId     String
+  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  texto         String
+  usuarioId     String?
+  usuarioNombre String
+  createdAt     DateTime @default(now())
+}
+
+// Código temporal para "he olvidado mi contraseña" — se manda por correo,
+// caduca a los 15 minutos, y se borra en cuanto se usa (o se pide otro).
+model PasswordResetCode {
+  id        String   @id @default(cuid())
+  email     String
+  codigo    String
+  usado     Boolean  @default(false)
+  expiraEn  DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email, codigo])
+}
+
+// Ajustes globales de la plataforma — una única fila siempre (id fijo
+// "global"). Por ahora solo el interruptor de recuperar contraseña.
+model Configuracion {
+  id                     String  @id @default("global")
+  // El login con email+contraseña funciona siempre con normalidad para
+  // quien ya tenga una (generada y enviada por un admin). Lo que controla
+  // este campo es "¿Has olvidado tu contraseña?": con esto en false (lo
+  // normal), solo el SuperAdmin puede usarlo — todos los demás ven la
+  // opción igual, pero les sale un aviso de que está bloqueado. Se activa
+  // desde el panel de SuperAdmin el día que haga falta un plan B general.
+  loginPasswordHabilitado Boolean @default(false)
+}
+
+// Historial de un usuario: qué le han hecho, quién y cuándo (crear,
+// activar/desactivar, mandarle contraseña...). Vive aparte del propio
+// usuario para que, si el usuario se borra, este registro también
+// desaparezca con él (no tiene sentido guardarlo suelto).
+model UserHistorial {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accion        String
+  detalle       String?
+  hechoPorId    String?
+  hechoPorNombre String
+  createdAt     DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// ── Módulo Certificaciones ──────────────────────────────────────────
+// Las certificaciones (PUE) son las mismas para cualquier centro
+// (Microsoft, Cisco, etc.), así que el catálogo de nombres lo gestiona el
+// SuperAdmin UNA vez para toda la plataforma — no es propio de un centro.
+enum EstadoCertificacion {
+  PROXIMAMENTE
+  PROGRAMADA
+  EN_CURSO
+  ACTIVA
+}
+
+model CertificacionCatalogo {
+  id           String   @id @default(cuid())
+  categoria    String
+  nombre       String
+  horasDefault Int?
+  sedeExamenDefault String?
+
+  // El "curso" completo, para que cualquier rol pueda consultar de qué va
+  // antes de programar una certificación real a partir de él.
+  acercaDe               String?
+  dirigidoA              String?
+  objetivos              String?
+  certificacionInfo      String?
+  contenidos             String?
+  proximasConvocatorias  String?
+
+  createdAt    DateTime @default(now())
+}
+
+model Certificacion {
+  id                     String              @id @default(cuid())
+  schoolId               String
+  school                 School              @relation(fields: [schoolId], references: [id])
+
+  categoria              String
+  nombreCertificacion    String
+  cursoAcademico         String
+  cicloFormativo         String
+  horas                  Int?
+
+  fechaInicioPreparacion DateTime
+  fechaFinPreparacion    DateTime?
+  fechaExamen            DateTime?
+  estado                 EstadoCertificacion @default(PROGRAMADA)
+
+  codigoPue              String?
+  entidadCertificadora   String?
+  nivelMCE               String?
+  duracionExamen         String?
+  modalidad              String?
+  sedeExamen             String?
+  notas                  String?
+
+  creadoPorId            String?
+  creadoPor              User?               @relation(fields: [creadoPorId], references: [id], onDelete: SetNull)
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @default(now()) @updatedAt
+}
+
+// Registro de intentos de login fallidos, para poder bloquear
+// temporalmente tras varios intentos seguidos (protección contra fuerza
+// bruta). Se limpia solo con el tiempo, no hace falta borrarlo a mano.
+model IntentoLoginFallido {
+  id        String   @id @default(cuid())
+  email     String
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+}
+
+// Registro de cada inicio de sesión CORRECTO (quién y cuándo), a
+// diferencia de IntentoLoginFallido que solo guarda los fallidos. No se
+// borra nunca automáticamente — es el historial de accesos real.
+model RegistroAcceso {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email     String
+  nombre    String
+  metodo    String   // "password" | "microsoft"
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
+// Un bloqueo de acceso real (5 intentos fallidos en 15 minutos) — a
+// diferencia de IntentoLoginFallido, esto NO se borra nunca. Queda
+// PENDIENTE hasta que el SuperAdmin hace algo al respecto (desbloquear,
+// regenerar contraseña, reenviar invitación...), momento en que pasa a
+// RESUELTO, con quién lo resolvió, cuándo, y cómo.
+enum EstadoBloqueo {
+  PENDIENTE
+  RESUELTO
+}
+
+model BloqueoAcceso {
+  id               String        @id @default(cuid())
+  email            String
+  cantidadIntentos Int
+  primerIntento    DateTime
+  ultimoIntento    DateTime
+  estado           EstadoBloqueo @default(PENDIENTE)
+  resueltoPorId    String?
+  resueltoPorNombre String?
+  accionResolucion String?
+  resueltoEn       DateTime?
+  createdAt        DateTime      @default(now())
+
+  @@index([email, estado])
+  @@index([estado, createdAt])
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X, Send, Circle, Check, CheckCheck, Plus, Search } from "lucide-react";
+import { X, Send, Circle, Check, CheckCheck, Plus, Search, ArrowLeft } from "lucide-react";
 import {
   obtenerUsuariosParaChat,
   obtenerConversacion,
@@ -180,15 +180,15 @@ export function ChatInternoWidget() {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/40 p-6" onClick={cerrar}>
+    <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/40 sm:p-6" onClick={cerrar}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex h-[75vh] max-h-[720px] w-[85vw] max-w-[1000px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+        className="flex h-full w-full overflow-hidden rounded-none border-0 bg-white shadow-2xl sm:h-[75vh] sm:max-h-[720px] sm:w-[85vw] sm:max-w-[1000px] sm:rounded-2xl sm:border sm:border-slate-200"
       >
       {/* Columna izquierda: siempre visible, con la lista de gente con
           quien chatear — como en Discord, no hace falta "volver atrás"
           para cambiar de conversación. */}
-      <div className="flex w-60 shrink-0 flex-col border-r border-slate-100 bg-slate-50">
+      <div className={`w-full shrink-0 flex-col border-r border-slate-100 bg-slate-50 sm:flex sm:w-60 ${conversacionCon ? "hidden" : "flex"}`}>
         <div className="border-b border-slate-100 bg-[#0B1D4D] px-4 py-3">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-bold text-white">Chat del centro</p>
@@ -329,10 +329,13 @@ export function ChatInternoWidget() {
       </div>
 
       {/* Columna derecha: la conversación con quien esté seleccionado. */}
-      <div className="flex flex-1 flex-col">
+      <div className={`w-full flex-1 flex-col sm:flex ${conversacionCon ? "flex" : "hidden"}`}>
         {conversacionCon ? (
           <>
             <div className="flex items-center gap-2.5 border-b border-slate-100 px-4 py-3">
+              <button onClick={() => setConversacionCon(null)} className="rounded p-1 text-slate-400 hover:bg-slate-100 sm:hidden">
+                <ArrowLeft className="h-4 w-4" />
+              </button>
               <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-slate-100">
                 {conversacionCon.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element

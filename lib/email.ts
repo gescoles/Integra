@@ -1341,3 +1341,60 @@ export async function sendMaterialEliminadoEmail(params: {
     `,
   });
 }
+
+export async function sendPasswordResetCodeEmail(to: string, name: string, codigo: string) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to,
+    subject: "Código para restablecer tu contraseña",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${name},</h2>
+        <p>Has pedido restablecer tu contraseña de Docentium. Usa este código en los próximos 15 minutos:</p>
+        <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #0B1D4D; margin: 16px 0;">${codigo}</p>
+        <p style="color:#64748B; font-size:13px;">
+          Si no has sido tú, ignora este correo — tu contraseña actual sigue siendo válida y no se ha cambiado nada.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendAlertaBloqueoLogin(
+  to: string,
+  nombreSuperAdmin: string,
+  emailBloqueado: string,
+  intentos: Date[]
+) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const filasIntentos = intentos
+    .map(
+      (fecha, i) =>
+        `<tr><td style="padding:4px 12px 4px 0;color:#64748B;">Intento ${i + 1}</td><td style="padding:4px 0;">${fecha.toLocaleString("es-ES", { dateStyle: "short", timeStyle: "medium" })}</td></tr>`
+    )
+    .join("");
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to,
+    subject: `Acceso bloqueado por intentos fallidos: ${emailBloqueado}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#B3261E; margin-bottom: 8px;">Acceso bloqueado temporalmente</h2>
+        <p>Hola ${nombreSuperAdmin},</p>
+        <p>Alguien ha intentado entrar <strong>5 veces seguidas</strong> sin conseguirlo (contraseña incorrecta, o intento de entrar por Microsoft/Teams sin tener cuenta activa) usando el correo:</p>
+        <p style="font-size: 16px; font-weight: bold; color: #0B1D4D;">${emailBloqueado}</p>
+        <table style="margin: 12px 0; border-collapse: collapse;">${filasIntentos}</table>
+        <p>Ese correo ha quedado <strong>bloqueado durante 15 minutos</strong> — no se le dejará entrar aunque escriba la contraseña correcta, y verá un aviso pidiéndole que contacte con el administrador.</p>
+        <p style="color:#64748B; font-size:13px;">
+          Puedes revisar y gestionar este acceso desde el panel de SuperAdmin, en "Accesos bloqueados".
+        </p>
+      </div>
+    `,
+  });
+}

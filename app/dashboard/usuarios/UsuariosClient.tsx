@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Pencil, MoreVertical, X, Filter, Trash2, AlertTriangle, Eye, EyeOff } from "lucide-react";
-import { updateUser, deleteUser, getUserDeleteImpact } from "./actions";
+import { Search, Pencil, MoreVertical, X, Filter, Trash2, AlertTriangle, Eye, EyeOff, Clock } from "lucide-react";
+import { updateUser, deleteUser, getUserDeleteImpact, obtenerHistorialUsuario } from "./actions";
 import { useLocale, useGuardadoTransition } from "../SchoolContext";
 import { ButtonSpinner } from "../components/ButtonSpinner";
 import { translate } from "../i18n";
@@ -57,6 +57,12 @@ export function UsuariosClient({
   const [pageSize, setPageSize] = useState(5);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [cambiarPassword, setCambiarPassword] = useState(false);
+  const [autoPasswordEdit, setAutoPasswordEdit] = useState(true);
+  const [menuAbiertoId, setMenuAbiertoId] = useState<string | null>(null);
+  const [historialUsuario, setHistorialUsuario] = useState<UserRow | null>(null);
+  const [historialDatos, setHistorialDatos] = useState<{ id: string; accion: string; detalle: string | null; hechoPorNombre: string; createdAt: string }[]>([]);
+  const [cargandoHistorial, setCargandoHistorial] = useState(false);
   const [isDeleting, startDeleteTransition] = useGuardadoTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
@@ -82,6 +88,18 @@ export function UsuariosClient({
       setDeleteImpact(null);
     } finally {
       setLoadingImpact(false);
+    }
+  }
+
+  async function handleVerHistorial(user: UserRow) {
+    setMenuAbiertoId(null);
+    setHistorialUsuario(user);
+    setCargandoHistorial(true);
+    try {
+      const datos = await obtenerHistorialUsuario(user.id);
+      setHistorialDatos(datos);
+    } finally {
+      setCargandoHistorial(false);
     }
   }
 
@@ -309,18 +327,38 @@ export function UsuariosClient({
                   <td className="py-3">
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => setEditingId(u.id)}
+                        onClick={() => {
+                          setEditingId(u.id);
+                          setCambiarPassword(false);
+                          setAutoPasswordEdit(true);
+                        }}
                         title="Editar"
                         className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#FD5249]"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
-                      <button
-                        title="Más opciones"
-                        className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#FD5249]"
-                      >
-                        <MoreVertical className="h-3.5 w-3.5" />
-                      </button>
+                      <div className="relative">
+                        <button
+                          onClick={() => setMenuAbiertoId(menuAbiertoId === u.id ? null : u.id)}
+                          title="Más opciones"
+                          className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#FD5249]"
+                        >
+                          <MoreVertical className="h-3.5 w-3.5" />
+                        </button>
+                        {menuAbiertoId === u.id && (
+                          <>
+                            <div className="fixed inset-0 z-40" onClick={() => setMenuAbiertoId(null)} />
+                            <div className="absolute right-0 top-full z-50 mt-1 w-40 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                              <button
+                                onClick={() => handleVerHistorial(u)}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-600 hover:bg-slate-50"
+                              >
+                                <Clock className="h-3.5 w-3.5" /> Ver historial
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
                       <button
                         onClick={() => handleDelete(u.id, u.name)}
                         disabled={isDeleting}
@@ -471,6 +509,45 @@ export function UsuariosClient({
                 </select>
               </div>
 
+              <div className="border-t border-slate-100 pt-3">
+                <input type="hidden" name="cambiarPassword" value={cambiarPassword ? "on" : ""} />
+                <label className="flex items-start gap-2 text-xs text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={cambiarPassword}
+                    onChange={(e) => setCambiarPassword(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-[#FD5249]"
+                  />
+                  <span>
+                    Enviarle una contraseña nueva por correo (por si Teams/Microsoft fallara y necesitara entrar con email y contraseña).
+                  </span>
+                </label>
+
+                {cambiarPassword && (
+                  <div className="mt-3 pl-6">
+                    <input
+                      name="password"
+                      type="password"
+                      required={!autoPasswordEdit}
+                      disabled={autoPasswordEdit}
+                      minLength={8}
+                      placeholder={autoPasswordEdit ? "Se generará automáticamente" : "Mínimo 8 caracteres"}
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249] disabled:bg-slate-50 disabled:text-slate-400"
+                    />
+                    <label className="mt-2 flex items-start gap-2 text-xs text-slate-600">
+                      <input
+                        type="checkbox"
+                        name="autoPassword"
+                        checked={autoPasswordEdit}
+                        onChange={(e) => setAutoPasswordEdit(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-[#FD5249]"
+                      />
+                      <span>Generarla automáticamente en vez de escribirla yo.</span>
+                    </label>
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
@@ -533,20 +610,16 @@ export function UsuariosClient({
               <div className="mb-4 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600">{deleteError}</div>
             )}
 
-            {hasImpact && (
-              <>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                  Escribe <span className="font-mono text-red-600">eliminar {deleteTarget.name}</span> para
-                  confirmar
-                </label>
-                <input
-                  value={deleteConfirmText}
-                  onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  placeholder={`eliminar ${deleteTarget.name}`}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-red-400"
-                />
-              </>
-            )}
+            <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Escribe <span className="font-mono text-red-600">Eliminar {deleteTarget.name}</span> para
+              confirmar
+            </label>
+            <input
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder={`Eliminar ${deleteTarget.name}`}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-red-400"
+            />
 
             <div className="mt-5 flex justify-end gap-3">
               <button
@@ -561,9 +634,7 @@ export function UsuariosClient({
                 disabled={
                   isDeleting ||
                   loadingImpact ||
-                  (hasImpact
-                    ? deleteConfirmText.trim().toLowerCase() !== `eliminar ${deleteTarget.name}`.toLowerCase()
-                    : false)
+                  deleteConfirmText.trim() !== `Eliminar ${deleteTarget.name}`
                 }
                 onClick={performDeleteUser}
                 className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
@@ -576,6 +647,48 @@ export function UsuariosClient({
                   "Eliminar definitivamente"
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {historialUsuario && (
+        <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/40 p-6" onClick={() => setHistorialUsuario(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="flex max-h-[80vh] w-full max-w-md flex-col rounded-2xl bg-white p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-[#0B1D4D]">Historial de {historialUsuario.name}</h3>
+                <p className="text-xs text-slate-400">Todo lo que se le ha hecho a este usuario, con fecha y quién lo hizo.</p>
+              </div>
+              <button onClick={() => setHistorialUsuario(null)} className="rounded p-1 text-slate-400 hover:bg-slate-100">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              {cargandoHistorial ? (
+                <p className="py-8 text-center text-sm text-slate-400">Cargando...</p>
+              ) : historialDatos.length === 0 ? (
+                <p className="py-8 text-center text-sm text-slate-400">Todavía no hay nada registrado para este usuario.</p>
+              ) : (
+                <div className="space-y-4">
+                  {historialDatos.map((h, i) => (
+                    <div key={h.id} className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-blue-600" />
+                        {i < historialDatos.length - 1 && <span className="mt-0.5 w-px flex-1 bg-slate-200" />}
+                      </div>
+                      <div className="pb-3">
+                        <p className="text-sm font-semibold text-slate-700">{h.accion}</p>
+                        {h.detalle && <p className="text-xs text-slate-500">{h.detalle}</p>}
+                        <p className="mt-0.5 text-[11px] text-slate-400">
+                          {h.hechoPorNombre} · {new Date(h.createdAt).toLocaleString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

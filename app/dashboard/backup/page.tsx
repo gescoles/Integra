@@ -1,8 +1,10 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "../components/DashboardHeader";
 import { translate } from "../i18n";
 import { BackupClient } from "./BackupClient";
+import { obtenerLoginPasswordHabilitado } from "../configuracion/actions";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -29,6 +31,9 @@ export default async function BackupPage() {
     );
   }
 
+  const schools = await prisma.school.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } });
+  const loginPasswordHabilitado = await obtenerLoginPasswordHabilitado();
+
   return (
     <div>
       <DashboardHeader
@@ -38,7 +43,7 @@ export default async function BackupPage() {
         role={role}
         notificationCount={0}
       />
-      <BackupClient />
+      <BackupClient schools={schools} loginPasswordHabilitadoInicial={loginPasswordHabilitado} />
     </div>
   );
 }

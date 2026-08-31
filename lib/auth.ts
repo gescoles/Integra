@@ -3,9 +3,37 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import AzureADProvider from "next-auth/providers/azure-ad";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
+import { alertarSuperAdminsBloqueo } from "./alertaSeguridad";
+
+// Registra el intento fallido y, justo en el momento en que este intento
+// concreto hace que se llegue a 5 en los últimos 15 minutos (ni antes ni
+// en los siguientes, para no mandar un aviso por cada intento mientras
+// ya está bloqueado), avisa a todos los SuperAdmin por correo y con una
+// notificación dentro de la app.
+async function registrarIntentoFallido(email: string) {
+  await prisma.intentoLoginFallido.create({ data: { email } });
+
+  const haceQuinceMinutos = new Date(Date.now() - 15 * 60 * 1000);
+  const totalAhora = await prisma.intentoLoginFallido.count({
+    where: { email, createdAt: { gte: haceQuinceMinutos } },
+  });
+
+  if (totalAhora === 5) {
+    // No se espera a que termine — si el envío del correo tardara, no
+    // queremos que el login del que ha fallado se quede colgado por eso.
+    alertarSuperAdminsBloqueo(email).catch((e) => console.error("Error alertando del bloqueo:", e));
+  }
+}
 
 export const authOptions: NextAuthOptions = {
-  session: { strategy: "jwt" },
+  session: {
+    strategy: "jwt",
+    // Sesión caduca sola tras 8 horas de inactividad (una jornada de
+    // trabajo) — si sigue habiendo actividad, se renueva sola cada vez
+    // que se toca (updateAge), así que un uso normal nunca se corta.
+    maxAge: 8 * 60 * 60,
+    updateAge: 15 * 60,
+  },
   pages: {
     signIn: "/login",
   },
@@ -21,11 +49,25 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        const emailLimpio = credentials.email.toLowerCase();
+
+        // Protección contra fuerza bruta: 5 intentos fallidos en 15
+        // minutos bloquean ese email temporalmente, sin importar si la
+        // siguiente contraseña que prueben es la correcta.
+        const haceQuinceMinutos = new Date(Date.now() - 15 * 60 * 1000);
+        const intentosRecientes = await prisma.intentoLoginFallido.count({
+          where: { email: emailLimpio, createdAt: { gte: haceQuinceMinutos } },
+        });
+        if (intentosRecientes >= 5) {
+          throw new Error("DEMASIADOS_INTENTOS");
+        }
+
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
+          where: { email: emailLimpio },
         });
 
         if (!user) {
+          await registrarIntentoFallido(emailLimpio);
           return null;
         }
 
@@ -35,6 +77,14 @@ export const authOptions: NextAuthOptions = {
         );
 
         if (!isValidPassword) {
+          await registrarIntentoFallido(emailLimpio);
+          return null;
+        }
+
+        // No dejamos entrar ni siquiera la primera vez si el SuperAdmin
+        // ha desactivado la cuenta — antes solo se cortaba al refrescar
+        // el token, pero eso no bloqueaba el primer login.
+        if (user.status !== "ACTIVO") {
           return null;
         }
 
@@ -78,7 +128,15 @@ export const authOptions: NextAuthOptions = {
         const email = profile?.email?.toLowerCase();
         if (!email) return false;
         const existe = await prisma.user.findUnique({ where: { email } });
-        return Boolean(existe);
+        const autorizado = Boolean(existe && existe.status === "ACTIVO");
+        // Un intento de entrar por Teams con un correo que no existe en
+        // Docentium (o que está desactivado) cuenta como intento fallido
+        // igual que una contraseña incorrecta — mismo contador, mismo
+        // bloqueo a los 5, mismo aviso al SuperAdmin.
+        if (!autorizado) {
+          await registrarIntentoFallido(email);
+        }
+        return autorizado;
       }
       return true;
     },
@@ -129,13 +187,18 @@ export const authOptions: NextAuthOptions = {
         if (haPasadoUnMinuto) {
           const fresh = await prisma.user.findUnique({
             where: { id: userId as string },
-            select: { role: true, schoolId: true, locale: true },
+            select: { role: true, schoolId: true, locale: true, status: true },
           });
-          if (fresh) {
-            token.role = fresh.role;
-            token.schoolId = fresh.schoolId;
-            token.locale = fresh.locale;
+          // Revocación inmediata: si un SuperAdmin desactiva a alguien
+          // mientras tiene la sesión abierta, se le corta el acceso en
+          // cuanto se refresca el token (como mucho, un minuto después),
+          // sin tener que esperar a que caduque la sesión entera.
+          if (!fresh || fresh.status !== "ACTIVO") {
+            throw new Error("CUENTA_DESACTIVADA");
           }
+          token.role = fresh.role;
+          token.schoolId = fresh.schoolId;
+          token.locale = fresh.locale;
           token.ultimaComprobacion = Date.now();
         }
       }
@@ -150,6 +213,36 @@ export const authOptions: NextAuthOptions = {
         session.user.locale = token.locale;
       }
       return session;
+    },
+  },
+  events: {
+    // Se dispara justo después de un login correcto, ya aprobado por
+    // authorize()/signIn — el sitio limpio para dejar constancia de
+    // "quién ha entrado y cuándo", sin mezclarlo con la lógica que
+    // decide si se le deja entrar o no.
+    async signIn({ user, account }) {
+      if (!user?.email) return;
+      try {
+        // Con Microsoft, el "user.id" que llega aquí es el id de Azure AD,
+        // no el nuestro — hay que buscar el usuario real de Docentium por
+        // su email para guardar el id correcto (si no, rompería la
+        // relación con la tabla User).
+        let userIdReal: string | null = user.id ?? null;
+        if (account?.provider === "azure-ad") {
+          const dbUser = await prisma.user.findUnique({ where: { email: user.email.toLowerCase() }, select: { id: true } });
+          userIdReal = dbUser?.id ?? null;
+        }
+        await prisma.registroAcceso.create({
+          data: {
+            userId: userIdReal,
+            email: user.email.toLowerCase(),
+            nombre: user.name ?? user.email,
+            metodo: account?.provider === "azure-ad" ? "microsoft" : "password",
+          },
+        });
+      } catch (e) {
+        console.error("No se pudo registrar el acceso:", e);
+      }
     },
   },
   secret: process.env.NEXTAUTH_SECRET,

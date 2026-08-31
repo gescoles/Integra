@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth";
+import { Suspense } from "react";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
@@ -63,7 +64,8 @@ export default async function FichaPracticaPage({ params }: { params: { id: stri
         role={role}
         notificationCount={0}
       />
-      <DetalleClient
+      <Suspense fallback={null}>
+        <DetalleClient
         esDirectivo={esDirectivo}
         profesores={profesores}
         ficha={{
@@ -100,6 +102,7 @@ export default async function FichaPracticaPage({ params }: { params: { id: stri
           fechaInicio: c.fechaInicio?.toISOString() ?? null,
           fechaFin: c.fechaFin?.toISOString() ?? null,
           periodo: c.periodo,
+          empresaId: c.empresaId,
           empresaCif: c.empresaCif,
           empresaNombre: c.empresaNombre,
           tutorEmpresaNombre: c.tutorEmpresaNombre,
@@ -147,6 +150,7 @@ export default async function FichaPracticaPage({ params }: { params: { id: stri
           })),
         }))}
       />
+      </Suspense>
     </div>
   );
 }

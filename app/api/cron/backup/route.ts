@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ejecutarBackupExcelModulos } from "@/lib/backupExcel";
+import { ejecutarBackupBBDDTodosCentros } from "@/lib/backup";
+import { prisma } from "@/lib/prisma";
 
 export const maxDuration = 300; // 5 minutos: puede haber muchos centros que respaldar
 
@@ -12,13 +14,17 @@ export async function GET(req: NextRequest) {
     return new NextResponse("No autorizado.", { status: 401 });
   }
 
-  try {
-    const { fecha, resultados } = await ejecutarBackupExcelModulos();
-    return NextResponse.json({ fecha, resultados });
-  } catch (e) {
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Error desconocido" },
-      { status: 500 }
-    );
-  }
+  const [excel, bbdd] = await Promise.allSettled([
+    ejecutarBackupExcelModulos(),
+    ejecutarBackupBBDDTodosCentros(),
+    // Limpieza de intentos de login fallidos de más de un día — no hace
+    // falta guardarlos más tiempo, el bloqueo solo mira los últimos 15
+    // minutos.
+    prisma.intentoLoginFallido.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } } }),
+  ]);
+
+  return NextResponse.json({
+    excel: excel.status === "fulfilled" ? excel.value : { error: excel.reason instanceof Error ? excel.reason.message : "Error desconocido" },
+    bbdd: bbdd.status === "fulfilled" ? bbdd.value : { error: bbdd.reason instanceof Error ? bbdd.reason.message : "Error desconocido" },
+  });
 }

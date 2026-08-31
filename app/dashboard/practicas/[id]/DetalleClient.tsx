@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { calcularEdad } from "@/lib/fechas";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Trash2,
@@ -154,9 +154,18 @@ function ProrrogaCard({ prorroga, fichaId, convenioId }: { prorroga: Prorroga; f
 function ConvenioCard({ convenio, fichaId, esDirectivo }: { convenio: Convenio; fichaId: string; esDirectivo: boolean }) {
   const { locale } = useLocale();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isPending, startTransition] = useGuardadoTransition();
-  const [expanded, setExpanded] = useState(true);
+  const destacado = searchParams.get("convenio") === convenio.id;
+  const [expanded, setExpanded] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (destacado && cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [destacado]);
 
   const tiposHechos = new Set(convenio.tutoriasSeguimiento.map((t) => t.tipo));
   const faltanTutorias = (["INICIAL", "MEDIA", "FINAL"] as const).filter((t) => !tiposHechos.has(t));
@@ -176,7 +185,13 @@ function ConvenioCard({ convenio, fichaId, esDirectivo }: { convenio: Convenio; 
   }
 
   return (
-    <div className={`rounded-2xl border bg-white p-5 ${convenio.cerrado ? "border-emerald-200" : "border-slate-200"}`}>
+    <div
+      ref={cardRef}
+      id={`convenio-${convenio.id}`}
+      className={`rounded-2xl border bg-white p-5 transition-shadow ${
+        destacado ? "border-[#FD5249] ring-2 ring-[#FD5249]/40" : convenio.cerrado ? "border-emerald-200" : "border-slate-200"
+      }`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <button onClick={() => setExpanded((v) => !v)} className="text-slate-400 hover:text-slate-600">

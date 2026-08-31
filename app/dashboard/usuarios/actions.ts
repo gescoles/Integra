@@ -11,6 +11,7 @@ import { sendPasswordEmail, sendInvitacionMicrosoftEmail } from "@/lib/email";
 import { generateAvatarUrl } from "@/lib/avatar";
 
 export async function createUser(formData: FormData) {
+  const session = await getServerSession(authOptions);
   const name = (formData.get("name") as string)?.trim();
   const email = (formData.get("email") as string)?.trim().toLowerCase();
   const dni = (formData.get("dni") as string)?.trim();
@@ -55,8 +56,9 @@ export async function createUser(formData: FormData) {
   const avatarUrl = generateAvatarUrl(name);
   const departamentoIds = formData.getAll("departamentoIds") as string[];
 
+  let nuevoUsuarioId: string;
   try {
-    await prisma.user.create({
+    const nuevoUsuario = await prisma.user.create({
       data: {
         name,
         email,
@@ -76,6 +78,7 @@ export async function createUser(formData: FormData) {
           : {}),
       },
     });
+    nuevoUsuarioId = nuevoUsuario.id;
   } catch (e: any) {
     if (e?.code === "P2002") {
       const campo = Array.isArray(e?.meta?.target) ? e.meta.target[0] : e?.meta?.target;
@@ -110,25 +113,64 @@ export async function createUser(formData: FormData) {
     }
   }
 
+  await prisma.userHistorial.create({
+    data: {
+      userId: nuevoUsuarioId,
+      accion: "Usuario creado",
+      detalle: loginMicrosoft
+        ? "Invitación enviada para entrar con Microsoft/Teams."
+        : autoPassword
+          ? "Contraseña generada automáticamente y enviada por correo."
+          : "Contraseña asignada manualmente al crear el usuario.",
+      hechoPorId: session?.user.id ?? null,
+      hechoPorNombre: session?.user.name ?? session?.user.email ?? "Sistema",
+    },
+  });
+
   revalidatePath("/dashboard/usuarios");
 }
 
 export async function updateUser(formData: FormData) {
+  const session = await getServerSession(authOptions);
   const id = formData.get("id") as string;
   const role = formData.get("role") as Role;
   const status = formData.get("status") as UserStatus;
   const schoolId = (formData.get("schoolId") as string) || null;
   const departamentoIdsRaw = formData.getAll("departamentoIds") as string[];
   const seEnviaronDepartamentos = formData.has("departamentoIds");
+  const cambiarPassword = formData.get("cambiarPassword") === "on";
+  const autoPassword = formData.get("autoPassword") === "on";
+  const manualPassword = formData.get("password") as string;
 
   if (!id) throw new Error("Falta el identificador del usuario.");
 
-  await prisma.user.update({
+  const usuarioAntes = await prisma.user.findUnique({ where: { id }, select: { status: true } });
+
+  // Si se pide enviar una contraseña nueva, se genera (o se coge la que
+  // ha escrito el admin), se guarda su hash, y se avisa al usuario por
+  // correo — pensado como plan B por si Microsoft/Teams fallara algún día
+  // y necesitara entrar con email y contraseña normales.
+  let nuevoPasswordHash: string | undefined;
+  let passwordParaCorreo: string | undefined;
+  if (cambiarPassword) {
+    if (autoPassword) {
+      passwordParaCorreo = generatePassword(8);
+    } else {
+      if (!manualPassword || manualPassword.length < 8) {
+        throw new Error("La contraseña debe tener al menos 8 caracteres.");
+      }
+      passwordParaCorreo = manualPassword;
+    }
+    nuevoPasswordHash = await bcrypt.hash(passwordParaCorreo, 10);
+  }
+
+  const usuario = await prisma.user.update({
     where: { id },
     data: {
       role,
       status,
       schoolId,
+      ...(nuevoPasswordHash ? { passwordHash: nuevoPasswordHash } : {}),
       // "set" reemplaza toda la lista de golpe; solo se toca si el
       // formulario ha mandado explícitamente el campo de departamentos.
       ...(seEnviaronDepartamentos && role === "PROFESOR"
@@ -139,6 +181,39 @@ export async function updateUser(formData: FormData) {
         : {}),
     },
   });
+
+  if (passwordParaCorreo) {
+    try {
+      await sendPasswordEmail(usuario.email, usuario.name ?? usuario.email, passwordParaCorreo);
+    } catch (e) {
+      console.error("No se pudo enviar el correo con la contraseña nueva:", e);
+    }
+  }
+
+  const hechoPorId = session?.user.id ?? null;
+  const hechoPorNombre = session?.user.name ?? session?.user.email ?? "Sistema";
+
+  if (usuarioAntes && usuarioAntes.status !== status) {
+    await prisma.userHistorial.create({
+      data: {
+        userId: id,
+        accion: status === "ACTIVO" ? "Usuario activado" : "Usuario desactivado",
+        hechoPorId,
+        hechoPorNombre,
+      },
+    });
+  }
+
+  if (passwordParaCorreo) {
+    await prisma.userHistorial.create({
+      data: {
+        userId: id,
+        accion: autoPassword ? "Contraseña generada automáticamente y enviada por correo" : "Contraseña manual escrita y enviada por correo",
+        hechoPorId,
+        hechoPorNombre,
+      },
+    });
+  }
 
   revalidatePath("/dashboard/usuarios");
 }
@@ -197,6 +272,27 @@ export async function deleteUser(id: string) {
   await prisma.espacioReserva.deleteMany({ where: { OR: [{ userId: id }, { creadoPorId: id }] } });
   await prisma.coberturaGuardia.deleteMany({ where: { OR: [{ profesorAusenteId: id }, { profesorSustitutoId: id }, { creadoPorId: id }] } });
 
+  // Los mensajes de chat en los que participaba se quedan (con SetNull en
+  // la base de datos) — no hace falta borrarlos aquí; la interfaz del
+  // chat muestra "Usuario no encontrado" cuando falta el emisor/receptor.
+
   await prisma.user.delete({ where: { id } });
   revalidatePath("/dashboard/usuarios");
+}
+
+// Historial de un usuario concreto: todo lo que se le ha hecho, quién y
+// cuándo — para el "Ver historial" del menú de 3 puntos.
+export async function obtenerHistorialUsuario(userId: string) {
+  const historial = await prisma.userHistorial.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return historial.map((h) => ({
+    id: h.id,
+    accion: h.accion,
+    detalle: h.detalle,
+    hechoPorNombre: h.hechoPorNombre,
+    createdAt: h.createdAt.toISOString(),
+  }));
 }

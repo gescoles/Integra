@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Pencil, X } from "lucide-react";
 import { crearConvenio, actualizarConvenio, obtenerDepartamentosDelCentro, obtenerModulosPorGrupo, guardarModulosConvenio, obtenerCiclosDelCentro } from "../actions";
+import { obtenerCiclosDelDepartamento } from "../../usuarios/departamentosActions";
+import { obtenerEmpresasPorCiclo } from "../../empresas/actions";
 import { ButtonSpinner } from "../../components/ButtonSpinner";
 import { useLocale } from "../../SchoolContext";
 import { translate } from "../../i18n";
@@ -19,6 +21,7 @@ type Convenio = {
   fechaInicio: string | null;
   fechaFin: string | null;
   periodo: string | null;
+  empresaId?: string | null;
   empresaCif: string | null;
   empresaNombre: string | null;
   tutorEmpresaNombre: string | null;
@@ -50,8 +53,23 @@ export function ConvenioFormModal({
   // Departamento / ciclo / módulos, seleccionables ya desde la creación.
   const [departamentos, setDepartamentos] = useState<{ id: string; nombre: string }[]>([]);
   const [gruposCentro, setGruposCentro] = useState<string[]>(GRUPOS_CON_MODULOS_FALLBACK);
+  // Todos los ciclos del centro (sin filtrar) — se usan como reserva si el
+  // departamento elegido todavía no tiene ciclos vinculados configurados.
+  const [todosLosCiclos, setTodosLosCiclos] = useState<string[]>([]);
   const [departamentoId, setDepartamentoId] = useState(convenio?.departamentoId ?? "");
   const [cicloGrupo, setCicloGrupo] = useState(convenio?.cicloGrupo ?? "");
+  // Empresa elegida de la base de datos (módulo Empresas): al elegirla,
+  // rellena sola los campos de texto de abajo, que siguen siendo
+  // editables por si hace falta ajustar algo puntual.
+  const [empresaId, setEmpresaId] = useState(convenio?.empresaId ?? "");
+  const [empresasDisponibles, setEmpresasDisponibles] = useState<
+    { id: string; nombreComercial: string; cif: string | null; contactoNombre: string | null; telefonoDirecto: string | null; telefono: string | null; contactoEmail: string | null }[]
+  >([]);
+  const [empresaNombre, setEmpresaNombre] = useState(convenio?.empresaNombre ?? "");
+  const [empresaCif, setEmpresaCif] = useState(convenio?.empresaCif ?? "");
+  const [tutorEmpresaNombre, setTutorEmpresaNombre] = useState(convenio?.tutorEmpresaNombre ?? "");
+  const [tutorEmpresaTelefono, setTutorEmpresaTelefono] = useState(convenio?.tutorEmpresaTelefono ?? "");
+  const [tutorEmpresaCorreo, setTutorEmpresaCorreo] = useState(convenio?.tutorEmpresaCorreo ?? "");
   const [catalogo, setCatalogo] = useState<{ id: string; codigo: string; nombre: string; horasEmpresa: number }[]>([]);
   const [cargandoCatalogo, setCargandoCatalogo] = useState(false);
   const [seleccion, setSeleccion] = useState<Record<string, number>>(() => {
@@ -63,9 +81,26 @@ export function ConvenioFormModal({
   useEffect(() => {
     if (open) {
       obtenerDepartamentosDelCentro().then(setDepartamentos);
-      obtenerCiclosDelCentro().then(setGruposCentro);
+      obtenerCiclosDelCentro().then((c) => {
+        setTodosLosCiclos(c);
+        if (!departamentoId) setGruposCentro(c);
+      });
     }
   }, [open]);
+
+  // Al elegir departamento, el desplegable de "Ciclo formativo" se limita
+  // a los ciclos vinculados a ese departamento (configurados por
+  // SuperAdmin en "Departamentos y ciclos") — si todavía no tiene ninguno
+  // configurado, se muestran todos los del centro como reserva.
+  useEffect(() => {
+    if (!departamentoId) {
+      setGruposCentro(todosLosCiclos);
+      return;
+    }
+    obtenerCiclosDelDepartamento(departamentoId).then((ciclos) => {
+      setGruposCentro(ciclos.length > 0 ? ciclos : todosLosCiclos);
+    });
+  }, [departamentoId, todosLosCiclos]);
 
   useEffect(() => {
     if (!cicloGrupo) {
@@ -77,6 +112,26 @@ export function ConvenioFormModal({
       .then(setCatalogo)
       .finally(() => setCargandoCatalogo(false));
   }, [cicloGrupo]);
+
+  useEffect(() => {
+    if (!cicloGrupo) {
+      setEmpresasDisponibles([]);
+      return;
+    }
+    obtenerEmpresasPorCiclo(cicloGrupo).then(setEmpresasDisponibles);
+  }, [cicloGrupo]);
+
+  function handleElegirEmpresa(id: string) {
+    setEmpresaId(id);
+    const e = empresasDisponibles.find((x) => x.id === id);
+    if (e) {
+      setEmpresaNombre(e.nombreComercial);
+      setEmpresaCif(e.cif ?? "");
+      setTutorEmpresaNombre(e.contactoNombre ?? "");
+      setTutorEmpresaTelefono(e.telefonoDirecto ?? e.telefono ?? "");
+      setTutorEmpresaCorreo(e.contactoEmail ?? "");
+    }
+  }
 
   const totalHoras = useMemo(() => Object.values(seleccion).reduce((s, h) => s + (Number(h) || 0), 0), [seleccion]);
 
@@ -335,7 +390,32 @@ export function ConvenioFormModal({
               </div>
 
               <div className="border-t border-slate-100 pt-4">
-                <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                    Elegir empresa (rellena los datos solos, pero se pueden editar)
+                  </label>
+                  <select
+                    value={empresaId}
+                    onChange={(e) => handleElegirEmpresa(e.target.value)}
+                    disabled={!cicloGrupo}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249] disabled:bg-slate-50 disabled:text-slate-400"
+                  >
+                    <option value="">
+                      {!cicloGrupo ? "Elige primero un ciclo arriba..." : "Escribir a mano (o elige una empresa)"}
+                    </option>
+                    {empresasDisponibles.map((e) => (
+                      <option key={e.id} value={e.id}>{e.nombreComercial}</option>
+                    ))}
+                  </select>
+                  {cicloGrupo && empresasDisponibles.length === 0 && (
+                    <p className="mt-1 text-[11px] text-slate-400">
+                      Este ciclo todavía no tiene ninguna empresa vinculada en el módulo Empresas — puedes escribir los datos a mano.
+                    </p>
+                  )}
+                </div>
+                <input type="hidden" name="empresaId" value={empresaId} />
+
+                <div className="mt-4 grid grid-cols-2 gap-6">
                   <div>
                     <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-400">Información de la empresa</h3>
                     <div className="space-y-3">
@@ -343,13 +423,13 @@ export function ConvenioFormModal({
                         <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                           {translate(locale, "practicas.empresaNombre")} <span className="text-red-500">*</span>
                         </label>
-                        <input name="empresaNombre" required defaultValue={convenio?.empresaNombre ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+                        <input name="empresaNombre" required value={empresaNombre} onChange={(e) => setEmpresaNombre(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
                       </div>
                       <div>
                         <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                           {translate(locale, "practicas.empresaCif")} <span className="text-red-500">*</span>
                         </label>
-                        <input name="empresaCif" required defaultValue={convenio?.empresaCif ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+                        <input name="empresaCif" required value={empresaCif} onChange={(e) => setEmpresaCif(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
                       </div>
                     </div>
                   </div>
@@ -360,19 +440,19 @@ export function ConvenioFormModal({
                         <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                           {translate(locale, "practicas.tutorEmpresaNombre")} <span className="text-red-500">*</span>
                         </label>
-                        <input name="tutorEmpresaNombre" required defaultValue={convenio?.tutorEmpresaNombre ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+                        <input name="tutorEmpresaNombre" required value={tutorEmpresaNombre} onChange={(e) => setTutorEmpresaNombre(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
                       </div>
                       <div>
                         <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                           {translate(locale, "practicas.tutorEmpresaTelefono")} <span className="text-red-500">*</span>
                         </label>
-                        <input name="tutorEmpresaTelefono" required defaultValue={convenio?.tutorEmpresaTelefono ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+                        <input name="tutorEmpresaTelefono" required value={tutorEmpresaTelefono} onChange={(e) => setTutorEmpresaTelefono(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
                       </div>
                       <div>
                         <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                           {translate(locale, "practicas.tutorEmpresaCorreo")} <span className="text-red-500">*</span>
                         </label>
-                        <input name="tutorEmpresaCorreo" type="email" required defaultValue={convenio?.tutorEmpresaCorreo ?? ""} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
+                        <input name="tutorEmpresaCorreo" type="email" required value={tutorEmpresaCorreo} onChange={(e) => setTutorEmpresaCorreo(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]" />
                       </div>
                     </div>
                   </div>

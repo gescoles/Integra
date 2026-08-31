@@ -85,6 +85,9 @@ export async function deleteSchool(id: string) {
   });
   const alumnoIds = alumnosDelCentro.map((a) => a.id);
 
+  const empresasDelCentro = await prisma.empresa.findMany({ where: { schoolId: id }, select: { id: true } });
+  const empresaIds = empresasDelCentro.map((e) => e.id);
+
   // Se borra todo lo asociado, en el orden correcto para no romper claves foráneas.
   if (alumnoIds.length > 0) {
     await prisma.alumnoContacto.deleteMany({ where: { alumnoId: { in: alumnoIds } } });
@@ -110,6 +113,24 @@ export async function deleteSchool(id: string) {
     await prisma.calendarEvento.deleteMany({ where: { userId: { in: userIds } } });
     await prisma.notificacion.deleteMany({ where: { userId: { in: userIds } } });
   }
+
+  // Módulos añadidos después de escribir esta función — igual que pasó
+  // con el borrado de usuarios, hacía falta sumarlos aquí también.
+  await prisma.certificacion.deleteMany({ where: { schoolId: id } });
+  await prisma.noticia.deleteMany({ where: { schoolId: id } });
+  await prisma.chatMensaje.deleteMany({ where: { schoolId: id } });
+  if (empresaIds.length > 0) {
+    await prisma.empresaDocumento.deleteMany({ where: { empresaId: { in: empresaIds } } });
+    await prisma.empresaHistorial.deleteMany({ where: { empresaId: { in: empresaIds } } });
+    await prisma.empresaObservacion.deleteMany({ where: { empresaId: { in: empresaIds } } });
+  }
+  await prisma.empresa.deleteMany({ where: { schoolId: id } });
+  // Por si quedara algún ConvenioModulo suelto de otro centro apuntando
+  // aquí (no debería, pero es una red de seguridad barata).
+  await prisma.convenioModulo.deleteMany({ where: { moduloProfesional: { schoolId: id } } });
+  await prisma.moduloProfesional.deleteMany({ where: { schoolId: id } });
+  await prisma.departamento.deleteMany({ where: { schoolId: id } });
+
   await prisma.user.deleteMany({ where: { schoolId: id } });
 
   await prisma.school.delete({ where: { id } });
