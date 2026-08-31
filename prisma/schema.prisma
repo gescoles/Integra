@@ -81,6 +81,7 @@ model School {
   chatMensajes ChatMensaje[]
   empresas  Empresa[]
   certificaciones Certificacion[]
+  certificacionesCatalogo CertificacionCatalogo[]
   avisos    Aviso[]
   noticias  Noticia[]
   salidas   Salida[]
@@ -112,6 +113,7 @@ model Departamento {
   coordinadores User[]   @relation("DepartamentoCoordinadores")
   convenios     Convenio[]
   salidas       Salida[]
+  certificacionesCatalogo CertificacionCatalogo[]
   empresas      Empresa[]
   createdAt     DateTime @default(now())
 }
@@ -1135,6 +1137,10 @@ model Configuracion {
   // opción igual, pero les sale un aviso de que está bloqueado. Se activa
   // desde el panel de SuperAdmin el día que haga falta un plan B general.
   loginPasswordHabilitado Boolean @default(false)
+  // Con esto en true (por defecto, como funcionaba hasta ahora), las
+  // Historias que sube cualquier centro las ven todos los centros entre
+  // sí. Con esto en false, cada centro solo ve las suyas propias.
+  historiasEntreCentros   Boolean @default(true)
 }
 
 // Historial de un usuario: qué le han hecho, quién y cuándo (crear,
@@ -1163,11 +1169,20 @@ enum EstadoCertificacion {
   PROGRAMADA
   EN_CURSO
   ACTIVA
+  ACABADA
 }
 
 model CertificacionCatalogo {
   id           String   @id @default(cuid())
   categoria    String
+  // Si se deja sin centro, el curso vale para todos los centros de la
+  // plataforma (como hasta ahora). Si se le pone un centro concreto,
+  // solo ese centro lo verá — y entonces sí puede llevar un departamento
+  // real de ESE centro (los departamentos son siempre de un centro).
+  schoolId     String?
+  school       School?  @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  departamentoId String?
+  departamentoRef Departamento? @relation(fields: [departamentoId], references: [id], onDelete: SetNull)
   nombre       String
   horasDefault Int?
   sedeExamenDefault String?

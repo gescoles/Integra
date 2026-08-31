@@ -146,8 +146,17 @@ export async function obtenerHistoriasActivas() {
   const session = await getServerSession(authOptions);
   if (!session?.user.id) return [];
 
+  // Por defecto (interruptor activado) se ven las historias de todos los
+  // centros, como ha funcionado siempre. Si el SuperAdmin lo desactiva,
+  // cada centro solo ve las suyas.
+  const config = await prisma.configuracion.findUnique({ where: { id: "global" } });
+  const verEntreCentros = config?.historiasEntreCentros ?? true;
+
   const historiasRaw = await prisma.historia.findMany({
-    where: { expiraEn: { gt: new Date() } },
+    where: {
+      expiraEn: { gt: new Date() },
+      ...(verEntreCentros ? {} : { schoolId: session.user.schoolId ?? undefined }),
+    },
     include: {
       school: { select: { id: true, name: true, logoUrl: true } },
       autor: { select: { name: true, email: true } },

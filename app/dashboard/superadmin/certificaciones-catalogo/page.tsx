@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { DashboardHeader } from "../../components/DashboardHeader";
 import { CatalogoAdminClient } from "./CatalogoAdminClient";
-import { obtenerCatalogoCompleto, obtenerCategoriasDisponibles } from "./actions";
+import { obtenerCatalogoCompleto, obtenerCategoriasDisponibles, obtenerCentrosDisponibles } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ export default async function CertificacionesCatalogoPage() {
 
   if (role !== "SUPERADMIN") redirect("/dashboard");
 
-  const [catalogo, categorias] = await Promise.all([obtenerCatalogoCompleto(), obtenerCategoriasDisponibles()]);
+  const [catalogo, categorias, centros] = await Promise.all([obtenerCatalogoCompleto(), obtenerCategoriasDisponibles(), obtenerCentrosDisponibles()]);
 
   return (
     <div>
@@ -25,7 +25,7 @@ export default async function CertificacionesCatalogoPage() {
         role={role}
         notificationCount={0}
       />
-      <CatalogoAdminClient catalogo={catalogo} categorias={categorias} />
+      <CatalogoAdminClient catalogo={catalogo} categorias={categorias} centros={centros} />
     </div>
   );
 }

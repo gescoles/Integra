@@ -1,14 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, Pencil, X } from "lucide-react";
-import { crearEntradaCatalogo, actualizarEntradaCatalogo, eliminarEntradaCatalogo } from "./actions";
+import { crearEntradaCatalogo, actualizarEntradaCatalogo, eliminarEntradaCatalogo, obtenerDepartamentosDeCentro, obtenerCategoriasDelDepartamentoAdmin } from "./actions";
 import { ButtonSpinner } from "../../components/ButtonSpinner";
 
 type EntradaCatalogo = {
   id: string;
   categoria: string;
+  schoolId: string | null;
+  schoolName: string | null;
+  departamentoId: string | null;
+  departamentoNombre: string | null;
   nombre: string;
   horasDefault: number | null;
   sedeExamenDefault: string | null;
@@ -20,9 +24,11 @@ type EntradaCatalogo = {
   proximasConvocatorias: string | null;
 };
 
+type Centro = { id: string; name: string };
+
 const inputClass = "w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]";
 
-export function CatalogoAdminClient({ catalogo, categorias }: { catalogo: EntradaCatalogo[]; categorias: string[] }) {
+export function CatalogoAdminClient({ catalogo, categorias, centros }: { catalogo: EntradaCatalogo[]; categorias: string[]; centros: Centro[] }) {
   const router = useRouter();
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -32,17 +38,52 @@ export function CatalogoAdminClient({ catalogo, categorias }: { catalogo: Entrad
   const [categoriaCombo, setCategoriaCombo] = useState("");
   const [nuevaCategoriaTexto, setNuevaCategoriaTexto] = useState("");
   const [usandoCategoriaNueva, setUsandoCategoriaNueva] = useState(false);
+  const [schoolIdElegido, setSchoolIdElegido] = useState("");
+  const [departamentosDelCentro, setDepartamentosDelCentro] = useState<{ id: string; nombre: string }[]>([]);
+  const [departamentoIdElegido, setDepartamentoIdElegido] = useState("");
+  const [categoriasDelDepartamento, setCategoriasDelDepartamento] = useState<string[]>([]);
 
   const entradasFiltradas = useMemo(
     () => (categoriaFiltro ? catalogo.filter((c) => c.categoria === categoriaFiltro) : catalogo),
     [catalogo, categoriaFiltro]
   );
 
+  useEffect(() => {
+    if (!schoolIdElegido) {
+      setDepartamentosDelCentro([]);
+      return;
+    }
+    obtenerDepartamentosDeCentro(schoolIdElegido).then((lista) => {
+      setDepartamentosDelCentro(lista);
+      if (departamentoIdElegido && !lista.some((d) => d.id === departamentoIdElegido)) {
+        setDepartamentoIdElegido("");
+      }
+    });
+  }, [schoolIdElegido]);
+
+  // Cada departamento va acumulando sus propias categorías, distintas de
+  // las de otros — al elegir uno, se cargan justo las suyas (más las 16
+  // de partida, por si es un departamento nuevo sin ninguna todavía).
+  useEffect(() => {
+    if (!departamentoIdElegido) {
+      setCategoriasDelDepartamento([]);
+      return;
+    }
+    obtenerCategoriasDelDepartamentoAdmin(departamentoIdElegido).then((lista) => {
+      setCategoriasDelDepartamento(lista);
+      if (!usandoCategoriaNueva && !lista.includes(categoriaCombo)) {
+        setCategoriaCombo(lista[0] ?? "");
+      }
+    });
+  }, [departamentoIdElegido]);
+
   function handleAbrirCrear() {
     setEditando(null);
-    setCategoriaCombo(categorias[0] ?? "");
+    setCategoriaCombo("");
     setUsandoCategoriaNueva(false);
     setNuevaCategoriaTexto("");
+    setSchoolIdElegido("");
+    setDepartamentoIdElegido("");
     setError(null);
     setModalAbierto(true);
   }
@@ -52,6 +93,8 @@ export function CatalogoAdminClient({ catalogo, categorias }: { catalogo: Entrad
     setCategoriaCombo(entrada.categoria);
     setUsandoCategoriaNueva(false);
     setNuevaCategoriaTexto("");
+    setSchoolIdElegido(entrada.schoolId ?? "");
+    setDepartamentoIdElegido(entrada.departamentoId ?? "");
     setError(null);
     setModalAbierto(true);
   }
@@ -60,6 +103,8 @@ export function CatalogoAdminClient({ catalogo, categorias }: { catalogo: Entrad
     setPending(true);
     setError(null);
     formData.set("categoria", usandoCategoriaNueva ? nuevaCategoriaTexto.trim() : categoriaCombo);
+    formData.set("schoolId", schoolIdElegido);
+    formData.set("departamentoId", departamentoIdElegido);
     try {
       if (editando) {
         await actualizarEntradaCatalogo(editando.id, formData);
@@ -120,6 +165,8 @@ export function CatalogoAdminClient({ catalogo, categorias }: { catalogo: Entrad
           <thead>
             <tr className="border-b border-slate-100 text-xs text-slate-400">
               <th className="px-4 py-3 font-medium">Categoría</th>
+              <th className="px-4 py-3 font-medium">Centro</th>
+              <th className="px-4 py-3 font-medium">Departamento</th>
               <th className="px-4 py-3 font-medium">Nombre</th>
               <th className="px-4 py-3 font-medium">Horas</th>
               <th className="w-24 px-4 py-3" />
@@ -129,6 +176,8 @@ export function CatalogoAdminClient({ catalogo, categorias }: { catalogo: Entrad
             {entradasFiltradas.map((e) => (
               <tr key={e.id} className="border-b border-slate-50 last:border-0">
                 <td className="px-4 py-3 text-slate-500">{e.categoria}</td>
+                <td className="px-4 py-3 text-slate-500">{e.schoolName ?? "Todos los centros"}</td>
+                <td className="px-4 py-3 text-slate-500">{e.departamentoNombre ?? "—"}</td>
                 <td className="px-4 py-3 font-medium text-slate-700">{e.nombre}</td>
                 <td className="px-4 py-3 text-slate-500">{e.horasDefault ?? "—"}</td>
                 <td className="px-4 py-3">
@@ -166,17 +215,60 @@ export function CatalogoAdminClient({ catalogo, categorias }: { catalogo: Entrad
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                    Centro <span className="text-red-500">*</span>
+                  </label>
+                  <select value={schoolIdElegido} onChange={(e) => setSchoolIdElegido(e.target.value)} required className={inputClass}>
+                    <option value="" disabled>Selecciona...</option>
+                    {centros.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                    Departamento <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={departamentoIdElegido}
+                    onChange={(e) => setDepartamentoIdElegido(e.target.value)}
+                    disabled={!schoolIdElegido}
+                    required
+                    className={`${inputClass} disabled:bg-slate-50 disabled:text-slate-400`}
+                  >
+                    <option value="" disabled>{schoolIdElegido ? "Selecciona..." : "Elige primero un centro..."}</option>
+                    {departamentosDelCentro.map((d) => (
+                      <option key={d.id} value={d.id}>{d.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                     Categoría <span className="text-red-500">*</span>
                   </label>
                   {!usandoCategoriaNueva ? (
                     <>
-                      <select value={categoriaCombo} onChange={(e) => setCategoriaCombo(e.target.value)} className={inputClass}>
-                        {categorias.map((cat) => (
+                      <select
+                        value={categoriaCombo}
+                        onChange={(e) => setCategoriaCombo(e.target.value)}
+                        disabled={!departamentoIdElegido}
+                        required
+                        className={`${inputClass} disabled:bg-slate-50 disabled:text-slate-400`}
+                      >
+                        <option value="" disabled>{departamentoIdElegido ? "Selecciona..." : "Elige primero un departamento..."}</option>
+                        {categoriasDelDepartamento.map((cat) => (
                           <option key={cat} value={cat}>{cat}</option>
                         ))}
                       </select>
-                      <button type="button" onClick={() => setUsandoCategoriaNueva(true)} className="mt-1 text-xs font-semibold text-[#FD5249] hover:underline">
-                        + Añadir una categoría nueva
+                      <button
+                        type="button"
+                        disabled={!departamentoIdElegido}
+                        onClick={() => setUsandoCategoriaNueva(true)}
+                        className="mt-1 text-xs font-semibold text-[#FD5249] hover:underline disabled:text-slate-300"
+                      >
+                        + Añadir una categoría nueva a este departamento
                       </button>
                     </>
                   ) : (

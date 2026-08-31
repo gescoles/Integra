@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { calcularEstadoPorFechas } from "@/lib/certificacionesAutoEstado";
 
 // Las 16 categorías son fijas, iguales para cualquier centro — viven en
 // ./constants.ts (archivo aparte, sin "use server") porque un archivo de
@@ -13,10 +14,44 @@ function esDirectivo(role?: string) {
   return role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
 }
 
-export async function obtenerCatalogoPorCategoria(categoria: string) {
+// Departamentos que tienen al menos un curso cargado en el catálogo —
+// es el primer paso al programar una certificación.
+export async function obtenerDepartamentosCatalogo() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user.schoolId) return [];
+  // Todos los departamentos reales de TU centro — los mismos que ya se
+  // usan en Usuarios/Empresas, no una lista aparte inventada.
+  const departamentos = await prisma.departamento.findMany({
+    where: { schoolId: session.user.schoolId },
+    select: { id: true, nombre: true },
+    orderBy: { nombre: "asc" },
+  });
+  return departamentos;
+}
+
+// Categorías disponibles para un departamento de TU centro — incluye
+// tanto los cursos que el SuperAdmin haya asignado específicamente a ese
+// departamento, como los cursos "generales" (sin centro ni departamento
+// concretos, válidos para cualquiera).
+export async function obtenerCategoriasPorDepartamento(departamentoId: string) {
+  if (!departamentoId) return [];
+  // Filtrado exacto: solo las categorías que el SuperAdmin haya
+  // asignado específicamente a ESE departamento, ni más ni menos.
+  const existentes = await prisma.certificacionCatalogo.findMany({
+    where: { departamentoId },
+    select: { categoria: true },
+    distinct: ["categoria"],
+  });
+  return existentes.map((e) => e.categoria).sort();
+}
+
+export async function obtenerCatalogoPorCategoria(categoria: string, departamentoId?: string) {
   if (!categoria) return [];
   const catalogo = await prisma.certificacionCatalogo.findMany({
-    where: { categoria },
+    where: {
+      categoria,
+      ...(departamentoId ? { departamentoId } : {}),
+    },
     orderBy: { nombre: "asc" },
   });
   return catalogo.map((c) => ({
@@ -36,7 +71,14 @@ export async function obtenerCatalogoPorCategoria(categoria: string) {
 // El catálogo entero, para la pestaña "Catálogo de cursos" que puede
 // consultar cualquier rol (información del curso, sin poder tocar nada).
 export async function obtenerCatalogoCompletoPublico() {
+  const session = await getServerSession(authOptions);
+  // Solo se ven los cursos "generales" (válidos para cualquier centro) y
+  // los que el SuperAdmin haya asignado específicamente a TU centro —
+  // nunca los que sean solo de otro centro.
   const catalogo = await prisma.certificacionCatalogo.findMany({
+    where: session?.user.schoolId
+      ? { OR: [{ schoolId: null }, { schoolId: session.user.schoolId }] }
+      : { schoolId: null },
     orderBy: [{ categoria: "asc" }, { nombre: "asc" }],
   });
   return catalogo.map((c) => ({
@@ -98,12 +140,24 @@ function validarCamposObligatorios(datos: ReturnType<typeof leerCamposCertificac
   if (!datos.modalidad) throw new Error("La modalidad es obligatoria.");
 }
 
+// Aplica la regla: el estado calculado por fechas manda siempre, salvo
+// que se haya elegido "Activa" a mano — esa se respeta, a no ser que la
+// fecha de fin ya haya pasado, en cuyo caso también se cierra sola.
+function aplicarEstadoSegunFechas(datos: ReturnType<typeof leerCamposCertificacion>) {
+  const estadoCalculado = calcularEstadoPorFechas(datos.fechaInicioPreparacion, datos.fechaFinPreparacion);
+  if (datos.estado === "ACTIVA" && estadoCalculado !== "ACABADA") {
+    return; // se respeta "Activa" tal cual
+  }
+  datos.estado = estadoCalculado;
+}
+
 export async function crearCertificacion(formData: FormData) {
   const session = await getServerSession(authOptions);
   if (!session?.user.id || !session.user.schoolId) throw new Error("No autorizado.");
 
   const datos = leerCamposCertificacion(formData);
   validarCamposObligatorios(datos);
+  aplicarEstadoSegunFechas(datos);
 
   const cert = await prisma.certificacion.create({
     data: { ...datos, schoolId: session.user.schoolId, creadoPorId: session.user.id } as any,
@@ -127,6 +181,15 @@ export async function actualizarCertificacion(id: string, formData: FormData) {
 
   const datos = leerCamposCertificacion(formData);
   validarCamposObligatorios(datos);
+
+  // El estado se recalcula siempre según las fechas que se acaben de
+  // guardar, gane lo que gane lo que se haya dejado seleccionado a mano
+  // (Programada con fecha de inicio ya pasada pasa sola a En curso; En
+  // curso con fecha de fin ya pasada pasa sola a Acabada). La única
+  // excepción es "Activa", pensada como estado manual aparte: se
+  // respeta, salvo que la fecha de fin ya haya pasado, en cuyo caso
+  // también se cierra sola como Acabada.
+  aplicarEstadoSegunFechas(datos);
 
   await prisma.certificacion.update({ where: { id }, data: datos as any });
 
@@ -227,4 +290,20 @@ export async function obtenerCertificacion(id: string) {
     notas: c.notas,
     creadoPorId: c.creadoPorId,
   };
+}
+
+// Eliminar: solo quien la creó, o Coordinación/Administración/SuperAdmin
+// (que pueden eliminar cualquiera del centro).
+export async function eliminarCertificacion(id: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user.id) throw new Error("No autorizado.");
+
+  const cert = await prisma.certificacion.findUnique({ where: { id } });
+  if (!cert || cert.schoolId !== session.user.schoolId) throw new Error("No se ha encontrado la certificación.");
+  if (cert.creadoPorId !== session.user.id && !esDirectivo(session.user.role)) {
+    throw new Error("Solo quien la creó, o Coordinación/Administración, puede eliminarla.");
+  }
+
+  await prisma.certificacion.delete({ where: { id } });
+  revalidatePath("/dashboard/certificaciones");
 }

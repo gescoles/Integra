@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ShieldCheck,
   GraduationCap,
@@ -16,8 +17,10 @@ import {
   Plus,
   Pencil,
   FileSpreadsheet,
+  Trash2,
 } from "lucide-react";
 import { CrearCertificacionModal } from "./CrearCertificacionModal";
+import { eliminarCertificacion } from "./actions";
 
 type CursoCatalogo = {
   id: string;
@@ -59,12 +62,14 @@ const ESTADO_BADGE: Record<string, string> = {
   PROGRAMADA: "bg-amber-100 text-amber-700",
   EN_CURSO: "bg-blue-100 text-blue-700",
   ACTIVA: "bg-emerald-100 text-emerald-700",
+  ACABADA: "bg-purple-100 text-purple-700",
 };
 const ESTADO_LABEL: Record<string, string> = {
   PROXIMAMENTE: "Próximamente",
   PROGRAMADA: "Programada",
   EN_CURSO: "En curso",
   ACTIVA: "Activa",
+  ACABADA: "Acabada",
 };
 
 function fecha(iso: string | null) {
@@ -80,6 +85,7 @@ export function CertificacionesClient({
   certificaciones,
   catalogo,
   categorias,
+  departamentos,
   cursoAcademicoCentro,
   gruposCentro,
   profesores,
@@ -90,6 +96,7 @@ export function CertificacionesClient({
   certificaciones: Certificacion[];
   catalogo: CursoCatalogo[];
   categorias: string[];
+  departamentos: { id: string; nombre: string }[];
   cursoAcademicoCentro: string | null;
   gruposCentro: string[];
   profesores: { id: string; nombre: string; cantidad: number }[];
@@ -103,6 +110,26 @@ export function CertificacionesClient({
   const [cicloFiltro, setCicloFiltro] = useState("");
   const [profesorFiltro, setProfesorFiltro] = useState("");
   const [seleccionadaId, setSeleccionadaId] = useState<string | null>(certificaciones[0]?.id ?? null);
+  const [certAEliminar, setCertAEliminar] = useState<string | null>(null);
+  const [eliminando, setEliminando] = useState(false);
+  const [errorEliminar, setErrorEliminar] = useState<string | null>(null);
+  const router = useRouter();
+
+  async function handleEliminar() {
+    if (!certAEliminar) return;
+    setEliminando(true);
+    setErrorEliminar(null);
+    try {
+      await eliminarCertificacion(certAEliminar);
+      setCertAEliminar(null);
+      setSeleccionadaId(null);
+      router.refresh();
+    } catch (e) {
+      setErrorEliminar(e instanceof Error ? e.message : "No se pudo eliminar.");
+    } finally {
+      setEliminando(false);
+    }
+  }
 
   const cursos = useMemo(() => Array.from(new Set(certificaciones.map((c) => c.cursoAcademico))).sort(), [certificaciones]);
 
@@ -195,7 +222,7 @@ export function CertificacionesClient({
             </div>
           </>
         )}
-        <CrearCertificacionModal categorias={categorias} cursoAcademicoCentro={cursoAcademicoCentro} gruposCentro={gruposCentro} />
+        <CrearCertificacionModal categorias={categorias} departamentos={departamentos} cursoAcademicoCentro={cursoAcademicoCentro} gruposCentro={gruposCentro} />
         {esSuperAdmin && (
           <a
             href="/api/superadmin/exportar-certificaciones"
@@ -258,8 +285,10 @@ export function CertificacionesClient({
                 <div className="flex items-center gap-2">
                   <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${ESTADO_BADGE[seleccionada.estado]}`}>{ESTADO_LABEL[seleccionada.estado]}</span>
                   {(esDirectivo || seleccionada.creadoPorId === userId) && (
+                    <>
                     <CrearCertificacionModal
                       categorias={categorias}
+                      departamentos={departamentos}
                       cursoAcademicoCentro={cursoAcademicoCentro}
                       gruposCentro={gruposCentro}
                       certificacionId={seleccionada.id}
@@ -269,6 +298,13 @@ export function CertificacionesClient({
                         </button>
                       }
                     />
+                    <button
+                      onClick={() => setCertAEliminar(seleccionada.id)}
+                      className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-red-400 hover:text-red-600"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Eliminar
+                    </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -282,6 +318,7 @@ export function CertificacionesClient({
                 <Dato label="Fecha de fin de preparación" valor={fecha(seleccionada.fechaFinPreparacion)} />
                 <Dato label="Fecha de examen" valor={fecha(seleccionada.fechaExamen)} />
                 <Dato label="Estado" valor={ESTADO_LABEL[seleccionada.estado]} />
+                <Dato label="Responsable" valor={seleccionada.creadoPorNombre} />
               </dl>
 
               <div className="mt-5 border-t border-slate-100 pt-4">
@@ -298,10 +335,6 @@ export function CertificacionesClient({
                   <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Notas / Observaciones</h3>
                   <p className="text-sm text-slate-500">{seleccionada.notas}</p>
                 </div>
-              )}
-
-              {esDirectivo && seleccionada.creadoPorNombre && (
-                <p className="mt-4 text-xs text-slate-400">Creada por {seleccionada.creadoPorNombre}</p>
               )}
             </>
           )}
@@ -339,9 +372,28 @@ export function CertificacionesClient({
         <CatalogoCursosVista
           catalogo={catalogo}
           categorias={categorias}
+          departamentos={departamentos}
           cursoAcademicoCentro={cursoAcademicoCentro}
           gruposCentro={gruposCentro}
         />
+      )}
+
+      {certAEliminar && (
+        <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/40 p-6" onClick={() => setCertAEliminar(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-white p-6">
+            <h3 className="text-base font-bold text-[#0B1D4D]">¿Eliminar esta certificación?</h3>
+            <p className="mt-2 text-sm text-slate-500">Esta acción no se puede deshacer.</p>
+            {errorEliminar && <div className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{errorEliminar}</div>}
+            <div className="mt-5 flex justify-end gap-2">
+              <button onClick={() => setCertAEliminar(null)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                Cancelar
+              </button>
+              <button onClick={handleEliminar} disabled={eliminando} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60">
+                {eliminando ? "Eliminando..." : "Eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -350,11 +402,13 @@ export function CertificacionesClient({
 function CatalogoCursosVista({
   catalogo,
   categorias,
+  departamentos,
   cursoAcademicoCentro,
   gruposCentro,
 }: {
   catalogo: CursoCatalogo[];
   categorias: string[];
+  departamentos: { id: string; nombre: string }[];
   cursoAcademicoCentro: string | null;
   gruposCentro: string[];
 }) {
@@ -431,6 +485,7 @@ function CatalogoCursosVista({
               </div>
               <CrearCertificacionModal
                 categorias={categorias}
+                departamentos={departamentos}
                 cursoAcademicoCentro={cursoAcademicoCentro}
                 gruposCentro={gruposCentro}
                 categoriaInicial={curso.categoria}

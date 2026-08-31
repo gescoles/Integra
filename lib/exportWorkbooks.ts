@@ -555,6 +555,7 @@ const ESTADO_CERTIFICACION_LABEL: Record<string, string> = {
   PROGRAMADA: "Programada",
   EN_CURSO: "En curso",
   ACTIVA: "Activa",
+  ACABADA: "Acabada",
 };
 
 // Copia por centro (para el backup automático en Drive, igual que

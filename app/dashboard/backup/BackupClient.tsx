@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DatabaseBackup, RotateCcw, Clock, HardDrive, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { crearCopiaSeguridad, crearCopiaExcelModulos, listarCopiasSeguridad, restaurarDesdeArchivo, crearBackupBaseDatosInstantaneo, listarBackupsCentro, restaurarBackupCentro } from "./actions";
-import { actualizarLoginPasswordHabilitado } from "../configuracion/actions";
+import { actualizarLoginPasswordHabilitado, actualizarHistoriasEntreCentrosHabilitado } from "../configuracion/actions";
 import { ButtonSpinner } from "../components/ButtonSpinner";
 import { AssemblingLogo } from "../components/AssemblingLogo";
 import { useLocale } from "../SchoolContext";
@@ -26,9 +26,11 @@ function formatFecha(iso: string | null) {
 export function BackupClient({
   schools,
   loginPasswordHabilitadoInicial,
+  historiasEntreCentrosHabilitadoInicial,
 }: {
   schools: { id: string; name: string }[];
   loginPasswordHabilitadoInicial: boolean;
+  historiasEntreCentrosHabilitadoInicial: boolean;
 }) {
   const router = useRouter();
   const { locale } = useLocale();
@@ -48,6 +50,8 @@ export function BackupClient({
   const [restaurandoCentro, setRestaurandoCentro] = useState(false);
   const [loginPasswordHabilitado, setLoginPasswordHabilitado] = useState(loginPasswordHabilitadoInicial);
   const [cambiandoInterruptor, setCambiandoInterruptor] = useState(false);
+  const [historiasEntreCentros, setHistoriasEntreCentros] = useState(historiasEntreCentrosHabilitadoInicial);
+  const [cambiandoInterruptorHistorias, setCambiandoInterruptorHistorias] = useState(false);
 
   async function handleToggleLoginPassword() {
     const nuevoValor = !loginPasswordHabilitado;
@@ -61,6 +65,21 @@ export function BackupClient({
       setError(e instanceof Error ? e.message : "No se pudo cambiar el ajuste.");
     } finally {
       setCambiandoInterruptor(false);
+    }
+  }
+
+  async function handleToggleHistoriasEntreCentros() {
+    const nuevoValor = !historiasEntreCentros;
+    setCambiandoInterruptorHistorias(true);
+    setError(null);
+    try {
+      await actualizarHistoriasEntreCentrosHabilitado(nuevoValor);
+      setHistoriasEntreCentros(nuevoValor);
+      setExito(nuevoValor ? "Las historias ya se vuelven a ver entre todos los centros." : "Cada centro ya solo ve sus propias historias.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo cambiar el ajuste.");
+    } finally {
+      setCambiandoInterruptorHistorias(false);
     }
   }
 
@@ -215,6 +234,28 @@ export function BackupClient({
           <span
             className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
               loginPasswordHabilitado ? "translate-x-8" : "translate-x-1"
+            }`}
+          />
+        </button>
+      </div>
+
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-5">
+        <div>
+          <h3 className="text-sm font-bold text-[#0B1D4D]">Historias entre centros</h3>
+          <p className="mt-1 max-w-xl text-xs text-slate-500">
+            Con esto activado (lo normal), las historias que sube cualquier centro las pueden ver todos los demás centros entre sí, como hasta ahora. Desactívalo si quieres que cada centro solo vea las suyas propias.
+          </p>
+        </div>
+        <button
+          onClick={handleToggleHistoriasEntreCentros}
+          disabled={cambiandoInterruptorHistorias}
+          className={`relative inline-flex h-7 w-14 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 ${
+            historiasEntreCentros ? "bg-emerald-500" : "bg-slate-300"
+          }`}
+        >
+          <span
+            className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
+              historiasEntreCentros ? "translate-x-8" : "translate-x-1"
             }`}
           />
         </button>

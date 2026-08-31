@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { DashboardHeader } from "../components/DashboardHeader";
 import { ModuleLocked } from "../components/ModuleLocked";
 import { CertificacionesClient } from "./CertificacionesClient";
-import { obtenerCertificaciones, obtenerProfesoresConCertificaciones, obtenerCatalogoCompletoPublico } from "./actions";
+import { obtenerCertificaciones, obtenerProfesoresConCertificaciones, obtenerCatalogoCompletoPublico, obtenerDepartamentosCatalogo } from "./actions";
 import { obtenerCategoriasDisponibles } from "../superadmin/certificaciones-catalogo/actions";
 
 export const dynamic = "force-dynamic";
@@ -38,11 +38,12 @@ export default async function CertificacionesPage() {
     );
   }
 
-  const [certificaciones, profesores, catalogo, categorias] = await Promise.all([
+  const [certificaciones, profesores, catalogo, categorias, departamentos] = await Promise.all([
     obtenerCertificaciones(),
     esDirectivo ? obtenerProfesoresConCertificaciones() : Promise.resolve([]),
     obtenerCatalogoCompletoPublico(),
     obtenerCategoriasDisponibles(),
+    obtenerDepartamentosCatalogo(),
   ]);
 
   return (
@@ -52,6 +53,7 @@ export default async function CertificacionesPage() {
         certificaciones={certificaciones}
         catalogo={catalogo}
         categorias={categorias}
+        departamentos={departamentos}
         cursoAcademicoCentro={school.cursoAcademico}
         gruposCentro={school.grupos}
         profesores={profesores}
