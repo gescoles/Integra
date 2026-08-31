@@ -179,6 +179,7 @@ export function GuardiaFormModal({
                     </label>
                     <input
                       name="ubicacion"
+                      required
                       placeholder={translate(locale, "guardias.aulaPlaceholder")}
                       className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                     />
@@ -189,6 +190,7 @@ export function GuardiaFormModal({
                     </label>
                     <input
                       name="grupo"
+                      required
                       placeholder={translate(locale, "guardias.grupoPlaceholder")}
                       className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                     />

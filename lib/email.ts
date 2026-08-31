@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { generarICSCobertura } from "./generarICS";
 
 function getTransporter() {
   const host = process.env.SMTP_HOST;
@@ -733,6 +734,7 @@ export async function sendReservaConfirmadaEmail(params: {
 }
 
 export async function sendCoberturaEmail(params: {
+  id: string;
   to: string;
   sustitutoNombre: string;
   ausenteNombre: string;
@@ -751,6 +753,20 @@ export async function sendCoberturaEmail(params: {
     weekday: "long",
     day: "2-digit",
     month: "long",
+  });
+
+  // El archivo .ics adjunto es lo que hace que Outlook/Teams reconozcan
+  // el correo como una cita y muestren su propio botón de "Agregar al
+  // calendario" — no hace falta ningún permiso de Microsoft para esto.
+  const ics = generarICSCobertura({
+    id: params.id,
+    ausenteNombre: params.ausenteNombre,
+    asignatura: params.asignatura,
+    grupo: params.grupo,
+    ubicacion: params.ubicacion,
+    fecha: params.fecha,
+    horaInicio: params.horaInicio,
+    horaFin: params.horaFin,
   });
 
   await transporter.sendMail({
@@ -772,11 +788,24 @@ export async function sendCoberturaEmail(params: {
           ${params.ubicacion ? `<p style="margin:8px 0 0;"><strong>Aula/Ubicación:</strong> ${params.ubicacion}</p>` : ""}
           ${params.trabajoAlumnos ? `<p style="margin:8px 0 0;"><strong>Qué tienen que hacer los alumnos:</strong> ${params.trabajoAlumnos}</p>` : ""}
         </div>
+        <a href="${process.env.NEXTAUTH_URL}/api/calendario-teams/${params.id}" style="display:inline-block; background:#0B1D4D; color:#ffffff; text-decoration:none; padding:10px 16px; border-radius:8px; font-size:14px; font-weight:bold; margin: 4px 0 12px;">
+          📅 Añadir la Guardia al calendario de Teams
+        </a>
+        <p style="color:#64748B; font-size:12px; margin-top:0;">
+          Al pulsar el botón, Microsoft te pedirá iniciar sesión (si no la tienes ya abierta) y permiso para escribir en tu calendario — solo la primera vez.
+        </p>
         <p style="color:#64748B; font-size:13px;">
           Este aviso se ha generado automáticamente desde Docentium, en Guardias.
         </p>
       </div>
     `,
+    attachments: [
+      {
+        filename: "guardia.ics",
+        content: ics,
+        contentType: "text/calendar; charset=utf-8; method=PUBLISH",
+      },
+    ],
   });
 }
 

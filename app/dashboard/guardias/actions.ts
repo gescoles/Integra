@@ -6,6 +6,7 @@ import { GuardiaStatus } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sendGuardiaEmail, sendCoberturaEmail, sendSolicitudCoberturaEmail, sendCoberturaResueltaEmail, sendSolicitudRechazadaEmail, sendGuardiaEliminadaEmail, sendGuardiaModificadaEmail, sendCoberturaEliminadaEmail, sendCoberturaModificadaEmail, sendAusenciaAceptadaEmail } from "@/lib/email";
+import { createTeamsCalendarEvent } from "@/lib/microsoftGraph";
 import { notifyUsers } from "@/lib/notifications";
 import { getSupabaseAdmin, JUSTIFICANTES_BUCKET } from "@/lib/supabaseAdmin";
 import { ensureSubfolder, uploadGenericFileToDrive } from "@/lib/googleDrive";
@@ -47,6 +48,7 @@ async function avisarSustituto(params: {
   try {
     if (params.sustitutoEmail) {
       await sendCoberturaEmail({
+        id: params.coberturaId,
         to: params.sustitutoEmail,
         sustitutoNombre: params.sustitutoNombre,
         ausenteNombre: params.ausenteNombre,
@@ -61,6 +63,28 @@ async function avisarSustituto(params: {
     }
   } catch {
     // No pasa nada si falla el email; la notificación en la app ya ha avisado.
+  }
+
+  try {
+    if (params.sustitutoEmail) {
+      const [hIni, mIni] = params.horaInicio.split(":").map(Number);
+      const [hFin, mFin] = params.horaFin.split(":").map(Number);
+      const inicio = new Date(params.fecha);
+      inicio.setHours(hIni, mIni, 0, 0);
+      const fin = new Date(params.fecha);
+      fin.setHours(hFin, mFin, 0, 0);
+      await createTeamsCalendarEvent({
+        userEmail: params.sustitutoEmail,
+        subject: `Guardia: cubrir a ${params.ausenteNombre}`,
+        bodyHtml: `Cobertura de guardia.${params.asignatura ? ` Asignatura: ${params.asignatura}.` : ""}${params.grupo ? ` Grupo: ${params.grupo}.` : ""}`,
+        start: inicio,
+        end: fin,
+        location: params.ubicacion || undefined,
+      });
+    }
+  } catch {
+    // Igual que el email: si falla Teams, no pasa nada — la notificación
+    // en la app y el correo ya han avisado de todas formas.
   }
 }
 
@@ -902,6 +926,8 @@ export async function createGuardia(formData: FormData) {
   if (!schoolId) throw new Error("Falta el centro.");
   if (!profesorId) throw new Error("Elige el profesor al que asignar la guardia.");
   if (!turno) throw new Error("El turno es obligatorio.");
+  if (!ubicacion) throw new Error("El aula/ubicación es obligatoria.");
+  if (!grupo) throw new Error("El grupo es obligatorio.");
   if (!fechaRaw) throw new Error("La fecha es obligatoria.");
   if (!horaRaw) throw new Error("La hora es obligatoria.");
 
@@ -949,6 +975,23 @@ export async function createGuardia(formData: FormData) {
     avisos.push({ canal: "email", ok: true });
   } catch (e) {
     avisos.push({ canal: "email", ok: false, error: e instanceof Error ? e.message : "Error desconocido" });
+  }
+
+  try {
+    const [horas, minutos] = horaRaw.split(":").map(Number);
+    const finGuardia = new Date(fecha);
+    finGuardia.setHours(horas, minutos + 55); // guardia de 55 min por defecto, como una clase
+    await createTeamsCalendarEvent({
+      userEmail: profesor.email,
+      subject: `Guardia: ${turno}`,
+      bodyHtml: `Guardia asignada.${grupo ? ` Grupo: ${grupo}.` : ""}${ubicacion ? ` Aula: ${ubicacion}.` : ""}${tarea ? ` Tarea: ${tarea}.` : ""}`,
+      start: fecha,
+      end: finGuardia,
+      location: ubicacion || undefined,
+    });
+    avisos.push({ canal: "teams", ok: true });
+  } catch (e) {
+    avisos.push({ canal: "teams", ok: false, error: e instanceof Error ? e.message : "Error desconocido" });
   }
 
   return { avisos };
