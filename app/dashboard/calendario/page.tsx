@@ -166,7 +166,7 @@ export default async function CalendarioPage({
         .filter((g) => isoDate(g.fecha) === dateIso)
         .map((g) => ({
           id: `guardia-${g.id}`,
-          title: g.turno,
+          title: g.turno ?? g.grupo ?? "Guardia",
           subtitle: g.ubicacion ?? "",
           start: minutesFromDate(g.fecha),
           duration: 45,

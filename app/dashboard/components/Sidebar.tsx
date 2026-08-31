@@ -40,7 +40,7 @@ import { LanguageSwitcher } from "./LanguageSwitcher";
 import { UserProfileButton } from "./UserProfileButton";
 import { NotificationBell } from "./NotificationBell";
 import { ThemeToggle } from "./ThemeToggle";
-import { useLocale, useChatInterno, useSidebarColapsado } from "../SchoolContext";
+import { useLocale, useChatInterno, useSidebarColapsado, useDoqui } from "../SchoolContext";
 import { BuscadorGlobal } from "./BuscadorGlobal";
 import { buscarAlumnosGlobal } from "../busquedaActions";
 import { translate, TranslationKey } from "../i18n";
@@ -148,6 +148,7 @@ export function Sidebar({
   const pathname = usePathname();
   const { locale } = useLocale();
   const { totalNoLeidos, abrir: abrirChat, notificaciones: notificacionesChat } = useChatInterno();
+  const doqui = useDoqui();
   const { colapsado: sidebarColapsado, toggle: toggleSidebar } = useSidebarColapsado();
   const [chatNotifAbierto, setChatNotifAbierto] = useState(false);
   const router = useRouter();
@@ -290,6 +291,7 @@ export function Sidebar({
           <ThemeToggle />
 
           <button
+            onClick={() => doqui.abrir()}
             aria-label="Ayuda"
             title="Ayuda"
             className="hidden rounded-lg border border-slate-200 bg-white p-2.5 text-slate-400 hover:bg-slate-50 sm:block"

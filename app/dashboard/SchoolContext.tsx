@@ -42,6 +42,12 @@ type DashboardMeta = {
   // de 3 líneas de arriba. Se recuerda entre visitas con localStorage.
   sidebarColapsado: boolean;
   toggleSidebar: () => void;
+  // El chatbot Doqui: mismo motivo que el chat interno — el botón de
+  // Ayuda vive en la barra superior, pero el panel del chatbot vive en
+  // otro componente (ChatWidget), así que comparten este estado.
+  doquiAbierto: boolean;
+  abrirDoqui: () => void;
+  cerrarDoqui: () => void;
 };
 
 const DashboardMetaContext = createContext<DashboardMeta>({
@@ -63,6 +69,9 @@ const DashboardMetaContext = createContext<DashboardMeta>({
   chatNotificaciones: [],
   sidebarColapsado: false,
   toggleSidebar: () => {},
+  doquiAbierto: false,
+  abrirDoqui: () => {},
+  cerrarDoqui: () => {},
 });
 
 export function SchoolProvider({
@@ -89,6 +98,7 @@ export function SchoolProvider({
   const [guardandoVisible, setGuardandoVisible] = useState(false);
   const [guardandoMensaje, setGuardandoMensaje] = useState<string | null>(null);
   const [chatAbierto, setChatAbierto] = useState(false);
+  const [doquiAbierto, setDoquiAbierto] = useState(false);
   const [chatAbrirConversacionId, setChatAbrirConversacionId] = useState<string | null>(null);
   const [chatTotalNoLeidos, setChatTotalNoLeidos] = useState(0);
   const [chatNotificaciones, setChatNotificaciones] = useState<
@@ -142,6 +152,12 @@ export function SchoolProvider({
   }
   function cerrarChat() {
     setChatAbierto(false);
+  }
+  function abrirDoqui() {
+    setDoquiAbierto(true);
+  }
+  function cerrarDoqui() {
+    setDoquiAbierto(false);
   }
 
   function empezarGuardado(mensaje?: string) {
@@ -216,6 +232,9 @@ export function SchoolProvider({
         chatNotificaciones,
         sidebarColapsado,
         toggleSidebar,
+        doquiAbierto,
+        abrirDoqui,
+        cerrarDoqui,
       }}
     >
       {children}
@@ -243,6 +262,10 @@ export function useChatInterno() {
     setTotalNoLeidos: ctx.setChatTotalNoLeidos,
     notificaciones: ctx.chatNotificaciones,
   };
+}
+export function useDoqui() {
+  const ctx = useContext(DashboardMetaContext);
+  return { abierto: ctx.doquiAbierto, abrir: ctx.abrirDoqui, cerrar: ctx.cerrarDoqui };
 }
 export function useUserAvatar() {
   const { avatarUrl, setAvatarUrl } = useContext(DashboardMetaContext);

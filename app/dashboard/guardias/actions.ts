@@ -106,6 +106,7 @@ export async function crearCobertura(formData: FormData) {
   const asignatura = (formData.get("asignatura") as string)?.trim() || null;
   const grupo = (formData.get("grupo") as string)?.trim() || null;
   const ubicacion = (formData.get("ubicacion") as string)?.trim() || null;
+  const trabajoAlumnos = (formData.get("trabajoAlumnos") as string)?.trim() || null;
 
   if (!schoolId) throw new Error("Falta el centro.");
   if (!profesorAusenteId) throw new Error("Elige el profesor que falta.");
@@ -132,6 +133,7 @@ export async function crearCobertura(formData: FormData) {
       asignatura,
       grupo,
       ubicacion,
+      trabajoAlumnos,
       estado: "ASIGNADA",
       creadoPorId: session.user.id,
     },
@@ -150,6 +152,7 @@ export async function crearCobertura(formData: FormData) {
     asignatura,
     grupo,
     ubicacion,
+    trabajoAlumnos,
     fecha,
     horaInicio,
     horaFin,
@@ -594,7 +597,7 @@ export async function obtenerGuardiaProgramadaParaEditar(id: string, origen: "gu
       id: g.id,
       fecha: g.fecha.toISOString().slice(0, 10),
       hora: g.fecha.toISOString().slice(11, 16),
-      turno: g.turno,
+      turno: g.turno ?? "",
       ubicacion: g.ubicacion ?? "",
       grupo: g.grupo ?? "",
       tarea: g.tarea ?? "",
@@ -778,7 +781,8 @@ export async function eliminarGuardiaProgramada(id: string, origen: "guardia" | 
       await sendGuardiaEliminadaEmail({
         to: guardia.profesor.email,
         profesorName: guardia.profesor.name ?? guardia.profesor.email,
-        turno: guardia.turno,
+        ubicacion: guardia.ubicacion,
+        grupo: guardia.grupo,
         fecha: guardia.fecha,
       });
     } catch {
@@ -916,7 +920,6 @@ export async function createGuardia(formData: FormData) {
 
   const schoolId = (formData.get("schoolId") as string)?.trim();
   const profesorId = (formData.get("profesorId") as string)?.trim();
-  const turno = (formData.get("turno") as string)?.trim();
   const ubicacion = (formData.get("ubicacion") as string)?.trim();
   const grupo = (formData.get("grupo") as string)?.trim();
   const tarea = (formData.get("tarea") as string)?.trim();
@@ -925,14 +928,15 @@ export async function createGuardia(formData: FormData) {
 
   if (!schoolId) throw new Error("Falta el centro.");
   if (!profesorId) throw new Error("Elige el profesor al que asignar la guardia.");
-  if (!turno) throw new Error("El turno es obligatorio.");
   if (!ubicacion) throw new Error("El aula/ubicación es obligatoria.");
   if (!grupo) throw new Error("El grupo es obligatorio.");
+  if (!tarea) throw new Error("El trabajo que tienen que hacer los alumnos es obligatorio.");
   if (!fechaRaw) throw new Error("La fecha es obligatoria.");
   if (!horaRaw) throw new Error("La hora es obligatoria.");
 
   const fecha = new Date(`${fechaRaw}T${horaRaw}:00`);
   if (Number.isNaN(fecha.getTime())) throw new Error("Fecha u hora no válidas.");
+  if (fecha.getTime() < Date.now()) throw new Error("No se puede programar una guardia en una fecha u hora que ya ha pasado.");
 
   const profesor = await prisma.user.findUnique({
     where: { id: profesorId },
@@ -944,11 +948,13 @@ export async function createGuardia(formData: FormData) {
     data: {
       schoolId,
       profesorId,
-      turno,
-      ubicacion: ubicacion || null,
-      grupo: grupo || null,
-      tarea: tarea || null,
+      ubicacion,
+      grupo,
+      tarea,
       fecha,
+      // Se asigna directamente a un profesor concreto, así que ya
+      // arranca cubierta — no queda pendiente de que nadie más la asuma.
+      status: "CUBIERTA",
     },
   });
 
@@ -966,10 +972,9 @@ export async function createGuardia(formData: FormData) {
     await sendGuardiaEmail({
       to: profesor.email,
       profesorName: profesorNombre,
-      turno,
-      ubicacion: ubicacion || null,
-      grupo: grupo || null,
-      tarea: tarea || null,
+      ubicacion,
+      grupo,
+      tarea,
       fecha,
     });
     avisos.push({ canal: "email", ok: true });
@@ -983,7 +988,7 @@ export async function createGuardia(formData: FormData) {
     finGuardia.setHours(horas, minutos + 55); // guardia de 55 min por defecto, como una clase
     await createTeamsCalendarEvent({
       userEmail: profesor.email,
-      subject: `Guardia: ${turno}`,
+      subject: `Guardia: ${grupo}`,
       bodyHtml: `Guardia asignada.${grupo ? ` Grupo: ${grupo}.` : ""}${ubicacion ? ` Aula: ${ubicacion}.` : ""}${tarea ? ` Tarea: ${tarea}.` : ""}`,
       start: fecha,
       end: finGuardia,

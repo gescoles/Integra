@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { buildTutoriasWorkbook, buildMaterialWorkbook, buildSalidasWorkbook, buildPracticasWorkbook, buildCertificacionesWorkbookPorCentro, safeFileName } from "@/lib/exportWorkbooks";
+import { buildTutoriasWorkbook, buildMaterialWorkbook, buildSalidasWorkbook, buildPracticasWorkbook, buildCertificacionesWorkbookPorCentro, buildAbsentismoWorkbook, safeFileName } from "@/lib/exportWorkbooks";
 import { ensureSubfolder, uploadXlsxToDrive } from "@/lib/googleDrive";
 
 export type ResultadoBackupExcel = { centro: string; ok: boolean; error?: string };
@@ -66,6 +66,14 @@ export async function ejecutarBackupExcelModulos(): Promise<{ fecha: string; res
         const workbook = await buildCertificacionesWorkbookPorCentro(school.id);
         const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
         await uploadXlsxToDrive(dateFolderId, `Certificaciones_${fecha}.xlsx`, buffer);
+      }
+
+      if (school.modules.includes("guardias")) {
+        const absentismoFolderId = await ensureSubfolder(schoolFolderId, "Absentismo");
+        const dateFolderId = await ensureSubfolder(absentismoFolderId, fecha);
+        const workbook = await buildAbsentismoWorkbook(school.id);
+        const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
+        await uploadXlsxToDrive(dateFolderId, `Absentismo_${fecha}.xlsx`, buffer);
       }
 
       resultados.push({ centro: school.name, ok: true });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, UserX, CalendarDays, Clock, ArrowUpDown } from "lucide-react";
+import { Search, UserX, CalendarDays, Clock, ArrowUpDown, FileSpreadsheet } from "lucide-react";
 
 type Fila = { id: string; nombre: string; veces: number; dias: number; horas: number };
 
@@ -15,7 +15,7 @@ function colorNivel(veces: number) {
 
 type Orden = "veces" | "dias" | "horas" | "nombre";
 
-export function AbsentismoClient({ filas }: { filas: Fila[] }) {
+export function AbsentismoClient({ filas, schoolId }: { filas: Fila[]; schoolId: string }) {
   const [busqueda, setBusqueda] = useState("");
   const [orden, setOrden] = useState<Orden>("veces");
 
@@ -52,6 +52,13 @@ export function AbsentismoClient({ filas }: { filas: Fila[] }) {
             className="w-full rounded-lg border border-slate-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#FD5249]"
           />
         </div>
+
+        <a
+          href={`/api/guardias/absentismo/export?school=${schoolId}`}
+          className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-600 hover:border-emerald-400 hover:text-emerald-600"
+        >
+          <FileSpreadsheet className="h-4 w-4" /> Exportar a Excel
+        </a>
 
         <div className="flex items-center gap-1.5 rounded-lg bg-slate-100 p-1">
           {([

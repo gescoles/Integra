@@ -405,6 +405,7 @@ const dictionaries = {
     "guardias.guardiaCreada": "Guardia creada correctamente.",
     "guardias.avisoEmail": "Email enviado al profesor",
     "guardias.avisoTeams": "Añadida al calendario de Teams",
+    "guardias.avisoTeamsError": "No se pudo añadir al calendario de Teams",
     "guardias.colGrupo": "Grupo",
 
     "material.title": "Material",
@@ -1227,6 +1228,7 @@ const dictionaries = {
     "guardias.guardiaCreada": "Guàrdia creada correctament.",
     "guardias.avisoEmail": "Email enviat al professor",
     "guardias.avisoTeams": "Afegida al calendari de Teams",
+    "guardias.avisoTeamsError": "No s'ha pogut afegir al calendari de Teams",
     "guardias.colGrupo": "Grup",
 
     "material.title": "Material",
@@ -2049,6 +2051,7 @@ const dictionaries = {
     "guardias.guardiaCreada": "Cover duty created successfully.",
     "guardias.avisoEmail": "Email sent to the teacher",
     "guardias.avisoTeams": "Added to their Teams calendar",
+    "guardias.avisoTeamsError": "Could not be added to their Teams calendar",
     "guardias.colGrupo": "Group",
 
     "material.title": "Materials",

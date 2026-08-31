@@ -173,7 +173,7 @@ export async function ProfesorHome({
     ...guardiasHoyList.map((g) => ({
       id: `guardia-${g.id}`,
       time: g.fecha,
-      title: g.turno,
+      title: g.turno ?? g.grupo ?? "Guardia",
       subtitle: g.ubicacion ?? "",
       color: "bg-emerald-500",
       icon: CheckCircle2,

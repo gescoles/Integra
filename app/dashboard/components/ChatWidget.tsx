@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { X, Send, User as UserIcon, Sparkles } from "lucide-react";
-import { useLocale } from "../SchoolContext";
+import { useLocale, useDoqui } from "../SchoolContext";
 import { translate } from "../i18n";
 
 type Msg = { role: "user" | "assistant"; content: string; esIA?: boolean };
@@ -11,6 +11,7 @@ const SESSION_KEY = "integra_chat_saludado";
 
 export function ChatWidget({ userName }: { userName: string }) {
   const { locale } = useLocale();
+  const doqui = useDoqui();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -41,6 +42,19 @@ export function ChatWidget({ userName }: { userName: string }) {
 
     return () => clearTimeout(timer);
   }, []);
+
+  // Cuando alguien pulsa el botón de Ayuda de la barra superior, se abre
+  // el chat desde aquí — es un disparador de un solo uso: en cuanto lo
+  // recogemos, limpiamos el estado compartido para no reabrirlo solo si
+  // el usuario lo vuelve a cerrar más tarde.
+  useEffect(() => {
+    if (doqui.abierto) {
+      setOpen(true);
+      setPeek(false);
+      setBadge(false);
+      doqui.cerrar();
+    }
+  }, [doqui.abierto]);
 
   function handleOpen() {
     setOpen(true);

@@ -42,6 +42,7 @@ export function CoberturaWizard({
   const [ausenteId, setAusenteId] = useState<string | null>(null);
   const [bloqueId, setBloqueId] = useState<string | null>(null);
   const [sustitutoId, setSustitutoId] = useState<string | null>(null);
+  const [trabajoAlumnos, setTrabajoAlumnos] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [enviado, setEnviado] = useState(false);
@@ -90,6 +91,7 @@ export function CoberturaWizard({
     setSustitutoId(null);
     setEnviado(false);
     setError(null);
+    setTrabajoAlumnos("");
   }
 
   async function handleEnviar() {
@@ -105,6 +107,7 @@ export function CoberturaWizard({
     formData.set("horaFin", bloqueSeleccionado.horaFin);
     formData.set("asignatura", bloqueSeleccionado.asignatura);
     formData.set("grupo", bloqueSeleccionado.grupo ?? "");
+    formData.set("trabajoAlumnos", trabajoAlumnos.trim());
     try {
       await crearCobertura(formData);
       setEnviado(true);
@@ -229,6 +232,21 @@ export function CoberturaWizard({
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {sustitutoId && (
+            <div className="mb-3">
+              <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                Qué tienen que hacer los alumnos <span className="text-xs font-normal text-slate-400">(opcional)</span>
+              </label>
+              <textarea
+                value={trabajoAlumnos}
+                onChange={(e) => setTrabajoAlumnos(e.target.value)}
+                rows={2}
+                placeholder="Si el profesor ausente ha dejado alguna instrucción para la clase..."
+                className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+              />
             </div>
           )}
 

@@ -75,7 +75,7 @@ export default async function AbsentismoPage() {
       <Suspense fallback={null}>
         <GuardiasTabs />
       </Suspense>
-      <AbsentismoClient filas={filas} />
+      <AbsentismoClient filas={filas} schoolId={schoolId} />
     </div>
   );
 }

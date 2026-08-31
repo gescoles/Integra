@@ -76,7 +76,6 @@ export async function sendInvitacionMicrosoftEmail(to: string, name: string) {
 export async function sendGuardiaEmail(params: {
   to: string;
   profesorName: string;
-  turno: string;
   ubicacion: string | null;
   grupo: string | null;
   tarea: string | null;
@@ -96,20 +95,18 @@ export async function sendGuardiaEmail(params: {
   await transporter.sendMail({
     from: `Docentium <${from}>`,
     to: params.to,
-    subject: `Nueva guardia asignada: ${params.turno}`,
+    subject: `Nueva guardia asignada${params.grupo ? `: ${params.grupo}` : ""}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
         <h2 style="color:#0B1D4D; margin-bottom: 8px;">Tienes una guardia nueva, ${params.profesorName}</h2>
         <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
           <p style="margin:0;"><strong>Cuándo:</strong> ${fechaFmt}</p>
-          <p style="margin:8px 0 0;"><strong>Turno:</strong> ${params.turno}</p>
           ${params.ubicacion ? `<p style="margin:8px 0 0;"><strong>Aula / ubicación:</strong> ${params.ubicacion}</p>` : ""}
           ${params.grupo ? `<p style="margin:8px 0 0;"><strong>Grupo:</strong> ${params.grupo}</p>` : ""}
-          ${params.tarea ? `<p style="margin:8px 0 0;"><strong>Qué tienes que hacer:</strong> ${params.tarea}</p>` : ""}
+          ${params.tarea ? `<p style="margin:8px 0 0;"><strong>Qué tienen que hacer los alumnos:</strong> ${params.tarea}</p>` : ""}
         </div>
         <p style="color:#64748B; font-size:13px;">
-          Este aviso se ha añadido automáticamente a tu calendario de Teams. También puedes consultar
-          todas tus guardias desde Docentium, en el apartado "Guardias".
+          Puedes consultar todas tus guardias desde Docentium, en el apartado "Guardias".
         </p>
       </div>
     `,
@@ -981,7 +978,8 @@ export async function sendSolicitudRechazadaEmail(params: {
 export async function sendGuardiaEliminadaEmail(params: {
   to: string;
   profesorName: string;
-  turno: string;
+  ubicacion: string | null;
+  grupo: string | null;
   fecha: Date;
 }) {
   const transporter = getTransporter();
@@ -998,13 +996,14 @@ export async function sendGuardiaEliminadaEmail(params: {
   await transporter.sendMail({
     from: `Docentium <${from}>`,
     to: params.to,
-    subject: `Guardia cancelada: ${params.turno}`,
+    subject: `Guardia cancelada${params.grupo ? `: ${params.grupo}` : ""}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
         <h2 style="color:#0B1D4D; margin-bottom: 8px;">Se ha cancelado una guardia, ${params.profesorName}</h2>
         <div style="background:#FEF2F2; border-radius:8px; padding:16px; margin:16px 0; border:1px solid #FECACA;">
           <p style="margin:0;"><strong>Cuándo era:</strong> ${fechaFmt}</p>
-          <p style="margin:8px 0 0;"><strong>Turno:</strong> ${params.turno}</p>
+          ${params.ubicacion ? `<p style="margin:8px 0 0;"><strong>Aula / ubicación:</strong> ${params.ubicacion}</p>` : ""}
+          ${params.grupo ? `<p style="margin:8px 0 0;"><strong>Grupo:</strong> ${params.grupo}</p>` : ""}
         </div>
         <p style="color:#64748B; font-size:13px;">
           Dirección ha eliminado esta guardia de tu agenda. Ya no tienes que cubrirla.
@@ -1020,7 +1019,7 @@ export async function sendGuardiaEliminadaEmail(params: {
 export async function sendGuardiaModificadaEmail(params: {
   to: string;
   profesorName: string;
-  turno: string;
+  turno: string | null;
   ubicacion: string | null;
   grupo: string | null;
   tarea: string | null;
@@ -1028,6 +1027,7 @@ export async function sendGuardiaModificadaEmail(params: {
 }) {
   const transporter = getTransporter();
   const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+  const turnoTexto = params.turno ?? "Guardia";
 
   const fechaFmt = params.fecha.toLocaleString("es-ES", {
     weekday: "long",
@@ -1040,16 +1040,16 @@ export async function sendGuardiaModificadaEmail(params: {
   await transporter.sendMail({
     from: `Docentium <${from}>`,
     to: params.to,
-    subject: `Guardia modificada: ${params.turno}`,
+    subject: `Guardia modificada: ${turnoTexto}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
         <h2 style="color:#0B1D4D; margin-bottom: 8px;">Han cambiado los datos de tu guardia, ${params.profesorName}</h2>
         <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
           <p style="margin:0;"><strong>Cuándo:</strong> ${fechaFmt}</p>
-          <p style="margin:8px 0 0;"><strong>Turno:</strong> ${params.turno}</p>
+          <p style="margin:8px 0 0;"><strong>Turno:</strong> ${turnoTexto}</p>
           ${params.ubicacion ? `<p style="margin:8px 0 0;"><strong>Aula / ubicación:</strong> ${params.ubicacion}</p>` : ""}
           ${params.grupo ? `<p style="margin:8px 0 0;"><strong>Grupo:</strong> ${params.grupo}</p>` : ""}
-          ${params.tarea ? `<p style="margin:8px 0 0;"><strong>Qué tienes que hacer:</strong> ${params.tarea}</p>` : ""}
+          ${params.tarea ? `<p style="margin:8px 0 0;"><strong>Qué tienen que hacer los alumnos:</strong> ${params.tarea}</p>` : ""}
         </div>
         <p style="color:#64748B; font-size:13px;">
           Revisa los datos actualizados. Este aviso se ha generado automáticamente desde Docentium, en Guardias.

@@ -46,7 +46,7 @@ export function GuardiasClient({
     return rows.filter((r) => {
       if (
         q &&
-        !r.turno.toLowerCase().includes(q) &&
+        !(r.tarea ?? "").toLowerCase().includes(q) &&
         !(r.ubicacion ?? "").toLowerCase().includes(q)
       )
         return false;
@@ -122,11 +122,11 @@ export function GuardiasClient({
           <table className="w-full min-w-[800px] text-left text-xs">
             <thead>
               <tr className="border-b border-slate-100 text-slate-400">
-                <th className="pb-2 pr-3 font-medium">{translate(locale, "guardias.colTurno")}</th>
                 <th className="pb-2 pr-3 font-medium">{translate(locale, "guardias.colProfesor")}</th>
                 <th className="pb-2 pr-3 font-medium">{translate(locale, "guardias.colGrupo")}</th>
                 <th className="pb-2 pr-3 font-medium">{translate(locale, "guardias.colUbicacion")}</th>
                 <th className="pb-2 pr-3 font-medium">{translate(locale, "guardias.colFecha")}</th>
+                <th className="pb-2 pr-3 font-medium">{translate(locale, "guardias.tarea")}</th>
                 <th className="pb-2 pr-3 font-medium">{translate(locale, "guardias.colEstado")}</th>
                 <th className="pb-2 font-medium text-right">{translate(locale, "common.acciones")}</th>
               </tr>
@@ -134,15 +134,14 @@ export function GuardiasClient({
             <tbody>
               {filtered.map((r) => (
                 <tr key={r.id} className="border-b border-slate-50 last:border-0">
-                  <td className="py-3 pr-3 font-semibold text-slate-700" title={r.tarea ?? undefined}>
-                    {r.turno}
-                    {r.tarea && <div className="mt-0.5 max-w-[220px] truncate text-[10px] font-normal text-slate-400">{r.tarea}</div>}
-                  </td>
                   <td className="py-3 pr-3 text-slate-500">{r.profesorName}</td>
                   <td className="py-3 pr-3 text-slate-500">{r.grupo ?? "—"}</td>
                   <td className="py-3 pr-3 text-slate-500">{r.ubicacion ?? "—"}</td>
                   <td className="py-3 pr-3 text-slate-400">
                     {new Date(r.fecha).toLocaleDateString("es-ES")}
+                  </td>
+                  <td className="py-3 pr-3 font-semibold text-slate-700 max-w-[220px] truncate" title={r.tarea ?? undefined}>
+                    {r.tarea || "—"}
                   </td>
                   <td className="py-3 pr-3">
                     {r.origen === "guardia" ? (

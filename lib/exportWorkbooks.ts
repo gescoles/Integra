@@ -676,3 +676,58 @@ export async function buildCertificacionesWorkbook() {
 export function safeFileName(name: string) {
   return name.replace(/[^a-z0-9áéíóúñ]+/gi, "_");
 }
+
+// Absentismo: el detalle de cada ausencia, línea por línea (no el
+// resumen agrupado que se ve en pantalla) — profesor, día, clase, de
+// qué hora a qué hora, y en qué quedó (asignada/pendiente/rechazada).
+export async function buildAbsentismoWorkbook(schoolId: string) {
+  const coberturas = await prisma.coberturaGuardia.findMany({
+    where: { schoolId },
+    orderBy: { fecha: "desc" },
+    include: {
+      profesorAusente: { select: { name: true, email: true } },
+      profesorSustituto: { select: { name: true, email: true } },
+    },
+  });
+
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "Docentium";
+  workbook.created = new Date();
+
+  const sheet = workbook.addWorksheet("Absentismo");
+  sheet.columns = [
+    { header: "Profesor ausente", key: "ausente", width: 26 },
+    { header: "Fecha", key: "fecha", width: 14 },
+    { header: "Asignatura", key: "asignatura", width: 20 },
+    { header: "Grupo", key: "grupo", width: 16 },
+    { header: "Hora inicio", key: "inicio", width: 12 },
+    { header: "Hora fin", key: "fin", width: 12 },
+    { header: "Estado", key: "estado", width: 14 },
+    { header: "Sustituto", key: "sustituto", width: 26 },
+    { header: "Motivo", key: "motivo", width: 24 },
+  ];
+  styleHeaderRow(sheet.getRow(1));
+
+  const ESTADO_COBERTURA_LABEL: Record<string, string> = {
+    PENDIENTE: "Pendiente",
+    ASIGNADA: "Asignada",
+    ACEPTADA: "Aceptada",
+    RECHAZADA: "Rechazada",
+  };
+
+  coberturas.forEach((c) => {
+    sheet.addRow({
+      ausente: c.profesorAusente.name ?? c.profesorAusente.email,
+      fecha: c.fecha.toLocaleDateString("es-ES"),
+      asignatura: c.asignatura ?? "",
+      grupo: c.grupo ?? "",
+      inicio: c.horaInicio,
+      fin: c.horaFin,
+      estado: ESTADO_COBERTURA_LABEL[c.estado] ?? c.estado,
+      sustituto: c.profesorSustituto ? (c.profesorSustituto.name ?? c.profesorSustituto.email) : "",
+      motivo: c.motivo ?? "",
+    });
+  });
+
+  return workbook;
+}

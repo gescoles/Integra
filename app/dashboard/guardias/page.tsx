@@ -42,7 +42,7 @@ async function getGuardiasCentro(schoolId: string) {
 
   const rowsGuardia = guardiasRaw.map((g) => ({
     id: g.id,
-    turno: g.turno,
+    turno: g.turno ?? "",
     ubicacion: g.ubicacion,
     grupo: g.grupo,
     tarea: g.tarea,
@@ -94,7 +94,7 @@ async function getDatosCobertura(schoolId: string) {
     guardias: guardias.map((g) => ({
       profesorId: g.profesorId,
       fecha: g.fecha.toISOString(),
-      turno: g.turno,
+      turno: g.turno ?? "",
       ubicacion: g.ubicacion,
     })),
   };

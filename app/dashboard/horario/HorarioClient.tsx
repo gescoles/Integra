@@ -428,10 +428,10 @@ export function HorarioClient({ bloques, readOnly = false }: { bloques: Bloque[]
                   <option value="" disabled>
                     Selecciona...
                   </option>
-                  {editing?.aula && !Array.from({ length: 51 }, (_, i) => `E${i}`).includes(editing.aula) && (
+                  {editing?.aula && !Array.from({ length: 56 }, (_, i) => `E${i}`).includes(editing.aula) && (
                     <option value={editing.aula}>{editing.aula}</option>
                   )}
-                  {Array.from({ length: 51 }, (_, i) => `E${i}`).map((aula) => (
+                  {Array.from({ length: 56 }, (_, i) => `E${i}`).map((aula) => (
                     <option key={aula} value={aula}>
                       {aula}
                     </option>

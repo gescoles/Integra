@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Plus, X, Mail, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { createGuardia } from "./actions";
 import { ButtonSpinner } from "../components/ButtonSpinner";
+import { CursoSelect } from "../components/CursoSelect";
+import { AulaSelect } from "../components/AulaSelect";
 import { useLocale } from "../SchoolContext";
 import { translate } from "../i18n";
 
@@ -21,6 +23,14 @@ export function GuardiaFormModal({
   const { locale } = useLocale();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
+  // Para no dejar programar guardias en fechas u horas que ya han
+  // pasado: si la fecha elegida es hoy, la hora mínima es la hora
+  // actual; si es un día futuro, no hay límite de hora.
+  const ahora = new Date();
+  const hoyISO = ahora.toISOString().slice(0, 10);
+  const horaActualHHmm = `${String(ahora.getHours()).padStart(2, "0")}:${String(ahora.getMinutes()).padStart(2, "0")}`;
+  const [fechaValor, setFechaValor] = useState(hoyISO);
+  const [horaValor, setHoraValor] = useState(horaActualHHmm);
   const [error, setError] = useState<string | null>(null);
   const [avisos, setAvisos] = useState<{ canal: string; ok: boolean; error?: string }[] | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -54,7 +64,11 @@ export function GuardiaFormModal({
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpen(true);
+          setFechaValor(hoyISO);
+          setHoraValor(horaActualHHmm);
+        }}
         className="inline-flex items-center gap-1.5 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]"
       >
         <Plus className="h-4 w-4" /> {translate(locale, "guardias.nuevaGuardia")}
@@ -90,7 +104,11 @@ export function GuardiaFormModal({
                       )}
                       <div>
                         <div className="font-semibold">
-                          {a.canal === "email" ? translate(locale, "guardias.avisoEmail") : translate(locale, "guardias.avisoTeams")}
+                          {a.canal === "email"
+                            ? translate(locale, "guardias.avisoEmail")
+                            : a.ok
+                              ? translate(locale, "guardias.avisoTeams")
+                              : translate(locale, "guardias.avisoTeamsError")}
                         </div>
                         {!a.ok && <div className="mt-0.5 text-xs">{a.error}</div>}
                       </div>
@@ -114,7 +132,7 @@ export function GuardiaFormModal({
 
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                    {translate(locale, "guardias.colProfesor")}
+                    {translate(locale, "guardias.colProfesor")} <span className="text-red-500">*</span>
                   </label>
                   <select
                     name="profesorId"
@@ -133,28 +151,53 @@ export function GuardiaFormModal({
                   </select>
                 </div>
 
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                    {translate(locale, "guardias.grupo")} <span className="text-red-500">*</span>
+                  </label>
+                  <CursoSelect name="grupo" defaultValue="" />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                    {translate(locale, "guardias.aula")} <span className="text-red-500">*</span>
+                  </label>
+                  <AulaSelect name="ubicacion" />
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                      {translate(locale, "tutorias.colFecha")}
+                      {translate(locale, "tutorias.colFecha")} <span className="text-red-500">*</span>
                     </label>
                     <input
                       name="fecha"
                       type="date"
                       required
-                      defaultValue={new Date().toISOString().slice(0, 10)}
+                      min={hoyISO}
+                      value={fechaValor}
+                      onChange={(e) => {
+                        setFechaValor(e.target.value);
+                        // Si cambia a hoy y la hora que tenía puesta ya
+                        // pasó, la subimos sola a la hora actual.
+                        if (e.target.value === hoyISO && horaValor < horaActualHHmm) {
+                          setHoraValor(horaActualHHmm);
+                        }
+                      }}
                       className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                     />
                   </div>
                   <div>
                     <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                      {translate(locale, "calendario.horaInicio")}
+                      {translate(locale, "calendario.horaInicio")} <span className="text-red-500">*</span>
                     </label>
                     <input
                       name="hora"
                       type="time"
                       required
-                      defaultValue="09:00"
+                      min={fechaValor === hoyISO ? horaActualHHmm : undefined}
+                      value={horaValor}
+                      onChange={(e) => setHoraValor(e.target.value)}
                       className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
                     />
                   </div>
@@ -162,47 +205,11 @@ export function GuardiaFormModal({
 
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                    {translate(locale, "guardias.turno")}
-                  </label>
-                  <input
-                    name="turno"
-                    required
-                    placeholder={translate(locale, "guardias.turnoPlaceholder")}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                      {translate(locale, "guardias.aula")}
-                    </label>
-                    <input
-                      name="ubicacion"
-                      required
-                      placeholder={translate(locale, "guardias.aulaPlaceholder")}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                      {translate(locale, "guardias.grupo")}
-                    </label>
-                    <input
-                      name="grupo"
-                      required
-                      placeholder={translate(locale, "guardias.grupoPlaceholder")}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                    {translate(locale, "guardias.tarea")}
+                    {translate(locale, "guardias.tarea")} <span className="text-red-500">*</span>
                   </label>
                   <textarea
                     name="tarea"
+                    required
                     rows={3}
                     placeholder={translate(locale, "guardias.tareaPlaceholder")}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
