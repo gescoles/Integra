@@ -25,8 +25,8 @@ import {
   updateTutoriaAlumno,
   cerrarTutoria,
   deleteTutoriaAlumno,
-  deleteAlumno,
 } from "./alumnoActions";
+import { EliminarAlumnoModal } from "./EliminarAlumnoModal";
 import {
   RIESGO_LABELS,
   RIESGO_COLORS,
@@ -163,33 +163,7 @@ export function AlumnosClient({
     });
   }
 
-  const [deleteAlumnoOpen, setDeleteAlumnoOpen] = useState(false);
-  const [deleteConfirmText, setDeleteConfirmText] = useState("");
-
-  function performDeleteAlumno(id: string) {
-    startTransition(async () => {
-      try {
-        await deleteAlumno(id);
-        setEditFichaOpen(false);
-        setDeleteAlumnoOpen(false);
-        router.push("/dashboard/tutorias");
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "No se pudo eliminar el alumno.");
-      }
-    });
-  }
-
-  function handleDeleteAlumno(id: string) {
-    if (!selected) return;
-    if (selected.tutorias.length === 0) {
-      if (!confirm(`¿Eliminar a ${selected.nombre}? Esta acción no se puede deshacer.`)) return;
-      performDeleteAlumno(id);
-    } else {
-      setError(null);
-      setDeleteConfirmText("");
-      setDeleteAlumnoOpen(true);
-    }
-  }
+  const [alumnoAEliminar, setAlumnoAEliminar] = useState<{ id: string; nombre: string } | null>(null);
   const madre = selected?.contactos.find((c) => c.relacion === "Madre");
   const padre = selected?.contactos.find((c) => c.relacion === "Padre");
 
@@ -658,7 +632,7 @@ export function AlumnosClient({
               <div className="flex items-center justify-between pt-2">
                 <button
                   type="button"
-                  onClick={() => handleDeleteAlumno(selected.id)}
+                  onClick={() => setAlumnoAEliminar(selected)}
                   disabled={pending}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
                 >
@@ -993,69 +967,16 @@ export function AlumnosClient({
         </div>
       )}
 
-      {/* Modal: confirmación fuerte para eliminar alumno con tutorías */}
-      {deleteAlumnoOpen && selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <div className="mb-4 flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50">
-                <AlertTriangle className="h-5 w-5 text-red-500" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-[#0B1D4D]">{translate(locale, "tutorias.eliminarAlumno")}</h2>
-                <p className="mt-1 text-sm text-slate-600">
-                  <strong>{selected.nombre}</strong> {translate(locale, "tutorias.tieneTutoria")}{" "}
-                  <strong>
-                    {selected.tutorias.length}{" "}
-                    {selected.tutorias.length === 1
-                      ? translate(locale, "tutorias.tutoriaWord")
-                      : translate(locale, "tutorias.tutoriasWord")}{" "}
-                    {selected.tutorias.length === 1
-                      ? translate(locale, "tutorias.registradaWord")
-                      : translate(locale, "tutorias.registradasWord")}
-                  </strong>
-                  {translate(locale, "tutorias.siContinuas")} <strong>{translate(locale, "tutorias.yTodasSusTutorias")}</strong>
-                  {translate(locale, "tutorias.entodosLosSitios")}
-                </p>
-              </div>
-            </div>
-
-            {error && (
-              <div className="mb-4 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600">{error}</div>
-            )}
-
-            <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-              {translate(locale, "tutorias.escribePara")} <span className="font-mono text-red-600">eliminar {selected.nombre}</span> {translate(locale, "tutorias.paraConfirmar")}
-            </label>
-            <input
-              value={deleteConfirmText}
-              onChange={(e) => setDeleteConfirmText(e.target.value)}
-              placeholder={`eliminar ${selected.nombre}`}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-red-400"
-            />
-
-            <div className="mt-5 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setDeleteAlumnoOpen(false)}
-                className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
-              >
-                {translate(locale, "common.cancelar")}
-              </button>
-              <button
-                type="button"
-                disabled={
-                  pending ||
-                  deleteConfirmText.trim().toLowerCase() !== `eliminar ${selected.nombre}`.toLowerCase()
-                }
-                onClick={() => performDeleteAlumno(selected.id)}
-                className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {pending ? translate(locale, "tutorias.eliminando") : translate(locale, "tutorias.eliminarDefinitivamente")}
-              </button>
-            </div>
-          </div>
-        </div>
+      {alumnoAEliminar && (
+        <EliminarAlumnoModal
+          alumno={alumnoAEliminar}
+          onClose={() => setAlumnoAEliminar(null)}
+          onEliminado={() => {
+            setAlumnoAEliminar(null);
+            setEditFichaOpen(false);
+            router.push("/dashboard/tutorias");
+          }}
+        />
       )}
     </div>
   );

@@ -5,14 +5,29 @@
 // con el que inicia sesión en Docentium) — sin que cada profesor tenga que
 // autorizar nada por su cuenta.
 
-async function getGraphToken() {
-  const tenantId = process.env.MICROSOFT_TENANT_ID;
-  const clientId = process.env.MICROSOFT_CLIENT_ID;
-  const clientSecret = process.env.MICROSOFT_CLIENT_SECRET;
+// Conexión con Microsoft Graph usando "permisos de aplicación" (no de un
+// usuario concreto): un administrador de Microsoft 365 del centro autoriza
+// la app UNA vez, y a partir de ahí Docentium puede crear eventos en el
+// calendario de CUALQUIER profesor del centro, usando su email (el mismo
+// con el que inicia sesión en Docentium) — sin que cada profesor tenga que
+// autorizar nada por su cuenta.
+//
+// Usa la MISMA app de Azure que ya tenéis registrada para el login (las
+// variables AZURE_AD_*) — no hace falta duplicar credenciales con otro
+// nombre. Eso sí, esta parte necesita que, además, un administrador de
+// Microsoft 365 le dé a esa misma app el permiso de APLICACIÓN
+// "Calendars.ReadWrite" (con su consentimiento de administrador) en el
+// Azure Portal — el login por sí solo no da ese permiso, hace falta
+// añadirlo aparte sobre la misma app.
+
+export async function getGraphToken() {
+  const tenantId = process.env.AZURE_AD_TENANT_ID;
+  const clientId = process.env.AZURE_AD_CLIENT_ID;
+  const clientSecret = process.env.AZURE_AD_CLIENT_SECRET;
 
   if (!tenantId || !clientId || !clientSecret) {
     throw new Error(
-      "Faltan las variables de entorno de Microsoft 365 (MICROSOFT_TENANT_ID, MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET)."
+      "Faltan las variables de entorno de Microsoft (AZURE_AD_TENANT_ID, AZURE_AD_CLIENT_ID, AZURE_AD_CLIENT_SECRET) — son las mismas que ya usa el login con Teams."
     );
   }
 

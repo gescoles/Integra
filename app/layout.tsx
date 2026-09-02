@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ServiceWorkerRegister } from "./components/ServiceWorkerRegister";
+import { CookieBanner } from "./components/CookieBanner";
 
 export const metadata: Metadata = {
   title: "Docentium — Gestión inteligente para centros educativos",
@@ -39,6 +40,7 @@ export default function RootLayout({
       <body>
         <ServiceWorkerRegister />
         {children}
+        <CookieBanner />
       </body>
     </html>
   );

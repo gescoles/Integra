@@ -731,3 +731,70 @@ export async function buildAbsentismoWorkbook(schoolId: string) {
 
   return workbook;
 }
+
+// Seguimiento de Coordinación: qué profesor tiene qué curso asignado, y
+// si ya lo ha programado, con toda la información que él mismo ha
+// introducido (fechas, sede, estado...).
+export async function buildSeguimientoAsignacionesWorkbook(schoolId: string) {
+  const asignaciones = await prisma.certificacionAsignacion.findMany({
+    where: { schoolId },
+    orderBy: { createdAt: "desc" },
+    include: {
+      catalogo: true,
+      profesor: { select: { name: true, email: true } },
+      asignadoPor: { select: { name: true, email: true } },
+      certificacion: true,
+    },
+  });
+
+  const ESTADO_LABEL: Record<string, string> = {
+    PROXIMAMENTE: "Próximamente",
+    PROGRAMADA: "Programada",
+    EN_CURSO: "En curso",
+    ACTIVA: "Activa",
+    ACABADA: "Acabada",
+  };
+
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "Docentium";
+  workbook.created = new Date();
+
+  const sheet = workbook.addWorksheet("Seguimiento certificaciones");
+  sheet.columns = [
+    { header: "Profesor", key: "profesor", width: 24 },
+    { header: "Curso asignado", key: "curso", width: 28 },
+    { header: "Categoría", key: "categoria", width: 20 },
+    { header: "Estado", key: "estado", width: 20 },
+    { header: "Curso académico", key: "cursoAcademico", width: 14 },
+    { header: "Grupo/Ciclo", key: "ciclo", width: 20 },
+    { header: "Inicio preparación", key: "inicio", width: 16 },
+    { header: "Fin preparación", key: "fin", width: 16 },
+    { header: "Fecha examen", key: "examen", width: 14 },
+    { header: "Sede examen", key: "sede", width: 20 },
+    { header: "Notas", key: "notas", width: 30 },
+    { header: "Asignado por", key: "asignadoPor", width: 24 },
+    { header: "Asignado el", key: "asignadoEl", width: 14 },
+  ];
+  styleHeaderRow(sheet.getRow(1));
+
+  asignaciones.forEach((a) => {
+    const c = a.certificacion;
+    sheet.addRow({
+      profesor: a.profesor.name ?? a.profesor.email,
+      curso: a.catalogo.nombre,
+      categoria: a.catalogo.categoria,
+      estado: c ? (ESTADO_LABEL[c.estado] ?? c.estado) : "Pendiente de programar",
+      cursoAcademico: c?.cursoAcademico ?? "",
+      ciclo: c?.cicloFormativo ?? "",
+      inicio: c?.fechaInicioPreparacion ? c.fechaInicioPreparacion.toLocaleDateString("es-ES") : "",
+      fin: c?.fechaFinPreparacion ? c.fechaFinPreparacion.toLocaleDateString("es-ES") : "",
+      examen: c?.fechaExamen ? c.fechaExamen.toLocaleDateString("es-ES") : "",
+      sede: c?.sedeExamen ?? "",
+      notas: c?.notas ?? "",
+      asignadoPor: a.asignadoPor ? (a.asignadoPor.name ?? a.asignadoPor.email) : "",
+      asignadoEl: a.createdAt.toLocaleDateString("es-ES"),
+    });
+  });
+
+  return workbook;
+}

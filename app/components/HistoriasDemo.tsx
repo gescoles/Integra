@@ -4,100 +4,46 @@ import { useEffect, useState } from "react";
 import { X, ChevronRight, ChevronLeft, Heart, MessageCircle } from "lucide-react";
 import { Reveal } from "./Reveal";
 
-// Pequeñas siluetas para que cada historia parezca una foto de una
-// actividad real (salida, teatro, laboratorio...) sin usar fotos de
-// alumnos de verdad: son escenas ilustradas, claramente de ejemplo.
-function EscenaSalida() {
-  return (
-    <svg viewBox="0 0 200 200" className="h-full w-full">
-      <rect width="200" height="130" fill="#7DD3FC" />
-      <rect y="130" width="200" height="70" fill="#86EFAC" />
-      <circle cx="160" cy="40" r="18" fill="#FEF08A" />
-      <rect x="20" y="90" width="100" height="45" rx="8" fill="#FDE047" />
-      <rect x="20" y="90" width="100" height="20" fill="#FACC15" />
-      <circle cx="40" cy="140" r="10" fill="#334155" />
-      <circle cx="100" cy="140" r="10" fill="#334155" />
-      {[0, 1, 2].map((i) => (
-        <g key={i}>
-          <circle cx={140 + i * 18} cy="168" r="8" fill="#FED7AA" />
-          <rect x={134 + i * 18} y="176" width="12" height="20" rx="4" fill={["#FD5249", "#34D399", "#60A5FA"][i]} />
-        </g>
-      ))}
-    </svg>
-  );
-}
-function EscenaTeatro() {
-  return (
-    <svg viewBox="0 0 200 200" className="h-full w-full">
-      <rect width="200" height="200" fill="#1E1B4B" />
-      <rect x="0" y="0" width="30" height="200" fill="#7F1D1D" />
-      <rect x="170" y="0" width="30" height="200" fill="#7F1D1D" />
-      <ellipse cx="100" cy="150" rx="90" ry="14" fill="#312E81" opacity="0.6" />
-      {[0, 1, 2].map((i) => (
-        <g key={i}>
-          <circle cx={70 + i * 30} cy="120" r="10" fill="#FBCFE8" />
-          <rect x={62 + i * 30} y="130" width="16" height="26" rx="5" fill={["#FD5249", "#FBBF24", "#34D399"][i]} />
-        </g>
-      ))}
-      <circle cx="100" cy="45" r="30" fill="#FDE68A" opacity="0.9" />
-    </svg>
-  );
-}
-function EscenaLaboratorio() {
-  return (
-    <svg viewBox="0 0 200 200" className="h-full w-full">
-      <rect width="200" height="200" fill="#EDE9FE" />
-      <rect y="140" width="200" height="60" fill="#C4B5FD" />
-      <rect x="50" y="70" width="14" height="60" fill="#A78BFA" />
-      <path d="M50 100 L36 140 H78 L64 100 Z" fill="#8B5CF6" opacity="0.8" />
-      <circle cx="46" cy="118" r="4" fill="#FD5249" />
-      <circle cx="60" cy="112" r="3" fill="#34D399" />
-      <circle cx="130" cy="150" r="9" fill="#FED7AA" />
-      <rect x="122" y="159" width="16" height="24" rx="5" fill="#60A5FA" />
-    </svg>
-  );
-}
-function EscenaDeportes() {
-  return (
-    <svg viewBox="0 0 200 200" className="h-full w-full">
-      <rect width="200" height="200" fill="#BBF7D0" />
-      <rect y="0" width="200" height="80" fill="#7DD3FC" />
-      <circle cx="100" cy="120" r="16" fill="#fff" stroke="#334155" strokeWidth="2" />
-      <path d="M100 108 L108 118 L100 128 L92 118 Z" fill="#334155" />
-      {[0, 1].map((i) => (
-        <g key={i}>
-          <circle cx={60 + i * 90} cy="150" r="9" fill="#FED7AA" />
-          <rect x={52 + i * 90} y="159" width="16" height="24" rx="5" fill={i === 0 ? "#FD5249" : "#60A5FA"} />
-        </g>
-      ))}
-    </svg>
-  );
-}
-function EscenaGraduacion() {
-  return (
-    <svg viewBox="0 0 200 200" className="h-full w-full">
-      <rect width="200" height="200" fill="#FEF3C7" />
-      {[0, 1, 2].map((i) => (
-        <g key={i}>
-          <circle cx={55 + i * 45} cy="150" r="10" fill="#FED7AA" />
-          <rect x={47 + i * 45} y="159" width="16" height="26" rx="5" fill="#1E1B4B" />
-          <rect x={44 + i * 45} y="136" width="22" height="6" fill="#1E1B4B" />
-          <rect x={53 + i * 45} y="128" width="4" height="10" fill="#1E1B4B" />
-        </g>
-      ))}
-      {[30, 70, 110, 150, 170].map((x, i) => (
-        <rect key={i} x={x} y={30 + (i % 2) * 20} width="6" height="6" fill={["#FD5249", "#34D399", "#60A5FA", "#FBBF24", "#A78BFA"][i]} transform={`rotate(20 ${x} 30)`} />
-      ))}
-    </svg>
-  );
+// Fotos reales de archivo (Unsplash, licencia libre de derechos —
+// no requieren atribución ni pago) que ilustran, a modo de ejemplo,
+// el tipo de actividades que los centros comparten en sus historias.
+// No son fotos de alumnos reales de ningún centro de la plataforma.
+function Foto({ src }: { src: string }) {
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt="" className="h-full w-full object-cover" />;
 }
 
 const HISTORIAS_EJEMPLO = [
-  { centro: "IES Maresme", texto: "Salida al teatro con 2º de ESO 🎭", Escena: EscenaTeatro, colorAcento: "#7F1D1D" },
-  { centro: "Colegio Horizonte", texto: "Final del torneo de fútbol ⚽", Escena: EscenaDeportes, colorAcento: "#16A34A" },
-  { centro: "Instituto del Mirador", texto: "Práctica en el laboratorio 🔬", Escena: EscenaLaboratorio, colorAcento: "#7C3AED" },
-  { centro: "Centro Joven Esperanza", texto: "Graduación de 2º de Bachillerato 🎓", Escena: EscenaGraduacion, colorAcento: "#D97706" },
-  { centro: "Escola Vidra", texto: "Excursión al museo de la ciencia 🚌", Escena: EscenaSalida, colorAcento: "#0284C7" },
+  {
+    centro: "IES Maresme",
+    texto: "Ensayo de la obra de teatro con 2º de Bachillerato 🎭",
+    foto: "https://images.unsplash.com/photo-1630050525402-06c617847d27?w=800&q=80&auto=format&fit=crop",
+    colorAcento: "#7F1D1D",
+  },
+  {
+    centro: "Colegio Horizonte",
+    texto: "Final del torneo de baloncesto 🏀",
+    foto: "https://images.unsplash.com/photo-1616353352910-15d970ac020b?w=800&q=80&auto=format&fit=crop",
+    colorAcento: "#16A34A",
+  },
+  {
+    centro: "Instituto del Mirador",
+    texto: "Práctica de FP en el aula de informática 💻",
+    foto: "https://images.unsplash.com/photo-1719159381981-1327b22aff9b?w=800&q=80&auto=format&fit=crop",
+    colorAcento: "#7C3AED",
+  },
+  {
+    centro: "Centro Joven Esperanza",
+    texto: "Graduación de 2º de Bachillerato 🎓",
+    foto: "https://images.unsplash.com/photo-1561409958-c0e6ad782a81?w=800&q=80&auto=format&fit=crop",
+    colorAcento: "#D97706",
+  },
+  {
+    centro: "Escola Vidra",
+    texto: "Excursión de fin de curso 🚌",
+    foto: "https://images.unsplash.com/photo-1591219233007-4ac041f8c2be?w=800&q=80&auto=format&fit=crop",
+    colorAcento: "#0284C7",
+  },
 ];
 
 function VisorHistoria({
@@ -137,7 +83,7 @@ function VisorHistoria({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="absolute inset-0">
-          <historia.Escena />
+          <Foto src={historia.foto} />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/40" />
         </div>
 
@@ -218,14 +164,14 @@ export function HistoriasDemo() {
             >
               <div className="rounded-full p-[3px]" style={{ background: `linear-gradient(135deg, ${h.colorAcento}, #FD5249)` }}>
                 <div className="h-20 w-20 overflow-hidden rounded-full border-2 border-white">
-                  <h.Escena />
+                  <Foto src={h.foto} />
                 </div>
               </div>
               <span className="max-w-[90px] truncate text-xs font-semibold text-slate-600">{h.centro}</span>
             </button>
           ))}
         </div>
-        <p className="mt-4 text-center text-xs text-slate-400">Escenas ilustradas de ejemplo &mdash; toca cualquier círculo para probarlo</p>
+        <p className="mt-4 text-center text-xs text-slate-400">Fotos de ejemplo &mdash; toca cualquier círculo para probarlo</p>
       </Reveal>
 
       {abierta !== null && (

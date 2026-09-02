@@ -944,7 +944,7 @@ export async function createGuardia(formData: FormData) {
   });
   if (!profesor) throw new Error("No se ha encontrado el profesor.");
 
-  await prisma.guardia.create({
+  const nuevaGuardia = await prisma.guardia.create({
     data: {
       schoolId,
       profesorId,
@@ -970,6 +970,7 @@ export async function createGuardia(formData: FormData) {
 
   try {
     await sendGuardiaEmail({
+      id: nuevaGuardia.id,
       to: profesor.email,
       profesorName: profesorNombre,
       ubicacion,

@@ -27,7 +27,8 @@ import {
 import {
   RIESGO_COLORS,
 } from "./alumnoConstants";
-import { deleteTutoriaAlumno, cerrarTutoria, deleteAlumno } from "./alumnoActions";
+import { deleteTutoriaAlumno, cerrarTutoria } from "./alumnoActions";
+import { EliminarAlumnoModal } from "./EliminarAlumnoModal";
 import { useLocale, useGuardadoTransition } from "../SchoolContext";
 import { translate } from "../i18n";
 
@@ -116,6 +117,7 @@ export function CentroTutoriasClient({
   const [cerrarFecha, setCerrarFecha] = useState("");
   const [adminError, setAdminError] = useState<string | null>(null);
   const [adminPending, startAdminTransition] = useGuardadoTransition();
+  const [mostrarModalEliminar, setMostrarModalEliminar] = useState(false);
 
   function handleAdminDeleteTutoria(id: string) {
     if (!confirm("¿Eliminar esta tutoría? No se puede deshacer.")) return;
@@ -551,22 +553,7 @@ export function CentroTutoriasClient({
                 <div className="flex items-center gap-1.5">
                   {isSuperAdmin && (
                     <button
-                      onClick={() => {
-                        if (
-                          !confirm(
-                            `¿Eliminar a ${selectedAlumno.nombre}? Se borrarán también todas sus tutorías. Esta acción no se puede deshacer.`
-                          )
-                        )
-                          return;
-                        startAdminTransition(async () => {
-                          try {
-                            await deleteAlumno(selectedAlumno.id);
-                            setSelectedAlumnoId(null);
-                          } catch (e) {
-                            setAdminError(e instanceof Error ? e.message : "No se pudo eliminar.");
-                          }
-                        });
-                      }}
+                      onClick={() => setMostrarModalEliminar(true)}
                       disabled={adminPending}
                       title={translate(locale, "tutorias.eliminarAlumno")}
                       className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"
@@ -706,6 +693,16 @@ export function CentroTutoriasClient({
                   <div className="text-[10px] text-slate-400">{translate(locale, "tutorias.proximoSeguimiento")}</div>
                 </div>
               </div>
+              {mostrarModalEliminar && (
+                <EliminarAlumnoModal
+                  alumno={selectedAlumno}
+                  onClose={() => setMostrarModalEliminar(false)}
+                  onEliminado={() => {
+                    setMostrarModalEliminar(false);
+                    setSelectedAlumnoId(null);
+                  }}
+                />
+              )}
             </>
           )}
         </div>

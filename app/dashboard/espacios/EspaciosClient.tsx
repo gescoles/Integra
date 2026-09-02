@@ -18,6 +18,7 @@ type Reserva = {
   userNombre: string;
   userId: string;
 };
+type ClaseHorario = { diaSemana: number; horaInicio: string; horaFin: string };
 type Aula = {
   id: string;
   nombre: string;
@@ -29,6 +30,7 @@ type Aula = {
   color: string;
   bloqueada: boolean;
   motivoBloqueo: string | null;
+  clasesHorario: ClaseHorario[];
   reservas: Reserva[];
 };
 type Planta = {
@@ -56,7 +58,7 @@ export function EspaciosClient({
 }) {
   const router = useRouter();
   const { locale } = useLocale();
-  const [vista, setVista] = useState<"inicio" | "nueva">("inicio");
+  const [vista, setVista] = useState<"inicio" | "nueva">(isSuperAdmin ? "nueva" : "inicio");
   const plantasOrdenadas = useMemo(() => [...plantas].sort((a, b) => b.numero - a.numero), [plantas]);
   const [plantaActivaId, setPlantaActivaId] = useState<string | null>(plantasOrdenadas[0]?.id ?? null);
   const [aulaSeleccionadaId, setAulaSeleccionadaId] = useState<string | null>(null);
@@ -123,7 +125,7 @@ export function EspaciosClient({
     eliminarReserva(id).then(() => router.refresh());
   }
 
-  if (plantasOrdenadas.length === 0) {
+  if (plantasOrdenadas.length === 0 && !isSuperAdmin) {
     return (
       <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-24 text-center text-sm text-slate-400">
         {translate(locale, "espacios.sinPlantas")}
@@ -271,6 +273,7 @@ export function EspaciosClient({
               aulaId={aulaSeleccionada.id}
               aulaNombre={aulaSeleccionada.nombre}
               reservas={aulaSeleccionada.reservas}
+              clasesHorario={aulaSeleccionada.clasesHorario}
               currentUserId={currentUserId}
               esDirectivo={esDirectivo}
               usuarios={usuarios}

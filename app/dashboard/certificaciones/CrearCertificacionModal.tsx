@@ -21,6 +21,8 @@ export function CrearCertificacionModal({
   certificacionId,
   categoriaInicial,
   nombreInicial,
+  asignacionId,
+  esDirectivo,
   trigger,
 }: {
   categorias: string[];
@@ -30,6 +32,8 @@ export function CrearCertificacionModal({
   certificacionId?: string;
   categoriaInicial?: string;
   nombreInicial?: string;
+  asignacionId?: string;
+  esDirectivo: boolean;
   trigger?: React.ReactNode;
 }) {
   const router = useRouter();
@@ -49,6 +53,10 @@ export function CrearCertificacionModal({
   const [error, setError] = useState<string | null>(null);
 
   const esEdicion = Boolean(certificacionId);
+  // Si viene de una asignación de Coordinación, el curso ya está
+  // decidido — el profesor no puede cambiarlo, solo rellenar el resto
+  // (fechas, curso académico, modalidad...).
+  const vieneDeAsignacion = Boolean(asignacionId);
   const requiereDepartamento = !esEdicion && !categoriaInicial && departamentos.length > 0;
 
   useEffect(() => {
@@ -73,10 +81,15 @@ export function CrearCertificacionModal({
       setNombresCatalogo(lista);
       // Al cambiar de categoría con datos ya cargados (edición o
       // pre-relleno), si el nombre elegido sigue existiendo en la nueva
-      // lista, lo mantenemos; si no, lo dejamos en blanco.
-      if (nombreElegido && !lista.some((n) => n.nombre === nombreElegido)) {
+      // lista, lo mantenemos y le rellenamos horas/sede desde el
+      // catálogo; si no, lo dejamos en blanco.
+      const entrada = lista.find((n) => n.nombre === nombreElegido);
+      if (nombreElegido && !entrada) {
         setNombreElegido("");
         setHoras("");
+      } else if (entrada) {
+        if (entrada.horasDefault != null) setHoras(String(entrada.horasDefault));
+        setSedeExamen((actual) => actual || entrada.sedeExamenDefault || "");
       }
     });
   }, [categoria]);
@@ -128,6 +141,7 @@ export function CrearCertificacionModal({
       if (certificacionId) {
         await actualizarCertificacion(certificacionId, formData);
       } else {
+        if (asignacionId) formData.set("asignacionId", asignacionId);
         await crearCertificacion(formData);
       }
       setOpen(false);
@@ -184,18 +198,23 @@ export function CrearCertificacionModal({
                     Categoría <span className="text-red-500">*</span>
                   </label>
                   <select
-                    name="categoria"
-                    required
+                    required={!vieneDeAsignacion}
                     value={categoria}
                     onChange={(e) => setCategoria(e.target.value)}
-                    disabled={requiereDepartamento && !departamento}
+                    disabled={vieneDeAsignacion || (requiereDepartamento && !departamento)}
                     className={`${inputClass} disabled:bg-slate-50 disabled:text-slate-400`}
+                    name={vieneDeAsignacion ? undefined : "categoria"}
                   >
                     <option value="">{requiereDepartamento && !departamento ? "Elige primero un departamento..." : "Selecciona..."}</option>
                     {(requiereDepartamento ? categoriasDelDepartamento : categorias).map((c) => (
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
+                  {/* Un <select disabled> no envía su valor al guardar —
+                      este campo oculto es el que de verdad viaja con el
+                      formulario mientras el de arriba está bloqueado. */}
+                  {vieneDeAsignacion && <input type="hidden" name="categoria" value={categoria} />}
+                  {vieneDeAsignacion && <p className="mt-1 text-[11px] text-slate-400">Este curso te lo ha asignado Coordinación, no se puede cambiar.</p>}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -217,6 +236,7 @@ export function CrearCertificacionModal({
                           }
                         }}
                         className={inputClass}
+                        disabled={esEdicion && !esDirectivo}
                       >
                         {CURSOS_ACADEMICOS.map((c) => (
                           <option key={c} value={c}>{c}</option>
@@ -250,7 +270,7 @@ export function CrearCertificacionModal({
                     <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                       Grupo del ciclo <span className="text-red-500">*</span>
                     </label>
-                    <select name="cicloFormativo" required defaultValue={datos?.cicloFormativo ?? ""} className={inputClass} disabled={gruposCentro.length === 0}>
+                    <select name="cicloFormativo" required defaultValue={datos?.cicloFormativo ?? ""} className={inputClass} disabled={gruposCentro.length === 0 || (esEdicion && !esDirectivo)}>
                       <option value="" disabled>
                         Selecciona...
                       </option>
@@ -258,6 +278,29 @@ export function CrearCertificacionModal({
                         <option key={g} value={g}>{g}</option>
                       ))}
                     </select>
+                    {esEdicion && !esDirectivo && <p className="mt-1 text-[11px] text-slate-400">Solo Coordinación/Administración pueden cambiar esto.</p>}
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-semibold text-slate-700">Clase a la que va dirigido</label>
+                    <input
+                      name="grupoClase"
+                      defaultValue={datos?.grupoClase ?? ""}
+                      placeholder="p. ej. A, B, Mañana..."
+                      className={inputClass}
+                      disabled={esEdicion && !esDirectivo}
+                    />
+                    {esEdicion && !esDirectivo && <p className="mt-1 text-[11px] text-slate-400">Lo asigna Administración.</p>}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-semibold text-slate-700">Hora de inicio</label>
+                    <input name="horaInicio" type="time" defaultValue={datos?.horaInicio ?? ""} className={inputClass} />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-semibold text-slate-700">Hora de fin</label>
+                    <input name="horaFin" type="time" defaultValue={datos?.horaFin ?? ""} className={inputClass} />
                   </div>
                 </div>
 
@@ -289,12 +332,12 @@ export function CrearCertificacionModal({
                         Nombre de la certificación <span className="text-red-500">*</span>
                       </label>
                       <select
-                        name="nombreCertificacion"
-                        required
                         value={nombreElegido}
                         onChange={(e) => handleElegirNombre(e.target.value)}
-                        disabled={!categoria}
+                        disabled={vieneDeAsignacion || !categoria}
                         className={`${inputClass} disabled:bg-slate-50 disabled:text-slate-400`}
+                        required={!vieneDeAsignacion}
+                        name={vieneDeAsignacion ? undefined : "nombreCertificacion"}
                       >
                         <option value="">{!categoria ? "Elige primero una categoría..." : "Selecciona..."}</option>
                         {nombresCatalogo.map((n) => (
@@ -304,6 +347,7 @@ export function CrearCertificacionModal({
                           <option value={nombreElegido}>{nombreElegido}</option>
                         )}
                       </select>
+                      {vieneDeAsignacion && <input type="hidden" name="nombreCertificacion" value={nombreElegido} />}
                       {categoria && nombresCatalogo.length === 0 && (
                         <p className="mt-1 text-[11px] text-slate-400">Todavía no hay certificaciones cargadas para esta categoría.</p>
                       )}
@@ -312,11 +356,11 @@ export function CrearCertificacionModal({
                       <label className="mb-1.5 block text-sm font-semibold text-slate-700">
                         Horas <span className="text-red-500">*</span>
                       </label>
-                      <input name="horas" type="number" min={0} required value={horas} onChange={(e) => setHoras(e.target.value)} className={inputClass} />
+                      <input name="horas" type="number" min={0} required value={horas} onChange={(e) => setHoras(e.target.value)} className={inputClass} disabled={esEdicion && !esDirectivo} />
                     </div>
                     <div>
                       <label className="mb-1.5 block text-sm font-semibold text-slate-700">Duración del examen</label>
-                      <input name="duracionExamen" placeholder="Ej. 3 horas y 30 minutos" defaultValue={datos?.duracionExamen ?? ""} className={inputClass} />
+                      <input name="duracionExamen" placeholder="Ej. 3 horas y 30 minutos" defaultValue={datos?.duracionExamen ?? ""} className={inputClass} disabled={esEdicion && !esDirectivo} />
                     </div>
                     <div>
                       <label className="mb-1.5 block text-sm font-semibold text-slate-700">
@@ -331,7 +375,7 @@ export function CrearCertificacionModal({
                     </div>
                     <div>
                       <label className="mb-1.5 block text-sm font-semibold text-slate-700">Sede del examen</label>
-                      <input name="sedeExamen" value={sedeExamen} onChange={(e) => setSedeExamen(e.target.value)} className={inputClass} />
+                      <input name="sedeExamen" value={sedeExamen} onChange={(e) => setSedeExamen(e.target.value)} className={inputClass} disabled={esEdicion && !esDirectivo} />
                     </div>
                     <div>
                       <label className="mb-1.5 block text-sm font-semibold text-slate-700">

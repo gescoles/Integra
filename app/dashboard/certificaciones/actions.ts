@@ -111,10 +111,13 @@ function leerCamposCertificacion(formData: FormData) {
     nombreCertificacion: (formData.get("nombreCertificacion") as string)?.trim(),
     cursoAcademico: (formData.get("cursoAcademico") as string)?.trim(),
     cicloFormativo: (formData.get("cicloFormativo") as string)?.trim(),
+    grupoClase: str(formData.get("grupoClase")),
     horas: num(formData.get("horas")),
     fechaInicioPreparacion: fecha(formData.get("fechaInicioPreparacion")) as Date,
     fechaFinPreparacion: fecha(formData.get("fechaFinPreparacion")),
     fechaExamen: fecha(formData.get("fechaExamen")),
+    horaInicio: str(formData.get("horaInicio")),
+    horaFin: str(formData.get("horaFin")),
     estado: (formData.get("estado") as string) || "PROGRAMADA",
     codigoPue: str(formData.get("codigoPue")),
     entidadCertificadora: str(formData.get("entidadCertificadora")),
@@ -159,9 +162,25 @@ export async function crearCertificacion(formData: FormData) {
   validarCamposObligatorios(datos);
   aplicarEstadoSegunFechas(datos);
 
+  // Si viene de una asignación de Coordinación (el profesor la está
+  // programando a partir de un curso que le han encargado), la
+  // vinculamos: así Coordinación ve, en su pantalla de seguimiento,
+  // que ya está programada y con qué datos.
+  const asignacionId = (formData.get("asignacionId") as string)?.trim() || null;
+  if (asignacionId) {
+    const asignacion = await prisma.certificacionAsignacion.findUnique({ where: { id: asignacionId } });
+    if (!asignacion || asignacion.profesorId !== session.user.id || asignacion.certificacionId) {
+      throw new Error("Esta asignación no es válida o ya se ha programado.");
+    }
+  }
+
   const cert = await prisma.certificacion.create({
     data: { ...datos, schoolId: session.user.schoolId, creadoPorId: session.user.id } as any,
   });
+
+  if (asignacionId) {
+    await prisma.certificacionAsignacion.update({ where: { id: asignacionId }, data: { certificacionId: cert.id } });
+  }
 
   revalidatePath("/dashboard/certificaciones");
   return cert.id;
@@ -180,6 +199,23 @@ export async function actualizarCertificacion(id: string, formData: FormData) {
   }
 
   const datos = leerCamposCertificacion(formData);
+
+  // Un profesor puede editar la certificación que ha programado, pero
+  // no puede tocar los campos que Administración/Coordinación han
+  // bloqueado: ciclo/curso, grupo/clase, horas totales, duración del
+  // examen y sede. Esos se conservan tal como estaban, gane lo que
+  // venga (o no) en el formulario — hay que hacer esto ANTES de
+  // validar campos obligatorios, porque un <input disabled> ni
+  // siquiera se envía en el formulario.
+  if (!esDirectivo(session.user.role)) {
+    datos.cicloFormativo = cert.cicloFormativo;
+    datos.cursoAcademico = cert.cursoAcademico;
+    datos.grupoClase = cert.grupoClase;
+    datos.horas = cert.horas;
+    datos.duracionExamen = cert.duracionExamen;
+    datos.sedeExamen = cert.sedeExamen;
+  }
+
   validarCamposObligatorios(datos);
 
   // El estado se recalcula siempre según las fechas que se acaben de
@@ -276,10 +312,13 @@ export async function obtenerCertificacion(id: string) {
     nombreCertificacion: c.nombreCertificacion,
     cursoAcademico: c.cursoAcademico,
     cicloFormativo: c.cicloFormativo,
+    grupoClase: c.grupoClase,
     horas: c.horas,
     fechaInicioPreparacion: c.fechaInicioPreparacion.toISOString().slice(0, 10),
     fechaFinPreparacion: c.fechaFinPreparacion ? c.fechaFinPreparacion.toISOString().slice(0, 10) : "",
     fechaExamen: c.fechaExamen ? c.fechaExamen.toISOString().slice(0, 10) : "",
+    horaInicio: c.horaInicio,
+    horaFin: c.horaFin,
     estado: c.estado,
     codigoPue: c.codigoPue,
     entidadCertificadora: c.entidadCertificadora,
@@ -300,8 +339,11 @@ export async function eliminarCertificacion(id: string) {
 
   const cert = await prisma.certificacion.findUnique({ where: { id } });
   if (!cert || cert.schoolId !== session.user.schoolId) throw new Error("No se ha encontrado la certificación.");
-  if (cert.creadoPorId !== session.user.id && !esDirectivo(session.user.role)) {
-    throw new Error("Solo quien la creó, o Coordinación/Administración, puede eliminarla.");
+  // A diferencia de editar, borrar SOLO lo puede hacer Coordinación/
+  // Administración/SuperAdmin — un profesor puede editar la suya, pero
+  // nunca eliminarla, ni la que él mismo programó.
+  if (!esDirectivo(session.user.role)) {
+    throw new Error("Solo Coordinación o Administración pueden eliminar una certificación.");
   }
 
   await prisma.certificacion.delete({ where: { id } });

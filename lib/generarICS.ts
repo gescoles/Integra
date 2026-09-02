@@ -28,12 +28,16 @@ export function generarICSCobertura(params: {
   fecha: Date;
   horaInicio: string;
   horaFin: string;
+  // Si se pasa, sustituye el título por defecto ("Guardia: cubrir a
+  // X") — para las guardias directas, que no tienen ausente al que
+  // cubrir.
+  titulo?: string;
 }) {
   const inicio = formatoFechaICS(params.fecha, params.horaInicio);
   const fin = formatoFechaICS(params.fecha, params.horaFin);
   const ahora = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
 
-  const titulo = `Guardia: cubrir a ${params.ausenteNombre}`;
+  const titulo = params.titulo ?? `Guardia: cubrir a ${params.ausenteNombre}`;
   const descripcionPartes = [
     params.asignatura ? `Asignatura: ${params.asignatura}` : null,
     params.grupo ? `Grupo: ${params.grupo}` : null,

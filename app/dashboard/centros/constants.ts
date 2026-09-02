@@ -11,6 +11,7 @@ import {
   Building2,
   Handshake,
   Award,
+  Brain,
 } from "lucide-react";
 
 export const MODULES = [
@@ -24,6 +25,7 @@ export const MODULES = [
   { key: "espacios", label: "Reserva de Espacios", icon: Building2, color: "bg-indigo-50 text-indigo-600 border-indigo-200" },
   { key: "empresas", label: "Empresas", icon: Handshake, color: "bg-cyan-50 text-cyan-600 border-cyan-200" },
   { key: "certificaciones", label: "Certificaciones", icon: Award, color: "bg-fuchsia-50 text-fuchsia-600 border-fuchsia-200" },
+  { key: "psicopedagogia", label: "Psicopedagogia", icon: Brain, color: "bg-pink-50 text-pink-600 border-pink-200" },
   { key: "comunicacion", label: "Comunicación", icon: MessageSquare, color: "bg-sky-50 text-sky-600 border-sky-200" },
   { key: "utilidades", label: "Utilidades (Calendario y Horario)", icon: CalendarClock, color: "bg-rose-50 text-rose-600 border-rose-200" },
 ] as const;

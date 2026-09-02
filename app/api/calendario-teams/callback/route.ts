@@ -30,7 +30,7 @@ function responderHTML(titulo: string, mensaje: string, ok: boolean, status = 20
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const code = searchParams.get("code");
-  const coberturaId = searchParams.get("state");
+  const stateRaw = searchParams.get("state");
   const errorMicrosoft = searchParams.get("error_description");
 
   if (errorMicrosoft) {
@@ -39,7 +39,11 @@ export async function GET(req: NextRequest) {
     return responderHTML("No se ha añadido al calendario", "Has cancelado el permiso en Microsoft, así que no se ha podido añadir la guardia a tu calendario de Teams.", false);
   }
 
-  if (!code || !coberturaId) {
+  if (!code || !stateRaw || !stateRaw.includes(":")) {
+    return responderHTML("Enlace no válido", "Este enlace de calendario no es correcto o ha caducado.", false, 400);
+  }
+  const [tipo, registroId] = stateRaw.split(":");
+  if (tipo !== "guardia" && tipo !== "cobertura") {
     return responderHTML("Enlace no válido", "Este enlace de calendario no es correcto o ha caducado.", false, 400);
   }
 
@@ -75,22 +79,54 @@ export async function GET(req: NextRequest) {
     const tokenData = await tokenRes.json();
     const accessToken = tokenData.access_token as string;
 
-    // 2. Buscamos los datos reales de la guardia en Docentium.
-    const cobertura = await prisma.coberturaGuardia.findUnique({
-      where: { id: coberturaId },
-      include: { profesorAusente: { select: { name: true, email: true } } },
-    });
-    if (!cobertura) {
-      return responderHTML("Guardia no encontrada", "Esta guardia ya no existe (puede que se haya eliminado o cancelado).", false, 404);
-    }
+    // 2. Buscamos los datos reales en Docentium — de una guardia directa
+    // o de una cobertura de ausencia, según el tipo.
+    let titulo: string;
+    let descripcion: string;
+    let inicio: Date;
+    let fin: Date;
+    let ubicacion: string | null;
 
-    const [hIni, mIni] = cobertura.horaInicio.split(":").map(Number);
-    const [hFin, mFin] = cobertura.horaFin.split(":").map(Number);
-    const inicio = new Date(cobertura.fecha);
-    inicio.setHours(hIni, mIni, 0, 0);
-    const fin = new Date(cobertura.fecha);
-    fin.setHours(hFin, mFin, 0, 0);
-    const ausenteNombre = cobertura.profesorAusente.name ?? cobertura.profesorAusente.email;
+    if (tipo === "cobertura") {
+      const cobertura = await prisma.coberturaGuardia.findUnique({
+        where: { id: registroId },
+        include: { profesorAusente: { select: { name: true, email: true } } },
+      });
+      if (!cobertura) {
+        return responderHTML("Guardia no encontrada", "Esta guardia ya no existe (puede que se haya eliminado o cancelado).", false, 404);
+      }
+      const [hIni, mIni] = cobertura.horaInicio.split(":").map(Number);
+      const [hFin, mFin] = cobertura.horaFin.split(":").map(Number);
+      inicio = new Date(cobertura.fecha);
+      inicio.setHours(hIni, mIni, 0, 0);
+      fin = new Date(cobertura.fecha);
+      fin.setHours(hFin, mFin, 0, 0);
+      const ausenteNombre = cobertura.profesorAusente.name ?? cobertura.profesorAusente.email;
+      titulo = `Guardia: cubrir a ${ausenteNombre}`;
+      descripcion = [
+        cobertura.asignatura ? `Asignatura: ${cobertura.asignatura}` : null,
+        cobertura.grupo ? `Grupo: ${cobertura.grupo}` : null,
+      ]
+        .filter(Boolean)
+        .join(" — ");
+      ubicacion = cobertura.ubicacion;
+    } else {
+      const guardia = await prisma.guardia.findUnique({ where: { id: registroId } });
+      if (!guardia) {
+        return responderHTML("Guardia no encontrada", "Esta guardia ya no existe (puede que se haya eliminado o cancelado).", false, 404);
+      }
+      inicio = new Date(guardia.fecha);
+      fin = new Date(guardia.fecha);
+      fin.setMinutes(fin.getMinutes() + 55); // misma duración por defecto que al crearla
+      titulo = `Guardia${guardia.grupo ? `: ${guardia.grupo}` : ""}`;
+      descripcion = [
+        guardia.grupo ? `Grupo: ${guardia.grupo}` : null,
+        guardia.tarea ? `Qué tienen que hacer los alumnos: ${guardia.tarea}` : null,
+      ]
+        .filter(Boolean)
+        .join(" — ");
+      ubicacion = guardia.ubicacion;
+    }
 
     // 3. Con el permiso ya en la mano, creamos el evento en el calendario
     // del PROPIO profesor que ha hecho clic (no en el de otra persona).
@@ -101,19 +137,11 @@ export async function GET(req: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        subject: `Guardia: cubrir a ${ausenteNombre}`,
-        body: {
-          contentType: "text",
-          content: [
-            cobertura.asignatura ? `Asignatura: ${cobertura.asignatura}` : null,
-            cobertura.grupo ? `Grupo: ${cobertura.grupo}` : null,
-          ]
-            .filter(Boolean)
-            .join(" — "),
-        },
+        subject: titulo,
+        body: { contentType: "text", content: descripcion },
         start: { dateTime: inicio.toISOString(), timeZone: "Europe/Madrid" },
         end: { dateTime: fin.toISOString(), timeZone: "Europe/Madrid" },
-        location: cobertura.ubicacion ? { displayName: cobertura.ubicacion } : undefined,
+        location: ubicacion ? { displayName: ubicacion } : undefined,
       }),
     });
 

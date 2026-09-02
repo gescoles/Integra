@@ -1,6 +1,29 @@
 import { prisma } from "@/lib/prisma";
 import { ensureSubfolder, uploadGenericFileToDrive } from "@/lib/googleDrive";
+import { uploadFileToOneDrive } from "@/lib/oneDrive";
 import { safeFileName } from "@/lib/exportWorkbooks";
+
+// Además de Google Drive, un centro puede tener configurado (desde el
+// panel de SuperAdmin) un correo de OneDrive propio donde recibir
+// también su copia. Si no lo tiene configurado, no se sube nada ahí —
+// los demás centros no se ven afectados por esto.
+// Mejor esfuerzo: si OneDrive falla, la copia en Google Drive ya se ha
+// hecho igualmente y no se interrumpe nada por esto.
+export async function subirBackupOneDriveSiCorresponde(
+  oneDriveBackupEmail: string | null | undefined,
+  nombreCentro: string,
+  archivos: { nombre: string; buffer: Buffer; contentType: string }[]
+) {
+  if (!oneDriveBackupEmail) return;
+
+  try {
+    for (const archivo of archivos) {
+      await uploadFileToOneDrive(oneDriveBackupEmail, `Docentium_Backup/${safeFileName(nombreCentro)}/${archivo.nombre}`, archivo.buffer, archivo.contentType);
+    }
+  } catch (e) {
+    console.error(`No se pudo subir el backup de "${nombreCentro}" a OneDrive:`, e);
+  }
+}
 
 // Todas las tablas "normales" del sistema, en el orden en el que aparecen
 // en el schema. Como el restaurado desactiva temporalmente la comprobación
@@ -377,10 +400,9 @@ export async function carpetasBackupBBDD(rootFolderId: string, nombreCentro: str
  * distinguirlo de los que se generan a mano desde el panel.
  */
 export async function ejecutarBackupBBDDTodosCentros() {
-  const rootFolderId = process.env.GOOGLE_DRIVE_BACKUP_FOLDER_ID;
-  if (!rootFolderId) throw new Error("Falta configurar la carpeta raíz de Google Drive (GOOGLE_DRIVE_BACKUP_FOLDER_ID).");
+  const rootFolderIdGlobal = process.env.GOOGLE_DRIVE_BACKUP_FOLDER_ID;
 
-  const schools = await prisma.school.findMany({ select: { id: true, name: true } });
+  const schools = await prisma.school.findMany({ select: { id: true, name: true, driveBackupFolderId: true, oneDriveBackupEmail: true } });
   const fecha = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Madrid" }).format(new Date());
   const hora = new Intl.DateTimeFormat("es-ES", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit" }).format(new Date()).replace(":", "");
 
@@ -390,10 +412,24 @@ export async function ejecutarBackupBBDDTodosCentros() {
     try {
       const copia = await generarCopiaSeguridadPorCentro(school.id);
       const sql = await generarCopiaSeguridadSQLPorCentro(school.id);
-      const { jsonFolderId, sqlFolderId } = await carpetasBackupBBDD(rootFolderId, safeFileName(school.name));
+      const jsonBuffer = Buffer.from(JSON.stringify(copia), "utf-8");
+      const sqlBuffer = Buffer.from(sql, "utf-8");
+      const nombreJson = `backup-bbdd-automatico-${fecha}-${hora}.json`;
+      const nombreSql = `backup-bbdd-automatico-${fecha}-${hora}.sql`;
 
-      await uploadGenericFileToDrive(jsonFolderId, `backup-bbdd-automatico-${fecha}-${hora}.json`, Buffer.from(JSON.stringify(copia), "utf-8"), "application/json");
-      await uploadGenericFileToDrive(sqlFolderId, `backup-bbdd-automatico-${fecha}-${hora}.sql`, Buffer.from(sql, "utf-8"), "text/plain");
+      // Cada centro puede tener su propia carpeta raíz de Drive
+      // configurada desde SuperAdmin; si no la tiene, se usa la
+      // carpeta general de la plataforma como respaldo.
+      const rootFolderId = school.driveBackupFolderId || rootFolderIdGlobal;
+      if (rootFolderId) {
+        const { jsonFolderId, sqlFolderId } = await carpetasBackupBBDD(rootFolderId, safeFileName(school.name));
+        await uploadGenericFileToDrive(jsonFolderId, nombreJson, jsonBuffer, "application/json");
+        await uploadGenericFileToDrive(sqlFolderId, nombreSql, sqlBuffer, "text/plain");
+      }
+      await subirBackupOneDriveSiCorresponde(school.oneDriveBackupEmail, school.name, [
+        { nombre: nombreJson, buffer: jsonBuffer, contentType: "application/json" },
+        { nombre: nombreSql, buffer: sqlBuffer, contentType: "text/plain" },
+      ]);
 
       resultados.push({ centro: school.name, ok: true });
     } catch (e) {

@@ -71,6 +71,32 @@ model School {
   // para que los desplegables de "Curso/Grupo" (alumnos, horario...)
   // ofrezcan los grupos reales del centro en vez de texto libre.
   grupos    String[]     @default([])
+  // El profesor designado como TIC del centro — le llega el aviso por
+  // correo cada vez que alguien reserva las gafas de RV, y es quien
+  // marca cuándo las han devuelto. Lo elige el SuperAdmin.
+  ticUserId String?
+  tic       User?        @relation("SchoolTic", fields: [ticUserId], references: [id], onDelete: SetNull)
+  // El profesor encargado de Psicopedagogia — igual que el TIC, lo
+  // elige el SuperAdmin entre los profesores del centro.
+  psicopedagogaId String?
+  psicopedagoga   User?  @relation("SchoolPsicopedagoga", fields: [psicopedagogaId], references: [id], onDelete: SetNull)
+  // El correo del director/a que firma los PI de este centro — lo pone
+  // el SuperAdmin a mano; si se deja vacío, se usa el correo por
+  // defecto de la plataforma.
+  directorPIEmail String?
+  // Dónde se guardan las copias de seguridad de ESTE centro — configurable
+  // por el SuperAdmin, centro a centro. Si se dejan vacíos, no se sube
+  // nada a ese destino para ese centro (los demás centros no se ven
+  // afectados). Las credenciales de conexión (OAuth de Google, app de
+  // Azure) son globales de la plataforma y siguen viviendo en el .env,
+  // esto solo dice A DÓNDE dentro de esas cuentas.
+  // Carpeta raíz de Google Drive (dentro de la única cuenta de Google ya
+  // conectada a la plataforma) donde cuelga el backup de este centro.
+  driveBackupFolderId String?
+  // Correo de Microsoft 365 del centro en cuyo OneDrive se guarda su
+  // backup (gracias al permiso de aplicación, no hace falta que esa
+  // persona autorice nada).
+  oneDriveBackupEmail String?
   createdAt DateTime     @default(now())
   updatedAt DateTime     @default(now()) @updatedAt
   users     User[]
@@ -82,11 +108,14 @@ model School {
   empresas  Empresa[]
   certificaciones Certificacion[]
   certificacionesCatalogo CertificacionCatalogo[]
+  certificacionesAsignaciones CertificacionAsignacion[]
+  alumnosPI AlumnoPI[]
   avisos    Aviso[]
   noticias  Noticia[]
   salidas   Salida[]
   practicas PracticaAlumno[]
   historias Historia[]
+  gafasVRReservas GafasVRReserva[]
   incidencias Incidencia[]
   expedientes Expediente[]
   onboardingCarpetas OnboardingCarpeta[]
@@ -115,6 +144,7 @@ model Departamento {
   salidas       Salida[]
   certificacionesCatalogo CertificacionCatalogo[]
   empresas      Empresa[]
+  alumnos       Alumno[]
   createdAt     DateTime @default(now())
 }
 
@@ -148,7 +178,7 @@ model Incidencia {
   school   School @relation(fields: [schoolId], references: [id])
 
   alumnoId String
-  alumno   Alumno @relation(fields: [alumnoId], references: [id])
+  alumno   Alumno @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
 
   creadorId String
   creador   User   @relation("IncidenciaCreador", fields: [creadorId], references: [id])
@@ -262,14 +292,44 @@ model EspacioReserva {
   createdAt   DateTime    @default(now())
 }
 
+enum EstadoGafasVR {
+  RESERVADA
+  DEVUELTA
+}
+
+// Reserva de las gafas de realidad virtual — deliberadamente aparte del
+// calendario/horario lectivo (a diferencia de las aulas, aquí no se
+// comprueba si el profesor tiene clase); solo importa que la franja no
+// se solape con otra reserva de las mismas gafas, dentro del mismo
+// horario de apertura que Reserva de Espacios. Al devolverlas, el TIC
+// del centro las marca como devueltas.
+model GafasVRReserva {
+  id         String        @id @default(cuid())
+  schoolId   String
+  school     School        @relation(fields: [schoolId], references: [id])
+  userId     String
+  user       User          @relation(fields: [userId], references: [id])
+  fecha      DateTime
+  horaInicio String
+  horaFin    String
+  estado     EstadoGafasVR @default(RESERVADA)
+  devueltoEn DateTime?
+  // Para no mandar el correo de "todavía no las ha devuelto" más de una
+  // vez por reserva — se marca en cuanto se envía el primer aviso.
+  recordatorioEnviado Boolean @default(false)
+  createdAt  DateTime      @default(now())
+
+  @@index([schoolId, fecha])
+}
+
 model Expediente {
   id           String     @id @default(cuid())
   schoolId     String
   school       School     @relation(fields: [schoolId], references: [id])
   alumnoId     String
-  alumno       Alumno     @relation(fields: [alumnoId], references: [id])
+  alumno       Alumno     @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
   incidenciaId String
-  incidencia   Incidencia @relation(fields: [incidenciaId], references: [id])
+  incidencia   Incidencia @relation(fields: [incidenciaId], references: [id], onDelete: Cascade)
 
   tutorId     String
   tutor       User @relation("ExpedienteTutor", fields: [tutorId], references: [id])
@@ -372,6 +432,14 @@ model User {
   empresasCreadas Empresa[]
   historialPropio UserHistorial[]
   certificacionesCreadas Certificacion[]
+  certificacionesAsignadas CertificacionAsignacion[] @relation("CertificacionAsignacionProfesor")
+  certificacionesAsignadasPorMi CertificacionAsignacion[] @relation("CertificacionAsignacionCreador")
+  ticDeCentro School[] @relation("SchoolTic")
+  psicopedagogaDeCentro School[] @relation("SchoolPsicopedagoga")
+  alumnosPICreados AlumnoPI[] @relation("PIPsicopedagoga")
+  actuacionesPICreadas PIActuacion[]
+  documentosPISubidos AlumnoPIDocumento[]
+  gafasVRReservas GafasVRReserva[]
   registrosAcceso RegistroAcceso[]
   // Chat interno entre usuarios del centro (no confundir con el asistente
   // de IA, que es aparte). El estado se pone a mano desde el propio chat;
@@ -423,6 +491,23 @@ enum ConQuien {
   AMBOS
 }
 
+// Específicos de las actuaciones de Psicopedagogia — "amb qui" y "mitjà"
+// de cada actuación (distintos de ConQuien/MedioContacto de Tutorías,
+// que tienen otras opciones porque el contexto es distinto).
+enum ConQuienActuacion {
+  ALUMNO
+  FAMILIA
+  ALUMNO_FAMILIA
+  TUTOR
+}
+
+enum MedioActuacion {
+  PRESENCIAL
+  MAIL
+  TELEFONICA
+  APP_IMES
+}
+
 enum MedioContacto {
   TELEFONO
   EMAIL
@@ -443,7 +528,7 @@ model Tutoria {
   profesorId         String
   profesor           User          @relation(fields: [profesorId], references: [id])
   alumnoId           String?
-  alumno             Alumno?       @relation(fields: [alumnoId], references: [id])
+  alumno             Alumno?       @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
   studentName        String
   cicloModulo        String?
   causa              String        @default("")
@@ -467,6 +552,11 @@ model Alumno {
   edad       Int?
   riesgo     RiesgoNivel      @default(BAJO)
   avatarUrl  String?
+  // Departamento al que pertenece el alumno — se elige a mano al crearlo
+  // (antes se intentaba deducir del ciclo, pero no siempre acertaba, y
+  // hace falta que sea fiable para los PI de Psicopedagogia).
+  departamentoId String?
+  departamento   Departamento? @relation(fields: [departamentoId], references: [id], onDelete: SetNull)
   // Datos identificativos del alumno. Se piden al crear el alumno desde
   // Tutorías, y luego se muestran bloqueados (solo lectura) en la ficha de
   // Prácticas — para editarlos hay que hacerlo desde la ficha del alumno.
@@ -480,6 +570,8 @@ model Alumno {
   practicas  PracticaAlumno[]
   incidencias Incidencia[]
   expedientes Expediente[]
+  alumnoPI AlumnoPI?
+  historial AlumnoHistorial[]
 }
 
 enum TipoDocumento {
@@ -491,7 +583,7 @@ enum TipoDocumento {
 model AlumnoContacto {
   id       String  @id @default(cuid())
   alumnoId String
-  alumno   Alumno  @relation(fields: [alumnoId], references: [id])
+  alumno   Alumno  @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
   relacion String
   telefono String?
   email    String?
@@ -596,7 +688,7 @@ model PracticaAlumno {
   schoolId String
   school   School @relation(fields: [schoolId], references: [id])
   alumnoId String @unique
-  alumno   Alumno @relation(fields: [alumnoId], references: [id])
+  alumno   Alumno @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
 
   promocion      Promocion @default(PRIMERA)
   cicloFormativo String?
@@ -1160,6 +1252,25 @@ model UserHistorial {
   @@index([userId, createdAt])
 }
 
+// Historial de acciones sobre un alumno concreto (quién ha hecho qué, y
+// cuándo) — igual que UserHistorial pero para alumnos. Se borra en
+// cascada si se borra el alumno; para que la propia acción de "borrar
+// al alumno" quede registrada de forma que sobreviva, esa entrada
+// concreta se anota además en el UserHistorial del profesor que lo
+// borró (ver eliminarAlumno).
+model AlumnoHistorial {
+  id             String   @id @default(cuid())
+  alumnoId       String
+  alumno         Alumno   @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
+  accion         String
+  detalle        String?
+  hechoPorId     String?
+  hechoPorNombre String
+  createdAt      DateTime @default(now())
+
+  @@index([alumnoId, createdAt])
+}
+
 // ── Módulo Certificaciones ──────────────────────────────────────────
 // Las certificaciones (PUE) son las mismas para cualquier centro
 // (Microsoft, Cisco, etc.), así que el catálogo de nombres lo gestiona el
@@ -1197,6 +1308,7 @@ model CertificacionCatalogo {
   proximasConvocatorias  String?
 
   createdAt    DateTime @default(now())
+  asignaciones CertificacionAsignacion[]
 }
 
 model Certificacion {
@@ -1208,11 +1320,17 @@ model Certificacion {
   nombreCertificacion    String
   cursoAcademico         String
   cicloFormativo         String
+  // A qué clase/grupo concreto va dirigido — lo asigna Administración,
+  // no el profesor.
+  grupoClase             String?
   horas                  Int?
 
   fechaInicioPreparacion DateTime
   fechaFinPreparacion    DateTime?
   fechaExamen            DateTime?
+  // Hora de inicio/fin de la sesión — esto sí lo pone el profesor.
+  horaInicio             String?
+  horaFin                String?
   estado                 EstadoCertificacion @default(PROGRAMADA)
 
   codigoPue              String?
@@ -1227,6 +1345,31 @@ model Certificacion {
   creadoPor              User?               @relation(fields: [creadoPorId], references: [id], onDelete: SetNull)
   createdAt              DateTime            @default(now())
   updatedAt              DateTime            @default(now()) @updatedAt
+  asignacion             CertificacionAsignacion?
+}
+
+// Un coordinador asigna un curso concreto del catálogo a un profesor
+// concreto — el profesor recibe un aviso y puede programarlo él mismo
+// (con el mismo formulario de siempre), pero ya viene "encargado" desde
+// arriba, no elegido libremente. Se queda "pendiente de programar"
+// mientras certificacionId sea null; en cuanto el profesor la programa,
+// queda enlazada a la Certificacion real que ha creado.
+model CertificacionAsignacion {
+  id              String                @id @default(cuid())
+  schoolId        String
+  school          School                @relation(fields: [schoolId], references: [id])
+  catalogoId      String
+  catalogo        CertificacionCatalogo @relation(fields: [catalogoId], references: [id], onDelete: Cascade)
+  profesorId      String
+  profesor        User                  @relation("CertificacionAsignacionProfesor", fields: [profesorId], references: [id], onDelete: Cascade)
+  asignadoPorId   String?
+  asignadoPor     User?                 @relation("CertificacionAsignacionCreador", fields: [asignadoPorId], references: [id], onDelete: SetNull)
+  certificacionId String?               @unique
+  certificacion   Certificacion?        @relation(fields: [certificacionId], references: [id], onDelete: SetNull)
+  createdAt       DateTime              @default(now())
+
+  @@index([profesorId])
+  @@index([schoolId])
 }
 
 // Registro de intentos de login fallidos, para poder bloquear
@@ -1281,4 +1424,164 @@ model BloqueoAcceso {
 
   @@index([email, estado])
   @@index([estado, createdAt])
+}
+
+// ==================== Psicopedagogia / PI ====================
+
+// El expediente de un alumno dentro de Psicopedagogia: quién lo lleva,
+// cuánto tiempo se le dedica, el diagnóstico, si tiene PI o no, y su
+// registro de actuaciones. El documento formal del PI (el Word) es
+// aparte (PIDocumento), porque puede no existir todavía.
+model AlumnoPI {
+  id              String   @id @default(cuid())
+  schoolId        String
+  school          School   @relation(fields: [schoolId], references: [id])
+  alumnoId        String   @unique
+  alumno          Alumno   @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
+  psicopedagogaId String
+  psicopedagoga   User     @relation("PIPsicopedagoga", fields: [psicopedagogaId], references: [id])
+  diagnostico     String
+  // Sí / No / vacío (null = todavía sin especificar) — el tiempo
+  // dedicado ya no se rellena aquí a mano: se calcula sumando las horas
+  // de cada actuación registrada.
+  tienePI         Boolean?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+  actuaciones     PIActuacion[]
+  documento       PIDocumento?
+  documentos      AlumnoPIDocumento[]
+
+  @@index([schoolId])
+  @@index([alumnoId])
+}
+
+// Documentos adjuntos a la ficha del alumno dentro de Psicopedagogia
+// (informes, diagnósticos escaneados, etc.) — quedan guardados aquí,
+// aparte del propio PI.
+model AlumnoPIDocumento {
+  id          String   @id @default(cuid())
+  alumnoPiId  String
+  alumnoPi    AlumnoPI @relation(fields: [alumnoPiId], references: [id], onDelete: Cascade)
+  nombre      String
+  url         String
+  tipo        String?
+  tamano      Int?
+  subidoPorId String?
+  subidoPor   User?    @relation(fields: [subidoPorId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+}
+
+// Cada actuación registrada para un alumno — fecha, tipo, y la
+// información extra, todos obligatorios tal como se pidió.
+model PIActuacion {
+  id               String   @id @default(cuid())
+  alumnoPiId       String
+  alumnoPi         AlumnoPI @relation(fields: [alumnoPiId], references: [id], onDelete: Cascade)
+  fecha            DateTime
+  conQuien         ConQuienActuacion
+  medio            MedioActuacion
+  informacionExtra String
+  // Horas dedicadas en esta actuación concreta — se van sumando para
+  // sacar el total de tiempo dedicado al alumno, en vez de que la
+  // psicopedagoga tenga que escribirlo a mano en el expediente.
+  horasDedicadas   Float
+  creadoPorId      String?
+  creadoPor        User?    @relation(fields: [creadoPorId], references: [id], onDelete: SetNull)
+  createdAt        DateTime @default(now())
+}
+
+enum EstadoPIDocumento {
+  BORRADOR              // la psicopedagoga lo está rellenando, todavía no ha pedido firmas
+  PENDIENTE_TUTOR        // valor histórico, ya no se usa para documentos nuevos
+  PENDIENTE_DIRECTOR     // valor histórico, ya no se usa para documentos nuevos
+  PENDIENTE_TUTOR_DIRECTOR // esperando la firma del tutor y del director — cada uno puede firmar en cuanto le llegue, sin esperar al otro
+  PENDIENTE_FAMILIA      // firmas internas hechas — el tutor tiene que quedar con la família y el alumno, y marcar sus firmas
+  LISTO_PARA_ENVIAR      // familia y alumno también han firmado, el tutor ya puede enviarlo
+  CERRADO                // ya enviado a familia y alumno — cerrado
+}
+
+// El documento formal del "Pla d'Adaptació Individual" — todos los
+// campos del Word original, uno a uno, más el estado del circuito de
+// firmas (psicopedagoga -> tutor -> director -> familia/alumno).
+model PIDocumento {
+  id         String   @id @default(cuid())
+  alumnoPiId String   @unique
+  alumnoPi   AlumnoPI @relation(fields: [alumnoPiId], references: [id], onDelete: Cascade)
+  estado     EstadoPIDocumento @default(BORRADOR)
+  // Idioma en el que se rellena y se genera el documento — castellano
+  // o catalán, se elige antes de empezar.
+  idioma     String @default("CA")
+
+  cursoAcademico String
+
+  // Dades personals i acadèmiques — precargados desde la ficha del
+  // alumno al crear, pero siempre editables aquí.
+  nombreAlumno          String
+  estudiosEnCurso       String
+  fechaNacimiento       String?
+  lugarNacimiento       String?
+  fechaLlegadaCatalunya String?
+  tutorNombre           String
+  lenguaHabitual        String?
+  planAnteriorSiNo      Boolean?
+  medidasRecibidas      String?
+  repeticionCursoSiNo   Boolean?
+  repeticionCual        String?
+  centrosAnteriores     String?
+  fechaInicioPI         String?
+  periodoValidez        String?
+  otrasInfoInteres      String?
+
+  // Justificació de la necessitat
+  motivoInformeNEE       Boolean @default(false)
+  motivoAvaluacioPsico   Boolean @default(false)
+  motivoAvaluacioInicial Boolean @default(false)
+  motivoOrigenEstranger  Boolean @default(false)
+  motivoCAD              Boolean @default(false)
+  motivoCADPropuesta     String?
+  motivoAltres           Boolean @default(false)
+  motivoAltresTexto      String?
+  descripcionNecesidad   String?
+
+  // Professionals i serveis que intervenen, mesures i suports, i les
+  // reunions de seguiment — todo esto son listas de longitud variable
+  // (se pueden añadir o quitar filas), así que van en JSON.
+  profesionales      Json?
+  medidasSoportes    Json?
+  horarioPersonalizadoSiNo Boolean?
+  adjuntarSiProcede  String?
+
+  // Firmas
+  tutorFirmaUserId    String?
+  tutorFirmaFecha     DateTime?
+  // Imagen de la firma dibujada a mano (dedo o ratón), como el resto de
+  // firmas de la app — se guarda como data URL (PNG en base64).
+  tutorFirmaImagen    String?
+  directorFirmaUserId String?
+  directorFirmaFecha  DateTime?
+  directorFirmaImagen String?
+  // Firmas de la família y del alumno — no son cuentas de Docentium, el
+  // tutor las recoge dibujadas a mano tras reunirse con ellos en persona.
+  // Si no quieren firmar, se marca "rechazada" en vez de guardar imagen
+  // — queda igualmente como firma "hecha" a efectos de avanzar el
+  // documento, pero en el PDF y en pantalla sale el sello de "No
+  // Firmado"/"No firmat" en vez de la imagen.
+  firmaFamiliaFecha     DateTime?
+  firmaFamiliaImagen    String?
+  firmaFamiliaRechazada Boolean   @default(false)
+  firmaAlumnoFecha      DateTime?
+  firmaAlumnoImagen     String?
+  firmaAlumnoRechazada  Boolean   @default(false)
+
+  // Envío final a la familia y al alumno
+  emailFamilia   String?
+  emailAlumno    String?
+  enviadoFecha   DateTime?
+  // Dónde ha quedado guardado el PDF de este PI en Google Drive, una
+  // vez cerrado — para poder ofrecer la descarga sin tener que volver a
+  // generarlo cada vez.
+  pdfDriveFileId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }

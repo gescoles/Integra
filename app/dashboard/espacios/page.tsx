@@ -5,8 +5,11 @@ import { DashboardHeader } from "../components/DashboardHeader";
 import { translate } from "../i18n";
 import { ModuleLocked } from "../components/ModuleLocked";
 import { EspaciosClient } from "./EspaciosClient";
-import { SembrarPlanoButton } from "./AdminPlano";
+import { SembrarPlanoButton, SembrarPlantasAdicionalesButton } from "./AdminPlano";
 import { SchoolPicker, SchoolSwitcher } from "../components/SchoolPicker";
+import { ReservasTabs } from "./ReservasTabs";
+import { GafasVRClient } from "./GafasVRClient";
+import { obtenerReservasGafasVR, obtenerTicDelCentro, obtenerProfesoresParaTic } from "./gafasVR";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -33,6 +36,22 @@ async function getPlantasData(schoolId: string) {
     orderBy: { name: "asc" },
   });
 
+  // Las horas de clase real (horario lectivo, no de guardia) que ocupan
+  // cada aula, para que el selector de horas ya se vea sin esas franjas
+  // aunque nadie las haya reservado todavía — el aula solo está libre
+  // para reservar cuando ningún horario lectivo la ocupa en ese momento.
+  const clasesRaw = await prisma.horarioBloque.findMany({
+    where: { profesor: { schoolId }, esGuardia: false, aula: { not: null } },
+    select: { aula: true, diaSemana: true, horaInicio: true, horaFin: true },
+  });
+  const clasesPorAula = new Map<string, { diaSemana: number; horaInicio: string; horaFin: string }[]>();
+  for (const c of clasesRaw) {
+    if (!c.aula) continue;
+    const lista = clasesPorAula.get(c.aula) ?? [];
+    lista.push({ diaSemana: c.diaSemana, horaInicio: c.horaInicio, horaFin: c.horaFin });
+    clasesPorAula.set(c.aula, lista);
+  }
+
   const plantas = plantasRaw.map((p) => ({
     id: p.id,
     numero: p.numero,
@@ -48,6 +67,7 @@ async function getPlantasData(schoolId: string) {
       color: a.color,
       bloqueada: a.bloqueada,
       motivoBloqueo: a.motivoBloqueo,
+      clasesHorario: clasesPorAula.get(a.nombre) ?? [],
       reservas: a.reservas.map((r) => ({
         id: r.id,
         fecha: r.fecha.toISOString(),
@@ -86,19 +106,43 @@ export default async function EspaciosPage({
     if (!searchParams.school) {
       return (
         <div>
-          <DashboardHeader title={translate(locale, "espacios.title")} subtitle={translate(locale, "espacios.subtitle")} userName={userName} role={role} />
+          <DashboardHeader title="Reservas" subtitle={translate(locale, "espacios.subtitle")} userName={userName} role={role} />
           <SchoolPicker schools={schools} locale={locale} basePath="/dashboard/espacios" />
         </div>
       );
     }
 
     const { plantas, usuarios } = await getPlantasData(searchParams.school);
+    const [reservasGafas, ticActual, profesoresParaTic] = await Promise.all([
+      obtenerReservasGafasVR(searchParams.school),
+      obtenerTicDelCentro(searchParams.school),
+      obtenerProfesoresParaTic(searchParams.school),
+    ]);
     return (
       <div>
-        <DashboardHeader title={translate(locale, "espacios.title")} subtitle={translate(locale, "espacios.subtitle")} userName={userName} role={role} />
+        <DashboardHeader title="Reservas" subtitle={translate(locale, "espacios.subtitle")} userName={userName} role={role} />
         <SchoolSwitcher schools={schools} currentSchoolId={searchParams.school} locale={locale} basePath="/dashboard/espacios" />
-        <SembrarPlanoButton schoolId={searchParams.school} sinPlantas={plantas.length === 0} />
-        <EspaciosClient plantas={plantas} currentUserId={userId} esDirectivo isSuperAdmin usuarios={usuarios} schoolId={searchParams.school} />
+        <ReservasTabs
+          espacios={
+            <>
+              <SembrarPlanoButton schoolId={searchParams.school} sinPlantas={plantas.length === 0} />
+              <SembrarPlantasAdicionalesButton schoolId={searchParams.school} plantasExistentes={plantas.map((p) => p.numero)} />
+              <EspaciosClient plantas={plantas} currentUserId={userId} esDirectivo isSuperAdmin usuarios={usuarios} schoolId={searchParams.school} />
+            </>
+          }
+          gafasVR={
+            <GafasVRClient
+              schoolId={searchParams.school}
+              reservas={reservasGafas}
+              currentUserId={userId}
+              esDirectivo
+              esTic={ticActual?.id === userId}
+              isSuperAdmin
+              ticActual={ticActual}
+              profesoresParaTic={profesoresParaTic}
+            />
+          }
+        />
       </div>
     );
   }
@@ -126,11 +170,29 @@ export default async function EspaciosPage({
   }
 
   const { plantas, usuarios } = await getPlantasData(schoolId);
+  const [reservasGafas, ticActual] = await Promise.all([
+    obtenerReservasGafasVR(schoolId),
+    obtenerTicDelCentro(schoolId),
+  ]);
 
   return (
     <div>
-      <DashboardHeader title={translate(locale, "espacios.title")} subtitle={translate(locale, "espacios.subtitle")} userName={userName} role={role} notificationCount={0} />
-      <EspaciosClient plantas={plantas} currentUserId={userId} esDirectivo={isEquipoDirectivo} isSuperAdmin={false} usuarios={usuarios} schoolId={schoolId} />
+      <DashboardHeader title="Reservas" subtitle={translate(locale, "espacios.subtitle")} userName={userName} role={role} notificationCount={0} />
+      <ReservasTabs
+        espacios={<EspaciosClient plantas={plantas} currentUserId={userId} esDirectivo={isEquipoDirectivo} isSuperAdmin={false} usuarios={usuarios} schoolId={schoolId} />}
+        gafasVR={
+          <GafasVRClient
+            schoolId={schoolId}
+            reservas={reservasGafas}
+            currentUserId={userId}
+            esDirectivo={isEquipoDirectivo}
+            esTic={ticActual?.id === userId}
+            isSuperAdmin={false}
+            ticActual={ticActual}
+            profesoresParaTic={[]}
+          />
+        }
+      />
     </div>
   );
 }

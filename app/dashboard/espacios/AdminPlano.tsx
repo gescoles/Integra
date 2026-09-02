@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X, Wand2, Trash2 } from "lucide-react";
-import { crearPlanta, crearAula, eliminarAula, eliminarPlanta, sembrarPlanoEjemplo } from "./actions";
+import { crearPlanta, crearAula, eliminarAula, eliminarPlanta, sembrarPlanoEjemplo, sembrarPlantasAdicionales } from "./actions";
 import { ButtonSpinner } from "../components/ButtonSpinner";
 import { useLocale } from "../SchoolContext";
 import { translate } from "../i18n";
@@ -36,6 +36,42 @@ export function SembrarPlanoButton({ schoolId, sinPlantas }: { schoolId: string;
       >
         {pending ? <ButtonSpinner /> : <Wand2 className="h-4 w-4" />}
         {translate(locale, "espacios.cargarPlanoEjemplo")}
+      </button>
+    </div>
+  );
+}
+
+// Añade las plantas 2, 3, 4 y 5 (con sus aulas y su baño cada una) sin
+// tocar las que ya hubiera — a diferencia del botón de arriba, este no
+// exige que el centro esté vacío.
+export function SembrarPlantasAdicionalesButton({ schoolId, plantasExistentes }: { schoolId: string; plantasExistentes: number[] }) {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const faltaAlguna = [2, 3, 4, 5].some((n) => !plantasExistentes.includes(n));
+  if (!faltaAlguna) return null;
+
+  function handleClick() {
+    setError(null);
+    setPending(true);
+    sembrarPlantasAdicionales(schoolId)
+      .then(() => router.refresh())
+      .catch((e) => setError(e instanceof Error ? e.message : "No se pudieron crear las plantas."))
+      .finally(() => setPending(false));
+  }
+
+  return (
+    <div className="mb-5 rounded-2xl border border-dashed border-indigo-200 bg-indigo-50/50 p-5 text-center">
+      <p className="mb-3 text-sm text-slate-600">Faltan por crear las plantas 2, 3, 4 y 5 (con sus aulas y su baño cada una).</p>
+      {error && <p className="mb-2 text-xs text-red-600">{error}</p>}
+      <button
+        onClick={handleClick}
+        disabled={pending}
+        className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+      >
+        {pending ? <ButtonSpinner /> : <Wand2 className="h-4 w-4" />}
+        Crear plantas 2, 3, 4 y 5
       </button>
     </div>
   );

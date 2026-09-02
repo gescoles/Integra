@@ -16,10 +16,15 @@ import {
   CalendarClock,
   Plus,
   Pencil,
+  UserPlus,
   FileSpreadsheet,
   Trash2,
 } from "lucide-react";
 import { CrearCertificacionModal } from "./CrearCertificacionModal";
+import { ButtonSpinner } from "../components/ButtonSpinner";
+import { AsignarCursosClient } from "./AsignarCursosClient";
+import { SeguimientoProfesoresClient } from "./SeguimientoProfesoresClient";
+import { asignarCertificacionAProfesor } from "./asignaciones";
 import { eliminarCertificacion } from "./actions";
 
 type CursoCatalogo = {
@@ -92,6 +97,10 @@ export function CertificacionesClient({
   esDirectivo,
   esSuperAdmin,
   userId,
+  misAsignacionesPendientes,
+  profesoresCentro,
+  todasLasAsignaciones,
+  schoolId,
 }: {
   certificaciones: Certificacion[];
   catalogo: CursoCatalogo[];
@@ -103,8 +112,12 @@ export function CertificacionesClient({
   esDirectivo: boolean;
   esSuperAdmin: boolean;
   userId: string | null;
+  misAsignacionesPendientes: { id: string; catalogoId: string; cursoNombre: string; categoria: string; horasDefault: number | null; asignadoPorNombre: string; createdAt: string }[];
+  profesoresCentro: { id: string; nombre: string }[];
+  todasLasAsignaciones: Parameters<typeof SeguimientoProfesoresClient>[0]["filas"];
+  schoolId: string;
 }) {
-  const [vista, setVista] = useState<"solicitudes" | "catalogo">("solicitudes");
+  const [vista, setVista] = useState<"solicitudes" | "catalogo" | "asignar" | "seguimiento">(esDirectivo ? "catalogo" : "solicitudes");
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [cursoFiltro, setCursoFiltro] = useState("");
   const [cicloFiltro, setCicloFiltro] = useState("");
@@ -161,19 +174,67 @@ export function CertificacionesClient({
   return (
     <div>
       <div className="mb-5 flex gap-1 rounded-lg bg-slate-100 p-1 text-sm" style={{ width: "fit-content" }}>
-        <button
-          onClick={() => setVista("solicitudes")}
-          className={`rounded-md px-3 py-1.5 font-semibold transition-colors ${vista === "solicitudes" ? "bg-white text-[#FD5249] shadow-sm" : "text-slate-500"}`}
-        >
-          Solicitudes de certificación
-        </button>
+        {!esDirectivo && (
+          <button
+            onClick={() => setVista("solicitudes")}
+            className={`rounded-md px-3 py-1.5 font-semibold transition-colors ${vista === "solicitudes" ? "bg-white text-[#FD5249] shadow-sm" : "text-slate-500"}`}
+          >
+            Solicitudes de certificación
+          </button>
+        )}
         <button
           onClick={() => setVista("catalogo")}
           className={`rounded-md px-3 py-1.5 font-semibold transition-colors ${vista === "catalogo" ? "bg-white text-[#FD5249] shadow-sm" : "text-slate-500"}`}
         >
           Catálogo de cursos
         </button>
+        {esDirectivo && (
+          <>
+            <button
+              onClick={() => setVista("asignar")}
+              className={`rounded-md px-3 py-1.5 font-semibold transition-colors ${vista === "asignar" ? "bg-white text-[#FD5249] shadow-sm" : "text-slate-500"}`}
+            >
+              Asignar cursos
+            </button>
+            <button
+              onClick={() => setVista("seguimiento")}
+              className={`rounded-md px-3 py-1.5 font-semibold transition-colors ${vista === "seguimiento" ? "bg-white text-[#FD5249] shadow-sm" : "text-slate-500"}`}
+            >
+              Seguimiento de profesores
+            </button>
+          </>
+        )}
       </div>
+
+      {misAsignacionesPendientes.length > 0 && (
+        <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <p className="mb-2 text-sm font-bold text-amber-800">Te han asignado {misAsignacionesPendientes.length} curso(s) para programar</p>
+          <div className="space-y-2">
+            {misAsignacionesPendientes.map((a) => (
+              <div key={a.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white p-3">
+                <div className="text-xs text-slate-500">
+                  <span className="font-semibold text-slate-700">{a.cursoNombre}</span> ({a.categoria}) · asignado por {a.asignadoPorNombre}
+                </div>
+                <CrearCertificacionModal
+                  categorias={categorias}
+                  departamentos={departamentos}
+                  cursoAcademicoCentro={cursoAcademicoCentro}
+                  gruposCentro={gruposCentro}
+                  esDirectivo={esDirectivo}
+                  categoriaInicial={a.categoria}
+                  nombreInicial={a.cursoNombre}
+                  asignacionId={a.id}
+                  trigger={
+                    <button className="rounded-lg bg-[#FD5249] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#D7463E]">
+                      Programar ahora
+                    </button>
+                  }
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {vista === "solicitudes" && (
       <>
@@ -222,7 +283,7 @@ export function CertificacionesClient({
             </div>
           </>
         )}
-        <CrearCertificacionModal categorias={categorias} departamentos={departamentos} cursoAcademicoCentro={cursoAcademicoCentro} gruposCentro={gruposCentro} />
+        <CrearCertificacionModal categorias={categorias} departamentos={departamentos} cursoAcademicoCentro={cursoAcademicoCentro} gruposCentro={gruposCentro} esDirectivo={esDirectivo} />
         {esSuperAdmin && (
           <a
             href="/api/superadmin/exportar-certificaciones"
@@ -285,12 +346,12 @@ export function CertificacionesClient({
                 <div className="flex items-center gap-2">
                   <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${ESTADO_BADGE[seleccionada.estado]}`}>{ESTADO_LABEL[seleccionada.estado]}</span>
                   {(esDirectivo || seleccionada.creadoPorId === userId) && (
-                    <>
                     <CrearCertificacionModal
                       categorias={categorias}
                       departamentos={departamentos}
                       cursoAcademicoCentro={cursoAcademicoCentro}
                       gruposCentro={gruposCentro}
+                      esDirectivo={esDirectivo}
                       certificacionId={seleccionada.id}
                       trigger={
                         <button className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-[#FD5249] hover:text-[#FD5249]">
@@ -298,13 +359,14 @@ export function CertificacionesClient({
                         </button>
                       }
                     />
+                  )}
+                  {esDirectivo && (
                     <button
                       onClick={() => setCertAEliminar(seleccionada.id)}
                       className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-red-400 hover:text-red-600"
                     >
                       <Trash2 className="h-3.5 w-3.5" /> Eliminar
                     </button>
-                    </>
                   )}
                 </div>
               </div>
@@ -375,7 +437,17 @@ export function CertificacionesClient({
           departamentos={departamentos}
           cursoAcademicoCentro={cursoAcademicoCentro}
           gruposCentro={gruposCentro}
+          esDirectivo={esDirectivo}
+          profesoresCentro={profesoresCentro}
         />
+      )}
+
+      {vista === "asignar" && esDirectivo && (
+        <AsignarCursosClient departamentos={departamentos} profesores={profesoresCentro} asignaciones={todasLasAsignaciones} />
+      )}
+
+      {vista === "seguimiento" && esDirectivo && (
+        <SeguimientoProfesoresClient filas={todasLasAsignaciones} schoolId={schoolId} />
       )}
 
       {certAEliminar && (
@@ -399,18 +471,95 @@ export function CertificacionesClient({
   );
 }
 
+// Botón + modal ligero para asignar, desde la propia ficha del curso en
+// el catálogo, ese curso concreto a un profesor — departamento,
+// categoría y curso ya vienen decididos por el contexto (la ficha que
+// se está mirando), así que aquí solo hace falta elegir a quién.
+function AsignarDesdeCatalogoBoton({ catalogoId, cursoNombre, profesoresCentro }: { catalogoId: string; cursoNombre: string; profesoresCentro: { id: string; nombre: string }[] }) {
+  const router = useRouter();
+  const [abierto, setAbierto] = useState(false);
+  const [profesorId, setProfesorId] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleAsignar() {
+    if (!profesorId) {
+      setError("Elige un profesor.");
+      return;
+    }
+    setPending(true);
+    setError(null);
+    const formData = new FormData();
+    formData.set("catalogoId", catalogoId);
+    formData.set("profesorId", profesorId);
+    try {
+      await asignarCertificacionAProfesor(formData);
+      setAbierto(false);
+      setProfesorId("");
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo asignar.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <>
+      <button
+        onClick={() => setAbierto(true)}
+        className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:border-[#FD5249] hover:text-[#FD5249]"
+      >
+        <UserPlus className="h-4 w-4" /> Asignar a un profesor
+      </button>
+
+      {abierto && (
+        <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/40 p-6" onClick={() => setAbierto(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-white p-6">
+            <h3 className="mb-1 text-base font-bold text-[#0B1D4D]">Asignar curso</h3>
+            <p className="mb-4 text-sm text-slate-500">{cursoNombre}</p>
+            <select
+              value={profesorId}
+              onChange={(e) => setProfesorId(e.target.value)}
+              className="mb-3 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+            >
+              <option value="">Elige un profesor...</option>
+              {profesoresCentro.map((p) => (
+                <option key={p.id} value={p.id}>{p.nombre}</option>
+              ))}
+            </select>
+            {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setAbierto(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                Cancelar
+              </button>
+              <button onClick={handleAsignar} disabled={pending} className="rounded-lg bg-[#FD5249] px-4 py-2 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60">
+                {pending ? <ButtonSpinner /> : "Asignar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function CatalogoCursosVista({
   catalogo,
   categorias,
   departamentos,
   cursoAcademicoCentro,
   gruposCentro,
+  esDirectivo,
+  profesoresCentro,
 }: {
   catalogo: CursoCatalogo[];
   categorias: string[];
   departamentos: { id: string; nombre: string }[];
   cursoAcademicoCentro: string | null;
   gruposCentro: string[];
+  esDirectivo: boolean;
+  profesoresCentro: { id: string; nombre: string }[];
 }) {
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [cursoElegidoId, setCursoElegidoId] = useState<string | null>(catalogo[0]?.id ?? null);
@@ -483,19 +632,25 @@ function CatalogoCursosVista({
                 <h2 className="text-lg font-bold text-[#0B1D4D]">{curso.nombre}</h2>
                 <p className="text-sm text-slate-400">{curso.categoria}{curso.horasDefault ? ` · ${curso.horasDefault} horas` : ""}</p>
               </div>
-              <CrearCertificacionModal
-                categorias={categorias}
-                departamentos={departamentos}
-                cursoAcademicoCentro={cursoAcademicoCentro}
-                gruposCentro={gruposCentro}
-                categoriaInicial={curso.categoria}
-                nombreInicial={curso.nombre}
-                trigger={
-                  <button className="flex items-center gap-1.5 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]">
-                    <Plus className="h-4 w-4" /> Programar Certificación
-                  </button>
-                }
-              />
+              <div className="flex items-center gap-2">
+                {esDirectivo && (
+                  <AsignarDesdeCatalogoBoton catalogoId={curso.id} cursoNombre={curso.nombre} profesoresCentro={profesoresCentro} />
+                )}
+                <CrearCertificacionModal
+                  categorias={categorias}
+                  departamentos={departamentos}
+                  cursoAcademicoCentro={cursoAcademicoCentro}
+                  gruposCentro={gruposCentro}
+                  esDirectivo={esDirectivo}
+                  categoriaInicial={curso.categoria}
+                  nombreInicial={curso.nombre}
+                  trigger={
+                    <button className="flex items-center gap-1.5 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]">
+                      <Plus className="h-4 w-4" /> Programar Certificación
+                    </button>
+                  }
+                />
+              </div>
             </div>
 
             <div className="mb-4 flex flex-wrap gap-1 border-b border-slate-100">

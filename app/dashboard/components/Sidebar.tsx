@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   FolderKanban,
   Building2,
+  Brain,
   GraduationCap,
   ShieldCheck,
   Clock,
@@ -77,6 +78,7 @@ const superadminSections: {
       { href: "/dashboard/expedientes", labelKey: "nav.expedientes", icon: AlertTriangle },
       { href: "/dashboard/onboarding", labelKey: "nav.onboarding", icon: FolderKanban },
       { href: "/dashboard/espacios", labelKey: "nav.espacios", icon: Building2 },
+      { href: "/dashboard/psicopedagogia", labelKey: "nav.psicopedagogia", icon: Brain },
       { href: "/dashboard/salidas", labelKey: "nav.salidas", icon: Bus },
       { href: "/dashboard/salidas/aprobaciones", labelKey: "nav.aprobaciones", icon: CheckSquare },
       { href: "/dashboard/calendario", labelKey: "nav.calendario", icon: CalendarDays },
@@ -117,6 +119,7 @@ const centroModulos: { key: string; href: string; labelKey: TranslationKey; icon
   { key: "expedientes", href: "/dashboard/expedientes", labelKey: "nav.expedientes", icon: AlertTriangle },
   { key: "onboarding", href: "/dashboard/onboarding", labelKey: "nav.onboarding", icon: FolderKanban },
   { key: "espacios", href: "/dashboard/espacios", labelKey: "nav.espacios", icon: Building2 },
+  { key: "psicopedagogia", href: "/dashboard/psicopedagogia", labelKey: "nav.psicopedagogia", icon: Brain },
   { key: "empresas", href: "/dashboard/empresas", labelKey: "nav.empresas", icon: Handshake },
   { key: "certificaciones", href: "/dashboard/certificaciones", labelKey: "nav.certificaciones", icon: Award },
 ];
@@ -138,11 +141,15 @@ export function Sidebar({
   userName,
   userEmail,
   role,
+  esTicDelCentro = false,
+  esPsicopedagogaDelCentro = false,
   contractedModules = [],
 }: {
   userName: string;
   userEmail: string;
   role: string;
+  esTicDelCentro?: boolean;
+  esPsicopedagogaDelCentro?: boolean;
   contractedModules?: string[];
 }) {
   const pathname = usePathname();
@@ -155,7 +162,10 @@ export function Sidebar({
   const [busqueda, setBusqueda] = useState("");
   const [resultadosBusqueda, setResultadosBusqueda] = useState<{ id: string; nombre: string; curso: string; avatarUrl: string | null }[]>([]);
   const [busquedaAbierta, setBusquedaAbierta] = useState(false);
-  const roleLabel = ROLE_LABELS_FULL[role] ?? role;
+  const extras: string[] = [];
+  if (esPsicopedagogaDelCentro) extras.push("Psicopedagoga/a");
+  if (esTicDelCentro) extras.push("TIC");
+  const roleLabel = [ROLE_LABELS_FULL[role] ?? role, ...extras].join(" - ");
   const isSuperAdmin = role === "SUPERADMIN";
   const [mobileOpen, setMobileOpen] = useState(false);
 

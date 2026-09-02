@@ -74,6 +74,7 @@ export async function sendInvitacionMicrosoftEmail(to: string, name: string) {
 }
 
 export async function sendGuardiaEmail(params: {
+  id: string;
   to: string;
   profesorName: string;
   ubicacion: string | null;
@@ -92,6 +93,27 @@ export async function sendGuardiaEmail(params: {
     minute: "2-digit",
   });
 
+  // Mismo mecanismo que en las coberturas: el .ics adjunto funciona
+  // siempre (sin depender de nada), y el botón real de abajo, si están
+  // las variables de Microsoft configuradas, añade el evento solo con
+  // un par de clics y pidiendo permiso la primera vez.
+  const horaInicio = `${String(params.fecha.getHours()).padStart(2, "0")}:${String(params.fecha.getMinutes()).padStart(2, "0")}`;
+  const finGuardia = new Date(params.fecha);
+  finGuardia.setMinutes(finGuardia.getMinutes() + 55);
+  const horaFin = `${String(finGuardia.getHours()).padStart(2, "0")}:${String(finGuardia.getMinutes()).padStart(2, "0")}`;
+
+  const ics = generarICSCobertura({
+    id: params.id,
+    ausenteNombre: "",
+    titulo: `Guardia${params.grupo ? `: ${params.grupo}` : ""}`,
+    asignatura: null,
+    grupo: params.grupo,
+    ubicacion: params.ubicacion,
+    fecha: params.fecha,
+    horaInicio,
+    horaFin,
+  });
+
   await transporter.sendMail({
     from: `Docentium <${from}>`,
     to: params.to,
@@ -105,11 +127,24 @@ export async function sendGuardiaEmail(params: {
           ${params.grupo ? `<p style="margin:8px 0 0;"><strong>Grupo:</strong> ${params.grupo}</p>` : ""}
           ${params.tarea ? `<p style="margin:8px 0 0;"><strong>Qué tienen que hacer los alumnos:</strong> ${params.tarea}</p>` : ""}
         </div>
+        <a href="${process.env.NEXTAUTH_URL}/api/calendario-teams/${params.id}?tipo=guardia" style="display:inline-block; background:#0B1D4D; color:#ffffff; text-decoration:none; padding:10px 16px; border-radius:8px; font-size:14px; font-weight:bold; margin: 4px 0 12px;">
+          📅 Añadir la Guardia al calendario de Teams
+        </a>
+        <p style="color:#64748B; font-size:12px; margin-top:0;">
+          Al pulsar el botón, Microsoft te pedirá iniciar sesión (si no la tienes ya abierta) y permiso para escribir en tu calendario — solo la primera vez.
+        </p>
         <p style="color:#64748B; font-size:13px;">
           Puedes consultar todas tus guardias desde Docentium, en el apartado "Guardias".
         </p>
       </div>
     `,
+    attachments: [
+      {
+        filename: "guardia.ics",
+        content: ics,
+        contentType: "text/calendar; charset=utf-8; method=PUBLISH",
+      },
+    ],
   });
 }
 
@@ -724,6 +759,48 @@ export async function sendReservaConfirmadaEmail(params: {
         </div>
         <p style="color:#64748B; font-size:13px;">
           Puedes consultar o cancelar tu reserva desde Docentium, en Reserva de Espacios.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendReservaCanceladaEmail(params: {
+  to: string;
+  userNombre: string;
+  aulaNombre: string;
+  schoolName: string;
+  fecha: Date;
+  horaInicio: string;
+  horaFin: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Reserva cancelada: ${params.aulaNombre}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Se ha cancelado tu reserva</h2>
+        <p style="color:#64748B; font-size:13px; margin-top:0;">
+          Hola ${params.userNombre}, tu reserva en ${params.schoolName} ha sido cancelada. La franja ya vuelve a estar disponible para cualquiera.
+        </p>
+        <div style="background:#FEF2F2; border-radius:8px; padding:16px; margin:16px 0; border:1px solid #FECACA;">
+          <p style="margin:0;"><strong>Espacio:</strong> ${params.aulaNombre}</p>
+          <p style="margin:8px 0 0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0;"><strong>Hora:</strong> ${params.horaInicio} – ${params.horaFin}</p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Si no has sido tú, contacta con Dirección desde Docentium, en Reserva de Espacios.
         </p>
       </div>
     `,
@@ -1422,6 +1499,351 @@ export async function sendAlertaBloqueoLogin(
         <p>Ese correo ha quedado <strong>bloqueado durante 15 minutos</strong> — no se le dejará entrar aunque escriba la contraseña correcta, y verá un aviso pidiéndole que contacte con el administrador.</p>
         <p style="color:#64748B; font-size:13px;">
           Puedes revisar y gestionar este acceso desde el panel de SuperAdmin, en "Accesos bloqueados".
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendCertificacionAsignadaEmail(params: {
+  to: string;
+  profesorNombre: string;
+  cursoNombre: string;
+  categoria: string;
+  asignadoPorNombre: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Te han asignado una certificación: ${params.cursoNombre}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Tienes una certificación asignada, ${params.profesorNombre}</h2>
+        <p style="color:#64748B; font-size:13px; margin-top:0;">
+          ${params.asignadoPorNombre} te ha asignado un curso para que lo programes.
+        </p>
+        <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
+          <p style="margin:0;"><strong>Curso:</strong> ${params.cursoNombre}</p>
+          <p style="margin:8px 0 0;"><strong>Categoría:</strong> ${params.categoria}</p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Entra en Docentium, en Certificaciones, para ponerle las fechas y programarla — ya está seleccionado para ti, solo te falta rellenar el resto.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendGafasVRReservadaEmail(params: {
+  to: string;
+  nombre: string;
+  fecha: Date;
+  horaInicio: string;
+  horaFin: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: "Has reservado las gafas de RV",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Reserva confirmada, ${params.nombre}</h2>
+        <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
+          <p style="margin:0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0;"><strong>Hora:</strong> ${params.horaInicio} – ${params.horaFin}</p>
+        </div>
+        <p style="background:#FEF3C7; border-radius:8px; padding:14px; color:#92400E; font-size:13px; margin:16px 0;">
+          Recuerda que al finalizar la sesión con las gafas, debes devolvérselas al TIC del centro.
+        </p>
+        <p style="color:#64748B; font-size:13px;">
+          Puedes consultar o cancelar tu reserva desde Docentium, en Reservas.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendGafasVRAvisoTicEmail(params: {
+  to: string;
+  ticNombre: string;
+  reservanteNombre: string;
+  fecha: Date;
+  horaInicio: string;
+  horaFin: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Nueva reserva de gafas RV: ${params.reservanteNombre}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.ticNombre}, hay una reserva nueva de las gafas de RV</h2>
+        <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
+          <p style="margin:0;"><strong>Quién:</strong> ${params.reservanteNombre}</p>
+          <p style="margin:8px 0 0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0;"><strong>Hora:</strong> ${params.horaInicio} – ${params.horaFin}</p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Puedes ver todas las reservas de las gafas, y marcarlas como devueltas, desde Docentium, en Reservas.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendGafasVRNoDevueltaEmail(params: {
+  to: string;
+  ticNombre: string;
+  reservanteNombre: string;
+  fecha: Date;
+  horaInicio: string;
+  horaFin: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Gafas de RV sin devolver: ${params.reservanteNombre}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.ticNombre}, esto todavía no se ha devuelto</h2>
+        <p style="color:#64748B; font-size:13px; margin-top:0;">
+          ${params.reservanteNombre} tenía reservadas las gafas de RV y ya ha pasado más de una hora desde que tocaba devolverlas.
+        </p>
+        <div style="background:#FEF2F2; border-radius:8px; padding:16px; margin:16px 0; border:1px solid #FECACA;">
+          <p style="margin:0;"><strong>Quién:</strong> ${params.reservanteNombre}</p>
+          <p style="margin:8px 0 0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0;"><strong>Tenía que devolverlas a las:</strong> ${params.horaFin}</p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Por favor, ponte en contacto con ella por los canales oficiales.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendGafasVRDevueltaGraciasEmail(params: { to: string; nombre: string }) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: "Gracias por devolver las gafas de RV",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Gracias por devolver el material "Gafas de RV", ${params.nombre}</h2>
+        <p style="color:#64748B; font-size:13px;">
+          El TIC del centro ha confirmado la devolución. Ya está todo en orden.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendGafasVRRecordatorioPendienteEmail(params: { to: string; nombre: string }) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: "Pendiente: devolver las gafas de RV",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.nombre}</h2>
+        <p style="background:#FEF3C7; border-radius:8px; padding:14px; color:#92400E; font-size:13px; margin:16px 0;">
+          Recuerda que aún tienes pendiente devolver las gafas de RV.
+        </p>
+      </div>
+    `,
+  });
+}
+
+
+// ==================== Psicopedagogia / PI ====================
+
+export async function sendPISolicitudFirmaEmail(params: {
+  to: string;
+  nombre: string;
+  alumnoNombre: string;
+  quienFirma: "tutor" | "director";
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const cuando = params.quienFirma === "tutor" ? "ahora mismo" : "en cuanto el tutor haya firmado su parte";
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `PI de ${params.alumnoNombre}: pendiente de tu firma`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.nombre}</h2>
+        <p style="color:#64748B; font-size:13px;">
+          El Pla d'Adaptació Individual (PI) de <strong>${params.alumnoNombre}</strong> está listo y necesita tu firma, ${cuando}.
+        </p>
+        <p style="color:#64748B; font-size:13px;">
+          Entra en Docentium, en Psicopedagogia, para verlo y firmarlo.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendPIFirmadoAvisoEmail(params: {
+  to: string;
+  nombrePsicopedagoga: string;
+  alumnoNombre: string;
+  quienHaFirmado: string;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `PI de ${params.alumnoNombre}: nueva firma`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.nombrePsicopedagoga}</h2>
+        <p style="color:#64748B; font-size:13px;">
+          ${params.quienHaFirmado} ha firmado el PI de <strong>${params.alumnoNombre}</strong>.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendPITodasLasFirmasEmail(params: { to: string; nombrePsicopedagoga: string; alumnoNombre: string }) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `PI de ${params.alumnoNombre}: ya están las dos firmas`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.nombrePsicopedagoga}</h2>
+        <p style="color:#64748B; font-size:13px;">
+          El tutor y el director ya han firmado el PI de <strong>${params.alumnoNombre}</strong>. Ya está listo para que el tutor lo envíe a la familia.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendPIContactarFamiliaEmail(params: { to: string; nombreTutor: string; alumnoNombre: string }) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `PI de ${params.alumnoNombre}: ya puedes contactar con la familia`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.nombreTutor}</h2>
+        <p style="color:#64748B; font-size:13px;">
+          El PI de <strong>${params.alumnoNombre}</strong> ya tiene las firmas del tutor del centro y del director — ya puedes contactar con la familia para que ella y el alumno lo firmen. Cuando lo tengas, entra en Docentium, en Psicopedagogia, para marcar esas firmas y cerrar el PI.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendPIDocumentoFamiliaEmail(params: { to: string; alumnoNombre: string; destinatario: "familia" | "alumno"; pdfBuffer?: Buffer }) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Pla d'Adaptació Individual (PI) de ${params.alumnoNombre}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Pla d'Adaptació Individual de ${params.alumnoNombre}</h2>
+        <p style="color:#64748B; font-size:13px;">
+          Se ha completado el Pla d'Adaptació Individual (PI) de ${params.alumnoNombre}, ya firmado por el centro. El centro se pondrá en contacto para lo que haga falta a partir de ahora.
+        </p>
+      </div>
+    `,
+    attachments: params.pdfBuffer
+      ? [{ filename: `PI_${params.alumnoNombre.replace(/\s+/g, "_")}.pdf`, content: params.pdfBuffer, contentType: "application/pdf" }]
+      : undefined,
+  });
+}
+
+export async function sendPICerradoEmail(params: { to: string; nombrePsicopedagoga: string; alumnoNombre: string }) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `PI de ${params.alumnoNombre}: firmado y cerrado`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.nombrePsicopedagoga}</h2>
+        <p style="color:#64748B; font-size:13px;">
+          El PI de <strong>${params.alumnoNombre}</strong> ha sido firmado y cerrado — ya se ha enviado a la familia y al alumno.
+        </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendPsicopedagogaAsignadaEmail(params: { to: string; nombre: string }) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: "Te han asignado el rol de Psicopedagogo/a del centro",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.nombre}</h2>
+        <p style="color:#64748B; font-size:13px;">
+          Te han asignado el Rol de psicopedagogo del centro.
+        </p>
+        <p style="color:#64748B; font-size:13px;">
+          Desde ahora puedes entrar en Docentium, en Psicopedagogia, para gestionar los expedientes y los PI de los alumnos del centro.
         </p>
       </div>
     `,

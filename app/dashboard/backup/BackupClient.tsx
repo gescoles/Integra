@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DatabaseBackup, RotateCcw, Clock, HardDrive, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { crearCopiaSeguridad, crearCopiaExcelModulos, listarCopiasSeguridad, restaurarDesdeArchivo, crearBackupBaseDatosInstantaneo, listarBackupsCentro, restaurarBackupCentro } from "./actions";
+import { DatabaseBackup, Clock, HardDrive, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { crearCopiaSeguridad, crearCopiaExcelModulos, listarCopiasSeguridad, restaurarDesdeArchivo, crearBackupBaseDatosInstantaneo, listarBackupsCentro, restaurarBackupCentro, obtenerDestinosBackupCentro, guardarDestinosBackupCentro } from "./actions";
 import { actualizarLoginPasswordHabilitado, actualizarHistoriasEntreCentrosHabilitado } from "../configuracion/actions";
 import { ButtonSpinner } from "../components/ButtonSpinner";
 import { AssemblingLogo } from "../components/AssemblingLogo";
@@ -42,6 +42,7 @@ export function BackupClient({
   const [exito, setExito] = useState<string | null>(null);
 
   const [centroElegido, setCentroElegido] = useState(schools[0]?.id ?? "");
+  const [pestanaBackup, setPestanaBackup] = useState<"instantaneo" | "manual" | "excel" | "restaurarWeb" | "destinos">("instantaneo");
   const [creandoBBDD, setCreandoBBDD] = useState(false);
   const [backupsCentro, setBackupsCentro] = useState<Copia[]>([]);
   const [cargandoBackupsCentro, setCargandoBackupsCentro] = useState(false);
@@ -88,15 +89,19 @@ export function BackupClient({
   const [restaurando, setRestaurando] = useState(false);
 
   async function cargar() {
+    if (!centroElegido) {
+      setCopias([]);
+      return;
+    }
     setCargando(true);
-    const data = await listarCopiasSeguridad();
+    const data = await listarCopiasSeguridad(centroElegido);
     setCopias(data);
     setCargando(false);
   }
 
   useEffect(() => {
     cargar();
-  }, []);
+  }, [centroElegido]);
 
   async function cargarBackupsCentro() {
     if (!centroElegido) return;
@@ -128,11 +133,15 @@ export function BackupClient({
   }
 
   async function handleCrear() {
+    if (!centroElegido) {
+      setError("Elige un centro.");
+      return;
+    }
     setCreando(true);
     setError(null);
     setExito(null);
     try {
-      await crearCopiaSeguridad();
+      await crearCopiaSeguridad(centroElegido);
       setExito(translate(locale, "backup.copiaCreada"));
       await cargar();
     } catch (e) {
@@ -178,11 +187,11 @@ export function BackupClient({
   }
 
   async function handleRestaurar() {
-    if (!elegida) return;
+    if (!elegida || !centroElegido) return;
     setRestaurando(true);
     setError(null);
     try {
-      await restaurarDesdeArchivo(elegida.id);
+      await restaurarDesdeArchivo(centroElegido, elegida.id);
       setElegida(null);
       setConfirmacion("");
       router.refresh();
@@ -261,7 +270,20 @@ export function BackupClient({
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
+      <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4">
+        <label className="mb-1.5 block text-sm font-semibold text-slate-700">Centro para el que quieres hacer copias manualmente</label>
+        <select
+          value={centroElegido}
+          onChange={(e) => setCentroElegido(e.target.value)}
+          className="w-full max-w-sm rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+        >
+          {schools.map((s) => (
+            <option key={s.id} value={s.id}>{s.name}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
         <div className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
             <DatabaseBackup className="h-5 w-5 text-blue-600" />
@@ -271,53 +293,15 @@ export function BackupClient({
             Copia solo de los datos de este centro (alumnos, profesorado, guardias, prácticas, empresas, todo lo suyo). Se guarda en dos carpetas separadas en Drive: &quot;Backup BBDD JSON&quot; (el que sabe usar el botón Restaurar de aquí abajo) y &quot;Backup BBDD SQL&quot; (para ejecutarlo tú mismo en Supabase). Los manuales llevan &quot;manual&quot; en el nombre; los de cada noche, &quot;automatico&quot;. No incluye datos de otros centros.
           </p>
           <div className="mt-auto pt-3">
-            <select
-              value={centroElegido}
-              onChange={(e) => setCentroElegido(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-[#FD5249]"
-            >
-              {schools.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
             <button
               onClick={handleCrearBBDD}
               disabled={creandoBBDD || !centroElegido}
-              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
             >
               {creandoBBDD ? <ButtonSpinner /> : <DatabaseBackup className="h-4 w-4" />}
               {creandoBBDD ? "Generando..." : "Copiar BBDD ahora"}
             </button>
           </div>
-
-          {centroElegido && (
-            <div className="mt-4 border-t border-slate-100 pt-3">
-              <p className="mb-2 text-xs font-semibold text-slate-500">Copias de este centro:</p>
-              {cargandoBackupsCentro ? (
-                <p className="text-xs text-slate-400">Cargando...</p>
-              ) : backupsCentro.length === 0 ? (
-                <p className="text-xs text-slate-400">Todavía no hay ninguna copia de este centro.</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {backupsCentro.map((c) => (
-                    <div key={c.id} className="flex items-center justify-between rounded-lg border border-slate-100 px-2.5 py-1.5">
-                      <span className="truncate text-xs text-slate-500">{formatFecha(c.fecha)}</span>
-                      <button
-                        onClick={() => {
-                          setElegidaCentro(c);
-                          setConfirmacionCentro("");
-                          setError(null);
-                        }}
-                        className="shrink-0 rounded-md border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-600 hover:border-blue-500 hover:text-blue-600"
-                      >
-                        Restaurar
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         <div className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5">
@@ -328,7 +312,7 @@ export function BackupClient({
           <p className="mt-1 text-xs text-slate-500">{translate(locale, "backup.crearAyuda")}</p>
           <button
             onClick={handleCrear}
-            disabled={creando}
+            disabled={creando || !centroElegido}
             className="mt-auto inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
           >
             {creando ? <ButtonSpinner /> : <DatabaseBackup className="h-4 w-4" />}
@@ -353,14 +337,6 @@ export function BackupClient({
             {creandoExcel ? "Generando..." : "Copiar en Excel ahora"}
           </button>
         </div>
-
-        <div className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50">
-            <RotateCcw className="h-5 w-5 text-amber-600" />
-          </div>
-          <h3 className="mt-3 text-sm font-bold text-[#0B1D4D]">{translate(locale, "backup.restaurarTitulo")}</h3>
-          <p className="mt-1 text-xs text-slate-500">{translate(locale, "backup.restaurarAyuda")}</p>
-        </div>
       </div>
 
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
@@ -368,6 +344,89 @@ export function BackupClient({
           <Clock className="h-4 w-4 text-[#FD5249]" /> {translate(locale, "backup.copiasDisponibles")}
         </h3>
 
+        <div className="mb-4 flex flex-wrap gap-1 rounded-lg bg-slate-100 p-1 text-xs" style={{ width: "fit-content" }}>
+          <button
+            onClick={() => setPestanaBackup("instantaneo")}
+            className={`rounded-md px-3 py-1.5 font-semibold transition-colors ${pestanaBackup === "instantaneo" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500"}`}
+          >
+            Backup BBDD instantáneo
+          </button>
+          <button
+            onClick={() => setPestanaBackup("manual")}
+            className={`rounded-md px-3 py-1.5 font-semibold transition-colors ${pestanaBackup === "manual" ? "bg-white text-[#FD5249] shadow-sm" : "text-slate-500"}`}
+          >
+            Copia manual
+          </button>
+          <button
+            onClick={() => setPestanaBackup("excel")}
+            className={`rounded-md px-3 py-1.5 font-semibold transition-colors ${pestanaBackup === "excel" ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500"}`}
+          >
+            Excel por módulos
+          </button>
+          <button
+            onClick={() => setPestanaBackup("restaurarWeb")}
+            className={`rounded-md px-3 py-1.5 font-semibold transition-colors ${pestanaBackup === "restaurarWeb" ? "bg-white text-amber-600 shadow-sm" : "text-slate-500"}`}
+          >
+            Restaurar la web
+          </button>
+          <button
+            onClick={() => setPestanaBackup("destinos")}
+            className={`rounded-md px-3 py-1.5 font-semibold transition-colors ${pestanaBackup === "destinos" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500"}`}
+          >
+            Destinos por centro
+          </button>
+        </div>
+
+        {pestanaBackup === "instantaneo" && (
+          <div>
+            <select
+              value={centroElegido}
+              onChange={(e) => setCentroElegido(e.target.value)}
+              className="mb-3 w-full max-w-xs rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-[#FD5249]"
+            >
+              {schools.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+            {!centroElegido ? (
+              <p className="rounded-lg bg-slate-50 px-3 py-8 text-center text-xs text-slate-400">Elige un centro para ver sus copias.</p>
+            ) : cargandoBackupsCentro ? (
+              <p className="py-8 text-center text-xs text-slate-400">Cargando...</p>
+            ) : backupsCentro.length === 0 ? (
+              <p className="rounded-lg bg-slate-50 px-3 py-8 text-center text-xs text-slate-400">Todavía no hay ninguna copia de este centro.</p>
+            ) : (
+              <div className="space-y-2">
+                {backupsCentro.map((c) => (
+                  <div key={c.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-100 px-3.5 py-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <DatabaseBackup className="h-4 w-4 shrink-0 text-blue-500" />
+                      <span className="text-sm font-semibold text-slate-700">{formatFecha(c.fecha)}</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setElegidaCentro(c);
+                        setConfirmacionCentro("");
+                        setError(null);
+                      }}
+                      className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-blue-500 hover:text-blue-600"
+                    >
+                      Restaurar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {pestanaBackup === "excel" && (
+          <p className="rounded-lg bg-slate-50 px-3 py-8 text-center text-xs text-slate-400">
+            Estas copias se guardan directamente en Google Drive (una carpeta por centro y por módulo), no se restauran desde aquí — consúltalas directamente en Drive.
+          </p>
+        )}
+
+        {(pestanaBackup === "manual" || pestanaBackup === "restaurarWeb") && (
+          <>
         {cargando ? (
           <p className="py-8 text-center text-xs text-slate-400">{translate(locale, "backup.cargando")}</p>
         ) : copias.length === 0 ? (
@@ -405,6 +464,10 @@ export function BackupClient({
             ))}
           </div>
         )}
+        </>
+        )}
+
+        {pestanaBackup === "destinos" && <DestinosBackupPanel centroElegido={centroElegido} />}
       </div>
 
       {elegida && (
@@ -483,6 +546,111 @@ export function BackupClient({
                 {restaurandoCentro ? "Restaurando..." : "Restaurar este centro"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Dónde va la copia de seguridad de un centro concreto — configurable
+// por centro. Las credenciales de conexión (OAuth de Google, la app de
+// Azure para OneDrive) son globales de la plataforma y se configuran
+// aparte, en el .env del servidor; aquí solo se dice A QUÉ carpeta/
+// correo, dentro de esas cuentas ya conectadas.
+function DestinosBackupPanel({
+  centroElegido,
+}: {
+  centroElegido: string;
+}) {
+  const { locale } = useLocale();
+  const [driveBackupFolderId, setDriveBackupFolderId] = useState("");
+  const [oneDriveBackupEmail, setOneDriveBackupEmail] = useState("");
+  const [cargando, setCargando] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+  const [guardado, setGuardado] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!centroElegido) return;
+    setCargando(true);
+    setGuardado(false);
+    obtenerDestinosBackupCentro(centroElegido)
+      .then((d) => {
+        setDriveBackupFolderId(d.driveBackupFolderId);
+        setOneDriveBackupEmail(d.oneDriveBackupEmail);
+      })
+      .finally(() => setCargando(false));
+  }, [centroElegido]);
+
+  async function handleGuardar() {
+    setGuardando(true);
+    setError(null);
+    setGuardado(false);
+    const formData = new FormData();
+    formData.set("driveBackupFolderId", driveBackupFolderId);
+    formData.set("oneDriveBackupEmail", oneDriveBackupEmail);
+    try {
+      await guardarDestinosBackupCentro(centroElegido, formData);
+      setGuardado(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo guardar.");
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  return (
+    <div>
+      {cargando ? (
+        <p className="py-8 text-center text-xs text-slate-400">{translate(locale, "backup.cargando")}</p>
+      ) : (
+        <div className="space-y-4">
+          <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
+            Si dejas alguno de los dos vacío, ese centro sigue usando el destino general de la plataforma (Google Drive) o, en el caso de OneDrive, simplemente no se sube nada ahí para este centro.
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-semibold text-slate-700">Carpeta de Google Drive</label>
+            <input
+              value={driveBackupFolderId}
+              onChange={(e) => setDriveBackupFolderId(e.target.value)}
+              placeholder="Id de la carpeta de Drive (déjalo vacío para usar la general)"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+            />
+            <p className="mt-1 text-[11px] text-slate-400">
+              Va dentro de la misma cuenta de Google ya conectada a la plataforma — copia el id de la carpeta desde su URL en Drive.
+            </p>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-semibold text-slate-700">Correo de OneDrive</label>
+            <input
+              type="email"
+              value={oneDriveBackupEmail}
+              onChange={(e) => setOneDriveBackupEmail(e.target.value)}
+              placeholder="correo@tucentro.com"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+            />
+            <p className="mt-1 text-[11px] text-slate-400">
+              El correo de Microsoft 365 del centro en cuyo OneDrive se guarda esta copia.
+            </p>
+          </div>
+
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleGuardar}
+              disabled={guardando}
+              className="rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
+            >
+              {guardando ? <ButtonSpinner /> : "Guardar"}
+            </button>
+            {guardado && (
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+                <CheckCircle2 className="h-4 w-4" /> Guardado
+              </span>
+            )}
           </div>
         </div>
       )}

@@ -27,6 +27,10 @@ import {
   Bus,
   Sparkles,
   PenLine,
+  Brain,
+  Award,
+  Handshake,
+  Fingerprint,
 } from "lucide-react";
 
 function DashboardMock() {
@@ -192,9 +196,6 @@ function Hero() {
         </div>
         <div className="mt-5 flex items-center gap-5 text-xs text-slate-500">
           <span className="flex items-center gap-1">
-            <CheckCircle2 className="h-4 w-4 text-[#FD5249]" /> Prueba gratis 14 días
-          </span>
-          <span className="flex items-center gap-1">
             <CheckCircle2 className="h-4 w-4 text-[#FD5249]" /> Sin tarjeta de crédito
           </span>
         </div>
@@ -296,6 +297,24 @@ function ManageCards() {
       title: "Comunicación",
       text: "Avisos, noticias y un muro de historias entre todos los centros de tu red.",
     },
+    {
+      icon: Brain,
+      title: "Psicopedagogía",
+      text: "Planes Individualizados (PI) del alumnado con NEE: datos, medidas y soportes, firmados digitalmente y en PDF.",
+      destacado: true,
+    },
+    {
+      icon: Award,
+      title: "Certificaciones",
+      text: "Asigna cursos de formación al profesorado y haz seguimiento de sus certificaciones y renovaciones.",
+      destacado: true,
+    },
+    {
+      icon: Handshake,
+      title: "Empresas colaboradoras",
+      text: "Directorio de empresas, documentación y seguimiento de convenios de prácticas, todo en un mismo sitio.",
+      destacado: true,
+    },
   ];
 
   return (
@@ -308,7 +327,7 @@ function ManageCards() {
           Todo lo que puedes gestionar
         </h2>
         <p className="mx-auto mt-2 max-w-xl text-sm text-slate-500">
-          Nueve módulos pensados junto a centros reales, para que cada equipo
+          Doce módulos pensados junto a centros reales, para que cada equipo
           encuentre exactamente lo que necesita.
         </p>
       </Reveal>
@@ -348,11 +367,11 @@ function ShowcaseDestacado() {
             <Sparkles className="h-3.5 w-3.5 text-[#FD5249]" /> Recién estrenado
           </span>
           <h2 className="mt-3 text-2xl font-bold text-white sm:text-3xl">
-            Dos funciones que no vas a encontrar en cualquier plataforma
+            Tres funciones que no vas a encontrar en cualquier plataforma
           </h2>
         </Reveal>
 
-        <div className="mt-12 grid gap-8 lg:grid-cols-2">
+        <div className="mt-12 grid gap-8 lg:grid-cols-3">
           {/* Expedientes con firma digital */}
           <Reveal delay={0}>
             <div className="flex h-full flex-col rounded-2xl bg-white/5 p-6 ring-1 ring-white/10 transition-transform duration-300 hover:-translate-y-1">
@@ -426,6 +445,50 @@ function ShowcaseDestacado() {
                   <span>09:00 – 10:00 · Disponible</span>
                   <span className="rounded-full bg-[#FD5249] px-2 py-0.5 font-semibold text-white">Reservar</span>
                 </div>
+              </div>
+            </div>
+          </Reveal>
+
+          {/* Firma de PI's (Planes Individualizados) */}
+          <Reveal delay={240}>
+            <div className="flex h-full flex-col rounded-2xl bg-white/5 p-6 ring-1 ring-white/10 transition-transform duration-300 hover:-translate-y-1">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#FD5249]">
+                <Fingerprint className="h-5 w-5 text-white" />
+              </div>
+              <h3 className="mt-4 text-lg font-bold text-white">
+                Planes Individualizados con firma digital
+              </h3>
+              <p className="mt-2 text-sm text-slate-300">
+                Genera el PI del alumno con NEE y fírmalo con el dedo
+                &mdash;dirección, coordinación, familia y alumno&mdash;. El
+                PDF se genera solo, sin salir de la plataforma.
+              </p>
+              <div className="mt-5 flex flex-1 flex-col rounded-xl bg-white p-4 shadow-lg">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-[#0B1D4D]">Pla Individualitzat</span>
+                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-semibold text-emerald-600">Firmado</span>
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-[11px]">
+                    <span className="font-medium text-slate-600">Alumne/a</span>
+                    <span className="font-semibold text-[#0B1D4D]">Laia Puig · 1r Batx.</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-[11px]">
+                    <span className="font-medium text-slate-600">Curs acadèmic</span>
+                    <span className="font-semibold text-[#FD5249]">2025/2026</span>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-4 gap-1.5">
+                  {["Direcció", "Coord.", "Família", "Alumne/a"].map((f) => (
+                    <div key={f} className="rounded-lg border border-slate-100 bg-slate-50 p-1.5 text-center">
+                      <svg viewBox="0 0 60 24" className="mx-auto h-4 w-full">
+                        <path d="M4 18 Q 12 4, 20 16 T 36 14 T 56 8" fill="none" stroke="#0B1D4D" strokeWidth="1.6" strokeLinecap="round" />
+                      </svg>
+                      <span className="text-[7px] font-semibold text-slate-400">{f}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-auto pt-3 text-center text-[10px] text-slate-400">PDF generado automáticamente</div>
               </div>
             </div>
           </Reveal>

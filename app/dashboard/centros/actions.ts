@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { Plan, SchoolStatus, SchoolType } from "@prisma/client";
 import { getSupabaseAdmin, SCHOOL_LOGOS_BUCKET } from "@/lib/supabaseAdmin";
+import { extraerIdCarpetaDrive } from "@/lib/googleDrive";
 
 export async function createSchool(formData: FormData) {
   const name = (formData.get("name") as string)?.trim();
@@ -13,6 +14,9 @@ export async function createSchool(formData: FormData) {
   const userLimitRaw = formData.get("userLimit") as string;
   const modules = formData.getAll("modules") as string[];
   const cursoAcademico = (formData.get("cursoAcademico") as string)?.trim();
+  const driveBackupFolderIdRaw = (formData.get("driveBackupFolderId") as string)?.trim() || null;
+  const driveBackupFolderId = driveBackupFolderIdRaw ? extraerIdCarpetaDrive(driveBackupFolderIdRaw) : null;
+  const oneDriveBackupEmail = (formData.get("oneDriveBackupEmail") as string)?.trim() || null;
 
   if (!name) {
     throw new Error("El nombre del centro es obligatorio.");
@@ -27,6 +31,8 @@ export async function createSchool(formData: FormData) {
       userLimit: Number(userLimitRaw) || 50,
       modules,
       cursoAcademico: cursoAcademico || null,
+      driveBackupFolderId,
+      oneDriveBackupEmail,
     },
   });
 
@@ -103,9 +109,11 @@ export async function deleteSchool(id: string) {
   await prisma.materialRequest.deleteMany({ where: { schoolId: id } });
   await prisma.expediente.deleteMany({ where: { schoolId: id } });
   await prisma.onboardingCarpeta.deleteMany({ where: { schoolId: id } });
+  await prisma.gafasVRReserva.deleteMany({ where: { schoolId: id } });
   await prisma.espacioPlanta.deleteMany({ where: { schoolId: id } });
   await prisma.coberturaGuardia.deleteMany({ where: { schoolId: id } });
   await prisma.incidencia.deleteMany({ where: { schoolId: id } });
+  await prisma.alumnoPI.deleteMany({ where: { schoolId: id } });
   await prisma.alumno.deleteMany({ where: { schoolId: id } });
   await prisma.aviso.deleteMany({ where: { schoolId: id } });
   if (userIds.length > 0) {
@@ -116,6 +124,7 @@ export async function deleteSchool(id: string) {
 
   // Módulos añadidos después de escribir esta función — igual que pasó
   // con el borrado de usuarios, hacía falta sumarlos aquí también.
+  await prisma.certificacionAsignacion.deleteMany({ where: { schoolId: id } });
   await prisma.certificacion.deleteMany({ where: { schoolId: id } });
   await prisma.noticia.deleteMany({ where: { schoolId: id } });
   await prisma.chatMensaje.deleteMany({ where: { schoolId: id } });

@@ -160,6 +160,32 @@ export function CreateSchoolModal() {
                 </select>
               </div>
 
+              <div className="rounded-lg border border-slate-200 p-3">
+                <p className="mb-2 text-sm font-semibold text-slate-700">Copia de seguridad</p>
+                <p className="mb-3 text-[11px] text-slate-400">
+                  Dónde se guarda la copia de este centro (la carpeta con su nombre, con las carpetas de tutorías, prácticas... y todos los excels, .sql y .json dentro). Puedes dejarlo vacío y configurarlo luego desde Backup → &quot;Destinos por centro&quot;.
+                </p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-slate-600">Carpeta de Google Drive</label>
+                    <input
+                      name="driveBackupFolderId"
+                      placeholder="Id de la carpeta (opcional)"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-slate-600">Correo de OneDrive</label>
+                    <input
+                      name="oneDriveBackupEmail"
+                      type="email"
+                      placeholder="correo@tucentro.com (opcional)"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
                   Módulos contratados

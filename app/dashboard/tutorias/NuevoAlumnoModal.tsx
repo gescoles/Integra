@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import { createAlumno } from "./alumnoActions";
@@ -16,7 +16,15 @@ export function NuevoAlumnoModal() {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [departamentos, setDepartamentos] = useState<{ id: string; nombre: string }[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (!open || departamentos.length > 0) return;
+    import("./alumnoActions").then(({ obtenerDepartamentosParaAlumno }) => {
+      obtenerDepartamentosParaAlumno().then(setDepartamentos);
+    });
+  }, [open]);
 
   async function handleSubmit(formData: FormData) {
     setPending(true);
@@ -80,6 +88,17 @@ export function NuevoAlumnoModal() {
                     Curso / Grupo
                   </label>
                   <CursoSelect name="curso" required />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                    Departamento
+                  </label>
+                  <select name="departamentoId" className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]">
+                    <option value="">Sin especificar</option>
+                    {departamentos.map((d) => (
+                      <option key={d.id} value={d.id}>{d.nombre}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-semibold text-slate-700">

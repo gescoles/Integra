@@ -69,9 +69,15 @@ export async function createAlumno(formData: FormData) {
   const nombre = (formData.get("nombre") as string)?.trim();
   const curso = (formData.get("curso") as string)?.trim();
   const riesgo = (formData.get("riesgo") as RiesgoNivel) || "BAJO";
+  const departamentoId = (formData.get("departamentoId") as string)?.trim() || null;
 
   if (!nombre) throw new Error("El nombre del alumno es obligatorio.");
   if (!curso) throw new Error("El curso/grupo es obligatorio.");
+
+  if (departamentoId) {
+    const departamento = await prisma.departamento.findUnique({ where: { id: departamentoId } });
+    if (!departamento || departamento.schoolId !== session.user.schoolId) throw new Error("El departamento elegido no es válido.");
+  }
 
   const {
     fechaNacimiento,
@@ -117,6 +123,7 @@ export async function createAlumno(formData: FormData) {
       tipoDocumento,
       numeroDocumento,
       direccion,
+      departamentoId,
     },
   });
 
@@ -334,7 +341,7 @@ export async function deleteTutoriaAlumno(id: string) {
   revalidatePath("/dashboard");
 }
 
-export async function deleteAlumno(id: string) {
+export async function deleteAlumno(id: string, confirmacionNombre: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user.id) throw new Error("No autorizado.");
 
@@ -349,13 +356,46 @@ export async function deleteAlumno(id: string) {
     throw new Error("No puedes eliminar un alumno que no es tuyo.");
   }
 
-  // Se borran también TODAS sus tutorías (a propósito, con confirmación explícita en la interfaz)
-  await prisma.tutoria.deleteMany({ where: { alumnoId: id } });
-  await prisma.alumnoContacto.deleteMany({ where: { alumnoId: id } });
+  if (confirmacionNombre.trim() !== `Eliminar ${alumno.nombre}`.trim()) {
+    throw new Error("El texto escrito no coincide — no se ha eliminado nada.");
+  }
+
+  // Se anota en el historial de QUIEN borra (no en el del alumno, que
+  // está a punto de desaparecer con todo lo suyo) — así queda constancia
+  // de quién ha borrado a qué alumno, con fecha y hora, aunque el
+  // alumno ya no exista.
+  try {
+    await prisma.userHistorial.create({
+      data: {
+        userId: session.user.id,
+        accion: "alumno_eliminado",
+        detalle: `Eliminó al alumno/a "${alumno.nombre}" (${alumno.curso}), con todo lo relacionado (tutorías, prácticas, incidencias, PI...).`,
+        hechoPorId: session.user.id,
+        hechoPorNombre: session.user.name ?? session.user.email,
+      },
+    });
+  } catch (e) {
+    console.error("No se pudo anotar el historial de eliminación del alumno:", e);
+  }
+
+  // Con las cascadas de la base de datos, borrar el alumno ya se lleva
+  // por delante todo lo suyo (tutorías, contactos, prácticas,
+  // incidencias, expedientes, PI y su historial) sin dejar nada huérfano.
   await prisma.alumno.delete({ where: { id } });
 
   revalidatePath("/dashboard/tutorias");
   revalidatePath("/dashboard/mis-alumnos");
   revalidatePath("/dashboard/calendario");
   revalidatePath("/dashboard");
+}
+
+export async function obtenerDepartamentosParaAlumno() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user.schoolId) return [];
+  const departamentos = await prisma.departamento.findMany({
+    where: { schoolId: session.user.schoolId },
+    select: { id: true, nombre: true },
+    orderBy: { nombre: "asc" },
+  });
+  return departamentos;
 }

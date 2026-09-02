@@ -17,6 +17,7 @@ type Reserva = {
   userNombre: string;
   userId: string;
 };
+type ClaseHorario = { diaSemana: number; horaInicio: string; horaFin: string };
 type Usuario = { id: string; name: string };
 
 const HORA_APERTURA = "08:00";
@@ -30,11 +31,16 @@ function limiteISO() {
   d.setDate(d.getDate() + 7);
   return d.toISOString().slice(0, 10);
 }
+function diaSemanaDe(fechaISO: string) {
+  const d = new Date(`${fechaISO}T00:00:00Z`).getUTCDay();
+  return d === 0 ? 7 : d;
+}
 
 export function ReservaPanel({
   aulaId,
   aulaNombre,
   reservas,
+  clasesHorario,
   currentUserId,
   esDirectivo,
   usuarios,
@@ -46,6 +52,7 @@ export function ReservaPanel({
   aulaId: string;
   aulaNombre: string;
   reservas: Reserva[];
+  clasesHorario: ClaseHorario[];
   currentUserId: string;
   esDirectivo: boolean;
   usuarios: Usuario[];
@@ -69,6 +76,15 @@ export function ReservaPanel({
     () => reservas.filter((r) => r.fecha.slice(0, 10) === fecha).sort((a, b) => a.horaInicio.localeCompare(b.horaInicio)),
     [reservas, fecha]
   );
+
+  // El selector de horas tiene que ver como "ocupado" tanto lo ya
+  // reservado como las horas de clase real de ese día de la semana — el
+  // aula solo está libre cuando ninguna de las dos cosas la ocupa.
+  const franjasOcupadasParaSelector = useMemo(() => {
+    const diaSemana = diaSemanaDe(fecha);
+    const deClases = clasesHorario.filter((c) => c.diaSemana === diaSemana);
+    return [...reservasDelDia, ...deClases];
+  }, [reservasDelDia, clasesHorario, fecha]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -202,7 +218,7 @@ export function ReservaPanel({
           <SelectorHoras
             horaInicio={horaInicio}
             horaFin={horaFin}
-            reservasDelDia={reservasDelDia}
+            reservasDelDia={franjasOcupadasParaSelector}
             onChange={(inicio, fin) => {
               setHoraInicio(inicio);
               setHoraFin(fin);

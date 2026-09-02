@@ -15,6 +15,7 @@ import {
   FileText,
   CircleDot,
   Pencil,
+  UserX,
 } from "lucide-react";
 import {
   asignarSustitutoCobertura,
@@ -636,7 +637,15 @@ export function SolicitudesPendientes({
 
   const seleccionada = solicitudes.find((s) => s.id === seleccionadaId) ?? null;
 
-  if (solicitudes.length === 0) return null;
+  if (solicitudes.length === 0) {
+    return (
+      <div className="mb-8 rounded-2xl border border-dashed border-slate-300 bg-white py-24 text-center">
+        <UserX className="mx-auto mb-3 h-10 w-10 text-slate-300" />
+        <p className="text-sm font-semibold text-slate-500">Todavía no hay ninguna solicitud de ausencia.</p>
+        <p className="mt-1 text-xs text-slate-400">En cuanto alguien avise de que falta, aparecerá aquí.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="mb-8">

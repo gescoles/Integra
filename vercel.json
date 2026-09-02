@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/backup",
       "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/gafas-recordatorio",
+      "schedule": "*/30 * * * *"
     }
   ]
 }

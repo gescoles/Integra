@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Search, GraduationCap, User, Building2, Layers, Loader2 } from "lucide-react";
+import { Search, GraduationCap, User, Building2, Layers, Loader2, X, ArrowRight } from "lucide-react";
 import { buscarGlobal, type ResultadoBusquedaGlobal } from "../busquedaGlobalActions";
 
 const ICONO_POR_TIPO: Record<ResultadoBusquedaGlobal["tipo"], React.ElementType> = {
@@ -24,6 +24,7 @@ export function BuscadorGlobal() {
   const [abierto, setAbierto] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [resultados, setResultados] = useState<ResultadoBusquedaGlobal[]>([]);
+  const [seleccionado, setSeleccionado] = useState<ResultadoBusquedaGlobal | null>(null);
   const contenedorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -55,6 +56,8 @@ export function BuscadorGlobal() {
     (grupos[r.tipo] ??= []).push(r);
   }
 
+  const IconoSeleccionado = seleccionado ? ICONO_POR_TIPO[seleccionado.tipo] : null;
+
   return (
     <div ref={contenedorRef} className="relative w-full max-w-sm">
       <div className="relative">
@@ -80,22 +83,66 @@ export function BuscadorGlobal() {
               {grupos[tipo].map((r) => {
                 const Icono = ICONO_POR_TIPO[r.tipo];
                 return (
-                  <Link
+                  <button
                     key={`${r.tipo}-${r.id}`}
-                    href={r.href}
-                    onClick={() => setAbierto(false)}
-                    className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm hover:bg-slate-50"
+                    onClick={() => {
+                      setSeleccionado(r);
+                      setAbierto(false);
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm hover:bg-slate-50"
                   >
                     <Icono className="h-4 w-4 shrink-0 text-slate-400" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium text-slate-700">{r.titulo}</span>
                       {r.subtitulo && <span className="block truncate text-xs text-slate-400">{r.subtitulo}</span>}
                     </span>
-                  </Link>
+                  </button>
                 );
               })}
             </div>
           ))}
+        </div>
+      )}
+
+      {seleccionado && IconoSeleccionado && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/40 p-4" onClick={() => setSeleccionado(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100">
+                  <IconoSeleccionado className="h-4 w-4 text-[#FD5249]" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-[#0B1D4D]">{seleccionado.titulo}</p>
+                  {seleccionado.subtitulo && <p className="truncate text-xs text-slate-400">{seleccionado.subtitulo}</p>}
+                </div>
+              </div>
+              <button onClick={() => setSeleccionado(null)} className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-slate-50">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mb-4 space-y-2 rounded-xl bg-slate-50 p-3">
+              {seleccionado.detalle.length === 0 ? (
+                <p className="text-xs text-slate-400">No hay más información disponible.</p>
+              ) : (
+                seleccionado.detalle.map((d, i) => (
+                  <div key={i} className="flex items-baseline justify-between gap-3 text-xs">
+                    <span className="shrink-0 font-semibold text-slate-500">{d.label}</span>
+                    <span className="truncate text-right text-slate-700">{d.value}</span>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <Link
+              href={seleccionado.href}
+              onClick={() => setSeleccionado(null)}
+              className="flex items-center justify-center gap-1.5 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]"
+            >
+              Ver ficha completa <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
         </div>
       )}
     </div>

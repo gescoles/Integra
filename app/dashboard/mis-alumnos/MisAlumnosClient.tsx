@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Pencil, Trash2, X } from "lucide-react";
-import { updateAlumnoFicha, deleteAlumno } from "../tutorias/alumnoActions";
+import { updateAlumnoFicha } from "../tutorias/alumnoActions";
+import { EliminarAlumnoModal } from "../tutorias/EliminarAlumnoModal";
 import { RIESGO_LABELS, RIESGO_COLORS } from "../tutorias/alumnoConstants";
 import { ButtonSpinner } from "../components/ButtonSpinner";
 import { CursoSelect } from "../components/CursoSelect";
@@ -45,6 +46,7 @@ export function MisAlumnosClient({
   const [search, setSearch] = useState("");
   const [cicloFilter, setCicloFilter] = useState("Todos");
   const [editando, setEditando] = useState<Alumno | null>(null);
+  const [alumnoAEliminar, setAlumnoAEliminar] = useState<Alumno | null>(null);
   const [isPending, startTransition] = useGuardadoTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -58,19 +60,6 @@ export function MisAlumnosClient({
       return true;
     });
   }, [alumnos, search, cicloFilter]);
-
-  function handleDelete(a: Alumno) {
-    if (!confirm(`${translate(locale, "misAlumnos.confirmEliminar")} ${a.nombre}? ${translate(locale, "misAlumnos.confirmEliminarAviso")}`)) return;
-    setError(null);
-    startTransition(async () => {
-      try {
-        await deleteAlumno(a.id);
-        router.refresh();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "No se pudo eliminar.");
-      }
-    });
-  }
 
   // El curso se guarda entero (p. ej. "CFGM Sistemes Informàtics 1"). Aquí
   // lo separamos en "estudios" (el nombre del ciclo, sin el número final)
@@ -156,7 +145,7 @@ export function MisAlumnosClient({
                       <button onClick={() => setEditando(a)} className="rounded-md p-1.5 text-slate-400 hover:bg-blue-50 hover:text-[#FD5249]">
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => handleDelete(a)} disabled={isPending} className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600">
+                      <button onClick={() => setAlumnoAEliminar(a)} disabled={isPending} className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -173,6 +162,16 @@ export function MisAlumnosClient({
       </div>
 
       {editando && <EditarAlumnoModal alumno={editando} onClose={() => setEditando(null)} />}
+      {alumnoAEliminar && (
+        <EliminarAlumnoModal
+          alumno={alumnoAEliminar}
+          onClose={() => setAlumnoAEliminar(null)}
+          onEliminado={() => {
+            setAlumnoAEliminar(null);
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,6 +1,23 @@
 import { google } from "googleapis";
 import { Readable } from "stream";
 
+// Si alguien pega el enlace completo de una carpeta de Drive (en vez del
+// id a secas) en cualquier campo de configuración, esto lo reconoce y
+// extrae el id solo — así no hace falta que nadie sepa distinguir un id
+// de un enlace. Si lo que llega ya es un id normal, se devuelve tal cual.
+export function extraerIdCarpetaDrive(valor: string): string {
+  const limpio = valor.trim();
+  const patrones = [
+    /\/folders\/([a-zA-Z0-9_-]+)/, // https://drive.google.com/drive/folders/ID  (con o sin /u/0/ en medio)
+    /[?&]id=([a-zA-Z0-9_-]+)/, // https://drive.google.com/open?id=ID
+  ];
+  for (const patron of patrones) {
+    const coincidencia = limpio.match(patron);
+    if (coincidencia) return coincidencia[1];
+  }
+  return limpio;
+}
+
 function getAuth() {
   // Con una cuenta de Google normal (no Workspace), las "cuentas de
   // servicio" no pueden guardar archivos en el Drive de nadie porque no
@@ -74,10 +91,11 @@ export async function listFilesInFolder(folderId: string) {
  */
 export async function ensureSubfolder(parentFolderId: string, name: string) {
   const drive = getDriveClient();
+  const parentIdReal = extraerIdCarpetaDrive(parentFolderId);
 
   const escaped = name.replace(/'/g, "\\'");
   const res = await drive.files.list({
-    q: `'${parentFolderId}' in parents and name = '${escaped}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+    q: `'${parentIdReal}' in parents and name = '${escaped}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
     fields: "files(id, name)",
     spaces: "drive",
   });
@@ -90,7 +108,7 @@ export async function ensureSubfolder(parentFolderId: string, name: string) {
     requestBody: {
       name,
       mimeType: "application/vnd.google-apps.folder",
-      parents: [parentFolderId],
+      parents: [parentIdReal],
     },
     fields: "id",
   });

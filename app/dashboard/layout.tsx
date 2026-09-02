@@ -30,15 +30,19 @@ export default async function DashboardLayout({
   // refleja al instante para todos sus usuarios).
   let contractedModules: string[] = [];
   let schoolInfo: { id: string; name: string; logoUrl: string | null } | null = null;
+  let esTicDelCentro = false;
+  let esPsicopedagogaDelCentro = false;
 
   if (session.user.schoolId) {
     const school = await prisma.school.findUnique({
       where: { id: session.user.schoolId },
-      select: { id: true, name: true, modules: true, logoUrl: true },
+      select: { id: true, name: true, modules: true, logoUrl: true, ticUserId: true, psicopedagogaId: true },
     });
     if (school) {
       contractedModules = school.modules;
       schoolInfo = { id: school.id, name: school.name, logoUrl: school.logoUrl };
+      esTicDelCentro = school.ticUserId === session.user.id;
+      esPsicopedagogaDelCentro = school.psicopedagogaId === session.user.id;
     }
   }
 
@@ -61,6 +65,8 @@ export default async function DashboardLayout({
           userName={userName}
           userEmail={session.user.email}
           role={session.user.role}
+          esTicDelCentro={!cuentaInactiva && esTicDelCentro}
+          esPsicopedagogaDelCentro={!cuentaInactiva && esPsicopedagogaDelCentro}
           contractedModules={cuentaInactiva ? [] : contractedModules}
         />
         <ContenidoPrincipal>

@@ -6,6 +6,7 @@ import { ModuleLocked } from "../components/ModuleLocked";
 import { CertificacionesClient } from "./CertificacionesClient";
 import { obtenerCertificaciones, obtenerProfesoresConCertificaciones, obtenerCatalogoCompletoPublico, obtenerDepartamentosCatalogo } from "./actions";
 import { obtenerCategoriasDisponibles } from "../superadmin/certificaciones-catalogo/actions";
+import { obtenerMisAsignacionesPendientes, obtenerProfesoresDelCentro, obtenerTodasLasAsignaciones } from "./asignaciones";
 
 export const dynamic = "force-dynamic";
 
@@ -38,12 +39,15 @@ export default async function CertificacionesPage() {
     );
   }
 
-  const [certificaciones, profesores, catalogo, categorias, departamentos] = await Promise.all([
+  const [certificaciones, profesores, catalogo, categorias, departamentos, misAsignacionesPendientes, profesoresCentro, todasLasAsignaciones] = await Promise.all([
     obtenerCertificaciones(),
     esDirectivo ? obtenerProfesoresConCertificaciones() : Promise.resolve([]),
     obtenerCatalogoCompletoPublico(),
     obtenerCategoriasDisponibles(),
     obtenerDepartamentosCatalogo(),
+    obtenerMisAsignacionesPendientes(),
+    esDirectivo ? obtenerProfesoresDelCentro() : Promise.resolve([]),
+    esDirectivo ? obtenerTodasLasAsignaciones() : Promise.resolve([]),
   ]);
 
   return (
@@ -60,6 +64,10 @@ export default async function CertificacionesPage() {
         esDirectivo={esDirectivo}
         esSuperAdmin={role === "SUPERADMIN"}
         userId={userId}
+        misAsignacionesPendientes={misAsignacionesPendientes}
+        profesoresCentro={profesoresCentro}
+        todasLasAsignaciones={todasLasAsignaciones}
+        schoolId={schoolId}
       />
     </div>
   );

@@ -257,7 +257,7 @@ export async function buildExpedientePdf(data: ExpedienteData): Promise<Uint8Arr
     if (f.firma) {
       try {
         const base64 = f.firma.split(",")[1] ?? f.firma;
-        const bytes = Buffer.from(base64, "base64");
+        const bytes = new Uint8Array(Buffer.from(base64, "base64"));
         const image = await pdfDoc.embedPng(bytes);
         const imgHeight = 30;
         const imgWidth = (image.width / image.height) * imgHeight;
