@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { enviarRecordatoriosGafasNoDevueltas } from "@/app/dashboard/espacios/gafasVR";
 
-// Pensada para que Vercel la llame cada 15-30 minutos (no una vez al
-// día como el backup) — así el aviso llega poco después de pasar la
-// hora de margen, no al día siguiente.
+// Se llama una vez al día (el plan Hobby de Vercel no permite crons más
+// frecuentes) — el aviso puede tardar hasta 24h en llegar tras pasar la
+// hora de margen, en vez de los ~30 minutos originales, pero nunca se
+// duplica ni se pierde: se marca con recordatorioEnviado en cuanto se envía.
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
