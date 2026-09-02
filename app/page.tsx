@@ -37,10 +37,17 @@ function DashboardMock() {
   const navItems = [
     { label: "Inicio", active: true },
     { label: "Tutorías" },
+    { label: "Prácticas" },
+    { label: "Guardias" },
+    { label: "Material" },
+    { label: "Salidas" },
     { label: "Expedientes" },
-    { label: "Reserva de Espacios" },
     { label: "OnBoarding" },
+    { label: "Reserva de espacios" },
     { label: "Comunicación" },
+    { label: "Psicopedagogía" },
+    { label: "Certificaciones" },
+    { label: "Empresas colaboradoras" },
   ];
 
   const stats = [
@@ -62,15 +69,15 @@ function DashboardMock() {
         {/* Sidebar */}
         <div className="flex w-48 flex-col justify-between bg-[#0B1D4D] px-4 py-5">
           <div>
-            <div className="mb-6 flex items-center gap-2 px-1">
+            <div className="mb-3 flex items-center gap-2 px-1">
               <HexLogo size={22} />
               <span className="text-sm font-bold text-white">Docentium</span>
             </div>
-            <nav className="space-y-1">
+            <nav className="space-y-0.5">
               {navItems.map((item) => (
                 <div
                   key={item.label}
-                  className={`rounded-lg px-3 py-2 text-[13px] ${
+                  className={`truncate rounded-md px-2.5 py-1.5 text-[10.5px] leading-tight ${
                     item.active
                       ? "bg-[#FD5249] font-semibold text-white"
                       : "text-slate-300"
