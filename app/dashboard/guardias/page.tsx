@@ -1,3 +1,9 @@
+// Igual que en actions.ts: los Server Actions que se llaman desde esta
+// página (asignar/avisar guardias) pueden tardar más de los 10 segundos
+// por defecto de Vercel al mandar email + push a la vez — con esto no se
+// cortan a mitad.
+export const maxDuration = 30;
+
 import { getServerSession } from "next-auth";
 import { Suspense } from "react";
 import { authOptions } from "@/lib/auth";
