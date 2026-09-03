@@ -124,7 +124,7 @@ export function UserProfileButton({
         {menuAbierto && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setMenuAbierto(false)} />
-            <div className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-lg">
+            <div className="fixed inset-x-4 top-[calc(env(safe-area-inset-top,0px)+4rem)] z-50 mx-auto max-w-xs overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-lg sm:absolute sm:inset-x-auto sm:top-full sm:right-0 sm:left-auto sm:mt-2 sm:w-60 sm:max-w-none">
               <div className="border-b border-slate-100 px-3.5 py-2.5">
                 <div className="truncate text-sm font-semibold text-[#0B1D4D]">{userName}</div>
                 <div className="truncate text-xs text-slate-400">{roleLabel}</div>

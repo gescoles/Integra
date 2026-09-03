@@ -302,7 +302,7 @@ export function Sidebar({
               {chatNotifAbierto && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setChatNotifAbierto(false)} />
-                  <div className="absolute right-0 top-full z-50 mt-2 w-72 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                  <div className="fixed inset-x-4 top-[calc(env(safe-area-inset-top,0px)+4rem)] z-50 mx-auto max-w-sm overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg sm:absolute sm:inset-x-auto sm:top-full sm:right-0 sm:left-auto sm:mt-2 sm:w-72 sm:max-w-none">
                     <div className="border-b border-slate-100 px-3.5 py-2.5 text-sm font-bold text-[#0B1D4D]">
                       Mensajes
                     </div>
