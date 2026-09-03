@@ -229,16 +229,18 @@ export function Sidebar({
     return (
       <Link
         href={href}
-        className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1 px-1 py-1.5 text-[10px] font-semibold text-slate-400 transition-transform active:scale-95"
+        className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1 px-1 py-1.5 text-[10px] font-semibold transition-transform active:scale-95"
       >
         <span
           className={`flex h-7 w-11 items-center justify-center rounded-full transition-colors ${
-            active ? "bg-[#FD5249]/10 text-[#FD5249]" : "text-slate-400"
+            active
+              ? "bg-[#FD5249]/15 text-[#FD5249] dark:bg-[#FD5249]/25"
+              : "text-slate-500 dark:text-slate-400"
           }`}
         >
           <Icon className="h-5 w-5" />
         </span>
-        <span className={`max-w-full truncate ${active ? "text-[#FD5249]" : "text-slate-400"}`}>{label}</span>
+        <span className={`max-w-full truncate ${active ? "text-[#FD5249]" : "text-slate-500 dark:text-slate-400"}`}>{label}</span>
       </Link>
     );
   }
@@ -677,7 +679,7 @@ export function Sidebar({
         zonas de toque grandes, como cualquier app nativa. */}
     {esNativo && (
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-2px_12px_rgba(15,23,42,0.06)] backdrop-blur lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t border-slate-200/70 bg-white/60 pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-2px_16px_rgba(15,23,42,0.08)] backdrop-blur-xl backdrop-saturate-150 dark:border-white/10 dark:bg-[#0B1D4D]/60 dark:shadow-[0_-2px_16px_rgba(0,0,0,0.35)] lg:hidden"
         aria-label="Navegación principal"
       >
         <ItemBarraInferior href="/dashboard" icon={Home} label={translate(locale, "nav.inicio")} />

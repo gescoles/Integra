@@ -181,6 +181,8 @@ export default function LoginPage() {
                     <Mail className="h-4 w-4 text-slate-400" />
                     <input
                       type="email"
+                      name="email"
+                      autoComplete="username"
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -198,6 +200,8 @@ export default function LoginPage() {
                     <Lock className="h-4 w-4 text-slate-400" />
                     <input
                       type={showPassword ? "text" : "password"}
+                      name="password"
+                      autoComplete="current-password"
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
