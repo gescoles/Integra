@@ -5,8 +5,27 @@ import { ChevronDown, Camera, X, LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useUserAvatar } from "../SchoolContext";
 import { uploadMyAvatar } from "../profileActions";
+import { eliminarDeviceToken } from "../notificationsActions";
 import { translate, AppLocale } from "../i18n";
 import { ButtonSpinner } from "./ButtonSpinner";
+
+// El token push de este dispositivo se guarda en localStorage (por
+// PushRegistration.tsx) nada más registrarse — no hay forma de volver a
+// pedírselo al plugin más tarde, así que hay que leerlo de ahí. Si no
+// existe (navegador normal, o la app nunca llegó a registrar el
+// dispositivo), no hace nada.
+const DEVICE_TOKEN_KEY = "docentium_push_token";
+
+async function olvidarDispositivoPush() {
+  try {
+    const token = window.localStorage.getItem(DEVICE_TOKEN_KEY);
+    if (!token) return;
+    await eliminarDeviceToken(token);
+    window.localStorage.removeItem(DEVICE_TOKEN_KEY);
+  } catch {
+    // No pasa nada si falla — el cierre de sesión sigue adelante igual.
+  }
+}
 
 export function UserProfileButton({
   userName,
@@ -109,7 +128,10 @@ export function UserProfileButton({
                 <Camera className="h-4 w-4 text-slate-400" /> {translate(locale, "perfil.elegirFoto")}
               </button>
               <button
-                onClick={() => signOut({ callbackUrl: "/login" })}
+                onClick={async () => {
+                  await olvidarDispositivoPush();
+                  signOut({ callbackUrl: "/login" });
+                }}
                 className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
               >
                 <LogOut className="h-4 w-4" /> {translate(locale, "sidebar.cerrarSesion")}

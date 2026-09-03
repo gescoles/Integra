@@ -15,7 +15,7 @@ import {
   sendSalidaYaNoAcompananteEmail,
 } from "@/lib/email";
 import { notifyUsers, clearNotificationsFor } from "@/lib/notifications";
-import { createTeamsCalendarEvent, deleteTeamsCalendarEvent } from "@/lib/microsoftGraph";
+import { createTeamsCalendarEvent, deleteTeamsCalendarEvent, emailHaIniciadoConTeams } from "@/lib/microsoftGraph";
 
 // Crea (mejor esfuerzo, nunca bloquea el flujo principal) el evento de
 // Teams de un acompañante en el calendario de esa salida ya aprobada, y
@@ -32,6 +32,10 @@ async function crearEventoTeamsAcompanante(params: {
   horaVuelta: string;
 }) {
   try {
+    // Si ese profesor nunca ha iniciado sesión con Microsoft/Teams, no
+    // tiene un buzón real donde crear el evento — ni lo intentamos.
+    if (!(await emailHaIniciadoConTeams(params.userEmail))) return;
+
     // Si ya tenía un evento (por ejemplo, se está recreando tras editar la
     // fecha/hora), se borra primero el viejo para no dejarlo huérfano en
     // su calendario junto al nuevo.

@@ -119,3 +119,25 @@ export async function deleteTeamsCalendarEvent(userEmail: string, eventId: strin
     throw new Error(`No se pudo eliminar el evento del calendario de ${userEmail}: ${text}`);
   }
 }
+
+/**
+ * Antes de intentar tocar el calendario de Teams de alguien, comprobamos
+ * si esa persona ha iniciado sesión con Microsoft/Teams alguna vez (lo
+ * dejó registrado el propio login, en RegistroAcceso). Si nunca lo ha
+ * hecho, no tiene sentido intentar crear un evento en un buzón que
+ * probablemente ni siquiera existe — y sobre todo, no queremos mostrarle
+ * a quien esté asignando la guardia/salida un error de Teams sobre un
+ * profesor que ni usa Teams. Si SÍ lo ha usado alguna vez pero ahora
+ * Teams está caído, el fallo se sigue tragando en cada punto de llamada
+ * (nunca se le muestra al usuario) — eso ya lo gestiona el SuperAdmin
+ * aparte, generando una contraseña si hace falta.
+ */
+export async function emailHaIniciadoConTeams(email: string | null | undefined): Promise<boolean> {
+  if (!email) return false;
+  const { prisma } = await import("@/lib/prisma");
+  const registro = await prisma.registroAcceso.findFirst({
+    where: { email: email.toLowerCase(), metodo: "microsoft" },
+    select: { id: true },
+  });
+  return Boolean(registro);
+}

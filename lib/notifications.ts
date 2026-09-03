@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { sendPushToTokens } from "@/lib/firebaseAdmin";
 
 export async function notifyUsers(
   userIds: string[],
@@ -16,6 +17,25 @@ export async function notifyUsers(
       relatedId: data.relatedId ?? null,
     })),
   });
+
+  // Además de guardarla en la app, se manda como notificación push de
+  // verdad a quien tenga la app Android instalada y haya dado permiso —
+  // mejor esfuerzo: si Firebase no está configurado o falla, la
+  // notificación ya se ha guardado igualmente arriba.
+  try {
+    const tokens = await prisma.deviceToken.findMany({
+      where: { userId: { in: userIds } },
+      select: { token: true },
+    });
+    if (tokens.length > 0) {
+      await sendPushToTokens(
+        tokens.map((t) => t.token),
+        { titulo: data.titulo, mensaje: data.mensaje, link: data.link }
+      );
+    }
+  } catch (e) {
+    console.error("No se pudo mandar la notificación push:", e);
+  }
 }
 
 /**

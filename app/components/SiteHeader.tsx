@@ -45,7 +45,6 @@ export function SiteHeader() {
         <a href="/#funciones" className="hover:text-[#0B1D4D]">Funciones</a>
         <a href="/#como-funciona" className="hover:text-[#0B1D4D]">Cómo funciona</a>
         <Link href="/noticias" className="hover:text-[#0B1D4D]">Noticias</Link>
-        <Link href="/solicitar" className="hover:text-[#0B1D4D]">Contacto</Link>
         <div className="relative" onMouseEnter={() => setAbierto(true)} onMouseLeave={() => setAbierto(false)}>
           <button
             onClick={() => setAbierto((v) => !v)}
@@ -73,6 +72,7 @@ export function SiteHeader() {
             </div>
           )}
         </div>
+        <Link href="/solicitar" className="hover:text-[#0B1D4D]">Contacto</Link>
       </nav>
 
       {/* Botones de la derecha: solo en escritorio */}
@@ -126,10 +126,6 @@ export function SiteHeader() {
               <Link href="/noticias" onClick={() => setMenuMovilAbierto(false)} className="rounded-lg px-3 py-2.5 hover:bg-slate-50">
                 Noticias
               </Link>
-              <Link href="/solicitar" onClick={() => setMenuMovilAbierto(false)} className="rounded-lg px-3 py-2.5 hover:bg-slate-50">
-                Contacto
-              </Link>
-
               <button
                 onClick={() => setCentrosMovilAbierto((v) => !v)}
                 className="flex items-center justify-between rounded-lg px-3 py-2.5 hover:bg-slate-50"
@@ -158,6 +154,10 @@ export function SiteHeader() {
                   ))}
                 </div>
               )}
+
+              <Link href="/solicitar" onClick={() => setMenuMovilAbierto(false)} className="rounded-lg px-3 py-2.5 hover:bg-slate-50">
+                Contacto
+              </Link>
             </nav>
 
             <div className="mt-6 flex flex-col gap-3 border-t border-slate-100 pt-6">

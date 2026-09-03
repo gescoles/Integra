@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { Sidebar } from "./components/Sidebar";
 import { ChatWidget } from "./components/ChatWidget";
 import { ChatInternoWidget } from "./components/ChatInternoWidget";
+import { PushRegistration } from "./components/PushRegistration";
+import { NativeBackButton } from "./components/NativeBackButton";
 import { SavingOverlay } from "./components/SavingOverlay";
 import { GlobalSavingListener } from "./components/GlobalSavingListener";
 import { SchoolProvider } from "./SchoolContext";
@@ -94,6 +96,8 @@ export default async function DashboardLayout({
         </ContenidoPrincipal>
         <ChatWidget userName={userName} />
         {!cuentaInactiva && contractedModules.includes("comunicacion") && <ChatInternoWidget />}
+        <PushRegistration />
+        <NativeBackButton />
         <SavingOverlay />
         <GlobalSavingListener />
       </div>

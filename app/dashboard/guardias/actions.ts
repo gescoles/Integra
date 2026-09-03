@@ -6,7 +6,7 @@ import { GuardiaStatus } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sendGuardiaEmail, sendCoberturaEmail, sendSolicitudCoberturaEmail, sendCoberturaResueltaEmail, sendSolicitudRechazadaEmail, sendGuardiaEliminadaEmail, sendGuardiaModificadaEmail, sendCoberturaEliminadaEmail, sendCoberturaModificadaEmail, sendAusenciaAceptadaEmail } from "@/lib/email";
-import { createTeamsCalendarEvent, deleteTeamsCalendarEvent } from "@/lib/microsoftGraph";
+import { createTeamsCalendarEvent, deleteTeamsCalendarEvent, emailHaIniciadoConTeams } from "@/lib/microsoftGraph";
 import { notifyUsers } from "@/lib/notifications";
 import { getSupabaseAdmin, JUSTIFICANTES_BUCKET } from "@/lib/supabaseAdmin";
 import { ensureSubfolder, uploadGenericFileToDrive } from "@/lib/googleDrive";
@@ -114,6 +114,7 @@ async function crearEventoTeamsCobertura(params: {
   horaFin: string;
 }) {
   if (!params.sustitutoEmail) return;
+  if (!(await emailHaIniciadoConTeams(params.sustitutoEmail))) return;
 
   const [hIni, mIni] = params.horaInicio.split(":").map(Number);
   const [hFin, mFin] = params.horaFin.split(":").map(Number);
@@ -725,18 +726,20 @@ export async function actualizarGuardiaProgramada(
       }
     }
     try {
-      const [h, m] = hora.split(":").map(Number);
-      const finGuardia = new Date(fecha);
-      finGuardia.setHours(h, m + 55);
-      const evento = await createTeamsCalendarEvent({
-        userEmail: guardia.profesor.email,
-        subject: `Guardia: ${grupo}`,
-        bodyHtml: `Guardia asignada.${grupo ? ` Grupo: ${grupo}.` : ""}${ubicacion ? ` Aula: ${ubicacion}.` : ""}${tarea ? ` Tarea: ${tarea}.` : ""}`,
-        start: fecha,
-        end: finGuardia,
-        location: ubicacion || undefined,
-      });
-      await prisma.guardia.update({ where: { id }, data: { teamsEventId: evento.id } });
+      if (await emailHaIniciadoConTeams(guardia.profesor.email)) {
+        const [h, m] = hora.split(":").map(Number);
+        const finGuardia = new Date(fecha);
+        finGuardia.setHours(h, m + 55);
+        const evento = await createTeamsCalendarEvent({
+          userEmail: guardia.profesor.email,
+          subject: `Guardia: ${grupo}`,
+          bodyHtml: `Guardia asignada.${grupo ? ` Grupo: ${grupo}.` : ""}${ubicacion ? ` Aula: ${ubicacion}.` : ""}${tarea ? ` Tarea: ${tarea}.` : ""}`,
+          start: fecha,
+          end: finGuardia,
+          location: ubicacion || undefined,
+        });
+        await prisma.guardia.update({ where: { id }, data: { teamsEventId: evento.id } });
+      }
     } catch {
       // No bloqueamos por esto — el email ya avisa del cambio igualmente.
     }
@@ -1107,22 +1110,30 @@ export async function createGuardia(formData: FormData) {
     avisos.push({ canal: "email", ok: false, error: e instanceof Error ? e.message : "Error desconocido" });
   }
 
-  try {
-    const [horas, minutos] = horaRaw.split(":").map(Number);
-    const finGuardia = new Date(fecha);
-    finGuardia.setHours(horas, minutos + 55); // guardia de 55 min por defecto, como una clase
-    const evento = await createTeamsCalendarEvent({
-      userEmail: profesor.email,
-      subject: `Guardia: ${grupo}`,
-      bodyHtml: `Guardia asignada.${grupo ? ` Grupo: ${grupo}.` : ""}${ubicacion ? ` Aula: ${ubicacion}.` : ""}${tarea ? ` Tarea: ${tarea}.` : ""}`,
-      start: fecha,
-      end: finGuardia,
-      location: ubicacion || undefined,
-    });
-    await prisma.guardia.update({ where: { id: nuevaGuardia.id }, data: { teamsEventId: evento.id } });
-    avisos.push({ canal: "teams", ok: true });
-  } catch (e) {
-    avisos.push({ canal: "teams", ok: false, error: e instanceof Error ? e.message : "Error desconocido" });
+  // Solo se intenta el calendario de Teams si ese profesor ha iniciado
+  // sesión con Microsoft/Teams alguna vez — si nunca lo ha hecho, no tiene
+  // buzón de Teams real y no tiene sentido intentarlo (ni mostrar ningún
+  // aviso al respecto). Y si SÍ lo ha usado pero falla (Teams caído, token
+  // caducado...), tampoco se le muestra el error a quien crea la guardia
+  // — la guardia ya se ha guardado bien, eso es lo único que importa aquí.
+  if (await emailHaIniciadoConTeams(profesor.email)) {
+    try {
+      const [horas, minutos] = horaRaw.split(":").map(Number);
+      const finGuardia = new Date(fecha);
+      finGuardia.setHours(horas, minutos + 55); // guardia de 55 min por defecto, como una clase
+      const evento = await createTeamsCalendarEvent({
+        userEmail: profesor.email,
+        subject: `Guardia: ${grupo}`,
+        bodyHtml: `Guardia asignada.${grupo ? ` Grupo: ${grupo}.` : ""}${ubicacion ? ` Aula: ${ubicacion}.` : ""}${tarea ? ` Tarea: ${tarea}.` : ""}`,
+        start: fecha,
+        end: finGuardia,
+        location: ubicacion || undefined,
+      });
+      await prisma.guardia.update({ where: { id: nuevaGuardia.id }, data: { teamsEventId: evento.id } });
+      avisos.push({ canal: "teams", ok: true });
+    } catch (e) {
+      console.error("No se pudo crear el evento de Teams para la guardia:", e);
+    }
   }
 
   return { avisos };

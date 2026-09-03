@@ -5,6 +5,31 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
+// Guarda el token push del móvil de quien ha entrado — lo llama la propia
+// app nada más dar permiso, desde dentro de la app Android (no hace nada
+// si se llama desde un navegador normal, ya que ahí nunca se pide el
+// permiso ni se genera token). Un mismo token solo puede pertenecer a un
+// usuario a la vez (por ejemplo, si cierra sesión y entra otra persona en
+// el mismo móvil), así que se reasigna en vez de duplicarlo.
+export async function registrarDeviceToken(token: string, plataforma: string = "android") {
+  const session = await getServerSession(authOptions);
+  if (!session?.user.id || !token) return;
+
+  await prisma.deviceToken.upsert({
+    where: { token },
+    create: { token, userId: session.user.id, plataforma },
+    update: { userId: session.user.id, plataforma },
+  });
+}
+
+// Al cerrar sesión desde la app, se borra el token de este dispositivo —
+// así, si otra persona usa el mismo móvil después, no le sigan llegando
+// las notificaciones push de quien ya no ha iniciado sesión.
+export async function eliminarDeviceToken(token: string) {
+  if (!token) return;
+  await prisma.deviceToken.deleteMany({ where: { token } });
+}
+
 export async function getMyNotifications() {
   const session = await getServerSession(authOptions);
   if (!session?.user.id) return { notificaciones: [], noLeidas: 0 };

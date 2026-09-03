@@ -493,6 +493,24 @@ model User {
   notificaciones     Notificacion[]
   justificantesCreados JustificanteAsistencia[] @relation("JustificanteCreador")
   justificantesAvisado JustificanteAsistencia[] @relation("JustificanteAvisado")
+  deviceTokens DeviceToken[]
+}
+
+// Token de notificaciones push (Firebase Cloud Messaging) del móvil de un
+// usuario, guardado cuando abre la app Android y da permiso — un mismo
+// usuario puede tener varios (por ejemplo, si usa Docentium en dos
+// móviles). Con esto, notifyUsers() puede mandar un aviso de verdad al
+// sistema operativo, no solo guardar la notificación en la base de datos.
+model DeviceToken {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token      String   @unique
+  plataforma String   @default("android")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@index([userId])
 }
 
 enum TutoriaStatus {

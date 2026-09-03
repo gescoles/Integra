@@ -43,6 +43,7 @@ import { UserProfileButton } from "./UserProfileButton";
 import { NotificationBell } from "./NotificationBell";
 import { ThemeToggle } from "./ThemeToggle";
 import { useLocale, useChatInterno, useSidebarColapsado, useDoqui } from "../SchoolContext";
+import { useIsNativeApp } from "../hooks/useIsNativeApp";
 import { BuscadorGlobal } from "./BuscadorGlobal";
 import { buscarAlumnosGlobal } from "../busquedaActions";
 import { translate, TranslationKey } from "../i18n";
@@ -171,6 +172,13 @@ export function Sidebar({
   const roleLabel = [ROLE_LABELS_FULL[role] ?? role, ...extras].join(" - ");
   const isSuperAdmin = role === "SUPERADMIN";
   const [mobileOpen, setMobileOpen] = useState(false);
+  const esNativo = useIsNativeApp();
+
+  // Los 3 primeros módulos contratados (mismo orden de prioridad que ya
+  // tiene el menú lateral), para la barra de navegación inferior — solo
+  // se ve dentro de la app Android, nunca en el navegador. El resto de
+  // módulos se sigue viendo igual, abriendo el menú completo con "Menú".
+  const modulosBarraInferior = centroModulos.filter((m) => contractedModules.includes(m.key)).slice(0, 3);
 
   // En cuanto se navega a otra página, cerramos el menú deslizante del
   // móvil solo — así no hay que acordarse de cerrarlo a mano en cada enlace.
@@ -613,6 +621,72 @@ export function Sidebar({
         )}
       </div>
     </aside>
+
+    {/* Barra de navegación inferior: solo dentro de la app Android
+        (Capacitor) — en el navegador normal esto no se pinta y todo
+        sigue exactamente igual que antes (menú lateral de siempre). Es
+        solo otra forma de llegar a las mismas rutas de siempre, con
+        zonas de toque grandes, como cualquier app nativa. */}
+    {esNativo && (
+      <nav
+        className="fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom,0px)] lg:hidden"
+        aria-label="Navegación principal"
+      >
+        <Link
+          href="/dashboard"
+          className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-medium ${
+            pathname === "/dashboard" ? "text-[#FD5249]" : "text-slate-500"
+          }`}
+        >
+          <Home className="h-5 w-5" />
+          {translate(locale, "nav.inicio")}
+        </Link>
+
+        {isSuperAdmin ? (
+          <>
+            <Link
+              href="/dashboard/centros"
+              className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-medium ${
+                pathname === "/dashboard/centros" ? "text-[#FD5249]" : "text-slate-500"
+              }`}
+            >
+              <Landmark className="h-5 w-5" />
+              {translate(locale, "nav.centros")}
+            </Link>
+            <Link
+              href="/dashboard/usuarios"
+              className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-medium ${
+                pathname === "/dashboard/usuarios" ? "text-[#FD5249]" : "text-slate-500"
+              }`}
+            >
+              <Users className="h-5 w-5" />
+              {translate(locale, "nav.usuarios")}
+            </Link>
+          </>
+        ) : (
+          modulosBarraInferior.map((item) => (
+            <Link
+              key={item.key}
+              href={item.href}
+              className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-medium ${
+                pathname === item.href ? "text-[#FD5249]" : "text-slate-500"
+              }`}
+            >
+              <item.icon className="h-5 w-5" />
+              <span className="max-w-full truncate">{translate(locale, item.labelKey)}</span>
+            </Link>
+          ))
+        )}
+
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-medium text-slate-500"
+        >
+          <Menu className="h-5 w-5" />
+          Menú
+        </button>
+      </nav>
+    )}
     </>
   );
 }
