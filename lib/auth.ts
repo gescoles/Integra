@@ -199,20 +199,38 @@ export const authOptions: NextAuthOptions = {
         const haPasadoUnMinuto = Date.now() - ultimaVez > 60_000;
 
         if (haPasadoUnMinuto) {
-          const fresh = await prisma.user.findUnique({
-            where: { id: userId as string },
-            select: {
-              role: true,
-              schoolId: true,
-              locale: true,
-              status: true,
-              school: { select: { status: true } },
-            },
-          });
+          // Si la consulta en sí falla (por ejemplo, la conexión a la base
+          // de datos tarda en "despertar" tras un rato inactiva — típico
+          // al reabrir la app móvil después de un rato cerrada), NO se
+          // cierra la sesión: eso sería castigar un fallo puntual de red
+          // como si la cuenta se hubiera desactivado de verdad. Se
+          // reintenta en la siguiente petición (no se actualiza
+          // ultimaComprobacion), y el token se queda con los datos que ya
+          // tenía mientras tanto.
+          const buscarUsuarioFresco = () =>
+            prisma.user.findUnique({
+              where: { id: userId as string },
+              select: {
+                role: true,
+                schoolId: true,
+                locale: true,
+                status: true,
+                school: { select: { status: true } },
+              },
+            });
+          let fresh: Awaited<ReturnType<typeof buscarUsuarioFresco>>;
+          try {
+            fresh = await buscarUsuarioFresco();
+          } catch (e) {
+            console.error("No se pudo refrescar la sesión (fallo puntual, no se cierra sesión por esto):", e);
+            return token;
+          }
           // Revocación inmediata: si un SuperAdmin desactiva a alguien (o
           // archiva su centro) mientras tiene la sesión abierta, se le
           // corta el acceso en cuanto se refresca el token (como mucho, un
           // minuto después), sin tener que esperar a que caduque la sesión.
+          // Esto sí es un resultado real de la consulta (no un fallo), así
+          // que aquí sí cerramos la sesión.
           if (!fresh || fresh.status !== "ACTIVO" || fresh.school?.status === "ARCHIVADO") {
             throw new Error("CUENTA_DESACTIVADA");
           }
