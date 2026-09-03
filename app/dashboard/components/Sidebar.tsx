@@ -174,11 +174,17 @@ export function Sidebar({
   const [mobileOpen, setMobileOpen] = useState(false);
   const esNativo = useIsNativeApp();
 
-  // Los 3 primeros módulos contratados (mismo orden de prioridad que ya
-  // tiene el menú lateral), para la barra de navegación inferior — solo
-  // se ve dentro de la app Android, nunca en el navegador. El resto de
-  // módulos se sigue viendo igual, abriendo el menú completo con "Menú".
-  const modulosBarraInferior = centroModulos.filter((m) => contractedModules.includes(m.key)).slice(0, 3);
+  // Para la barra de navegación inferior (solo dentro de la app Android):
+  // Disciplina (Expedientes) va siempre primero si está contratada, y
+  // luego se rellena con el resto de módulos por su orden de prioridad
+  // habitual — el resto se sigue viendo igual abriendo el menú completo
+  // con el botón de arriba a la izquierda (no hace falta repetirlo abajo).
+  const modulosBarraInferior = [
+    ...centroModulos.filter((m) => m.key === "expedientes"),
+    ...centroModulos.filter((m) => m.key !== "expedientes"),
+  ]
+    .filter((m) => contractedModules.includes(m.key))
+    .slice(0, 4);
 
   // En cuanto se navega a otra página, cerramos el menú deslizante del
   // móvil solo — así no hay que acordarse de cerrarlo a mano en cada enlace.
@@ -678,13 +684,6 @@ export function Sidebar({
           ))
         )}
 
-        <button
-          onClick={() => setMobileOpen(true)}
-          className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-medium text-slate-500"
-        >
-          <Menu className="h-5 w-5" />
-          Menú
-        </button>
       </nav>
     )}
     </>

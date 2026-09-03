@@ -475,16 +475,19 @@ export async function asignarSustitutoCobertura(coberturaId: string, profesorSus
     throw new Error("Solo Dirección o SuperAdmin puede asignar quién cubre una guardia.");
   }
 
-  const cobertura = await prisma.coberturaGuardia.findUnique({
-    where: { id: coberturaId },
-    include: { profesorAusente: { select: { name: true, email: true } } },
-  });
+  // La cobertura y el sustituto no dependen el uno del otro para leerse,
+  // así que se piden a la vez en vez de uno detrás de otro.
+  const [cobertura, sustituto] = await Promise.all([
+    prisma.coberturaGuardia.findUnique({
+      where: { id: coberturaId },
+      include: { profesorAusente: { select: { name: true, email: true } } },
+    }),
+    prisma.user.findUnique({ where: { id: profesorSustitutoId }, select: { name: true, email: true } }),
+  ]);
   if (!cobertura) throw new Error("No se ha encontrado la solicitud.");
   if (cobertura.estado === "PENDIENTE") {
     throw new Error("Primero tienes que aceptar el aviso de ausencia, antes de buscar sustituto.");
   }
-
-  const sustituto = await prisma.user.findUnique({ where: { id: profesorSustitutoId }, select: { name: true, email: true } });
   if (!sustituto) throw new Error("No se ha encontrado al profesor sustituto.");
 
   await prisma.coberturaGuardia.update({
@@ -1088,27 +1091,48 @@ export async function createGuardia(formData: FormData) {
   revalidatePath("/dashboard/guardias");
   revalidatePath("/dashboard");
 
-  // El email y el evento de Teams son "mejor esfuerzo": si Microsoft o el
-  // correo fallan, la guardia YA se ha guardado correctamente y no queremos
-  // que el usuario vea un error como si no se hubiera creado. Cada aviso
-  // se intenta por separado para que un fallo no tumbe al otro.
+  // El email, la notificación y el evento de Teams son "mejor esfuerzo":
+  // si Microsoft o el correo fallan, la guardia YA se ha guardado
+  // correctamente y no queremos que el usuario vea un error como si no
+  // se hubiera creado. Cada aviso se intenta por separado para que un
+  // fallo no tumbe al otro, y los tres se lanzan a la vez (no dependen
+  // uno del otro) para no sumar sus tiempos de espera.
   const profesorNombre = profesor.name ?? profesor.email;
-  const avisos: { canal: string; ok: boolean; error?: string }[] = [];
 
-  try {
-    await sendGuardiaEmail({
-      id: nuevaGuardia.id,
-      to: profesor.email,
-      profesorName: profesorNombre,
-      ubicacion,
-      grupo,
-      tarea,
-      fecha,
-    });
-    avisos.push({ canal: "email", ok: true });
-  } catch (e) {
-    avisos.push({ canal: "email", ok: false, error: e instanceof Error ? e.message : "Error desconocido" });
-  }
+  // Notificación dentro de la app (y, si tiene la app Android con permiso
+  // dado, push de verdad) — antes solo se mandaba el email, así que nunca
+  // le llegaba nada a la campanita ni al móvil.
+  const avisarEnApp = async () => {
+    try {
+      await notifyUsers([profesorId], {
+        schoolId,
+        tipo: "GUARDIA_ASIGNADA",
+        titulo: "Tienes una guardia asignada",
+        mensaje: `${grupo}${ubicacion ? ` · ${ubicacion}` : ""} · ${fecha.toLocaleDateString("es-ES")}`,
+        link: "/dashboard/guardias",
+        relatedId: nuevaGuardia.id,
+      });
+    } catch (e) {
+      console.error("No se pudo notificar la guardia asignada:", e);
+    }
+  };
+
+  const avisarPorEmail = async (): Promise<{ canal: string; ok: boolean; error?: string }> => {
+    try {
+      await sendGuardiaEmail({
+        id: nuevaGuardia.id,
+        to: profesor.email,
+        profesorName: profesorNombre,
+        ubicacion,
+        grupo,
+        tarea,
+        fecha,
+      });
+      return { canal: "email", ok: true };
+    } catch (e) {
+      return { canal: "email", ok: false, error: e instanceof Error ? e.message : "Error desconocido" };
+    }
+  };
 
   // Solo se intenta el calendario de Teams si ese profesor ha iniciado
   // sesión con Microsoft/Teams alguna vez — si nunca lo ha hecho, no tiene
@@ -1116,7 +1140,8 @@ export async function createGuardia(formData: FormData) {
   // aviso al respecto). Y si SÍ lo ha usado pero falla (Teams caído, token
   // caducado...), tampoco se le muestra el error a quien crea la guardia
   // — la guardia ya se ha guardado bien, eso es lo único que importa aquí.
-  if (await emailHaIniciadoConTeams(profesor.email)) {
+  const avisarPorTeams = async (): Promise<{ canal: string; ok: boolean } | null> => {
+    if (!(await emailHaIniciadoConTeams(profesor.email))) return null;
     try {
       const [horas, minutos] = horaRaw.split(":").map(Number);
       const finGuardia = new Date(fecha);
@@ -1130,11 +1155,15 @@ export async function createGuardia(formData: FormData) {
         location: ubicacion || undefined,
       });
       await prisma.guardia.update({ where: { id: nuevaGuardia.id }, data: { teamsEventId: evento.id } });
-      avisos.push({ canal: "teams", ok: true });
+      return { canal: "teams", ok: true };
     } catch (e) {
       console.error("No se pudo crear el evento de Teams para la guardia:", e);
+      return null;
     }
-  }
+  };
+
+  const [, avisoEmail, avisoTeams] = await Promise.all([avisarEnApp(), avisarPorEmail(), avisarPorTeams()]);
+  const avisos = [avisoEmail, ...(avisoTeams ? [avisoTeams] : [])];
 
   return { avisos };
 }

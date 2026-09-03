@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { X, Send, User as UserIcon, Sparkles } from "lucide-react";
 import { useLocale, useDoqui } from "../SchoolContext";
+import { useIsNativeApp } from "../hooks/useIsNativeApp";
 import { translate } from "../i18n";
 
 type Msg = { role: "user" | "assistant"; content: string; esIA?: boolean };
@@ -12,6 +13,13 @@ const SESSION_KEY = "integra_chat_saludado";
 export function ChatWidget({ userName }: { userName: string }) {
   const { locale } = useLocale();
   const doqui = useDoqui();
+  // Dentro de la app Android, la barra de navegación inferior nueva
+  // ocuparía el mismo sitio que Doqui — se sube un poco para no quedar
+  // tapado por ella (en el navegador, sin esa barra, se queda donde
+  // siempre estaba).
+  const esNativo = useIsNativeApp();
+  const offsetBoton = esNativo ? "bottom-24 lg:bottom-6" : "bottom-6";
+  const offsetPanel = esNativo ? "bottom-[9.5rem] lg:bottom-28" : "bottom-28";
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -107,7 +115,7 @@ export function ChatWidget({ userName }: { userName: string }) {
     <>
       {/* Burbuja de saludo que aparece sola al entrar */}
       {peek && !open && (
-        <div className="fixed bottom-28 right-6 z-40 flex max-w-[260px] items-start gap-2 rounded-2xl rounded-br-sm border border-slate-200 bg-white p-3.5 shadow-xl">
+        <div className={`fixed ${offsetPanel} right-6 z-40 flex max-w-[260px] items-start gap-2 rounded-2xl rounded-br-sm border border-slate-200 bg-white p-3.5 shadow-xl`}>
           <button
             onClick={() => setPeek(false)}
             className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-slate-400 text-white hover:bg-slate-500"
@@ -122,7 +130,7 @@ export function ChatWidget({ userName }: { userName: string }) {
 
       <button
         onClick={handleTogglePorIcono}
-        className={`fixed bottom-6 right-6 z-40 flex h-16 w-16 items-center justify-center transition-transform hover:scale-105 ${
+        className={`fixed ${offsetBoton} right-6 z-40 flex h-16 w-16 items-center justify-center transition-transform hover:scale-105 ${
           !open ? "animate-float" : ""
         }`}
         aria-label={translate(locale, "chat.abrir")}
@@ -145,7 +153,7 @@ export function ChatWidget({ userName }: { userName: string }) {
       </button>
 
       {open && (
-        <div className="fixed bottom-28 right-6 z-40 flex h-[520px] w-[360px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+        <div className={`fixed ${offsetPanel} right-6 z-40 flex h-[520px] w-[360px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl`}>
           <div className="flex items-center gap-2.5 border-b border-slate-100 bg-[#0B1D4D] px-4 py-3.5">
             <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full ring-1 ring-white/30">
               {/* eslint-disable-next-line @next/next/no-img-element */}

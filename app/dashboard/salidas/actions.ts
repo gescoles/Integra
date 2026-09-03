@@ -190,14 +190,18 @@ export async function createSalida(formData: FormData) {
   let avisoOk = true;
   let avisoError: string | undefined;
   try {
-    const equipoDirectivo = await prisma.user.findMany({
-      where: { schoolId, role: { in: ["DIRECCION"] } },
-      select: { id: true, email: true },
-    });
-    const creador = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { name: true, email: true },
-    });
+    // Ninguna de las dos consultas depende de la otra, así que se piden a
+    // la vez en vez de una detrás de otra.
+    const [equipoDirectivo, creador] = await Promise.all([
+      prisma.user.findMany({
+        where: { schoolId, role: { in: ["DIRECCION"] } },
+        select: { id: true, email: true },
+      }),
+      prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { name: true, email: true },
+      }),
+    ]);
     const creadorNombre = creador?.name ?? creador?.email ?? "Un profesor";
 
     // Notificación real dentro de la app (la campanita), solo para el
