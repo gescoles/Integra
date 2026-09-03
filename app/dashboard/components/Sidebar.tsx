@@ -186,6 +186,21 @@ export function Sidebar({
     .filter((m) => contractedModules.includes(m.key))
     .slice(0, 4);
 
+  // Título de la página actual, para que la barra superior en la app
+  // Android muestre "Guardias"/"Material"/... en vez de quedarse vacía,
+  // como hace cualquier app nativa (no un buscador enorme, que ahí no
+  // cabe). En el navegador esto no se usa para nada.
+  const todosLosItems = [...centroModulos, ...utilidadesModulos];
+  const itemActual = todosLosItems.find((m) => m.href === pathname);
+  const tituloPaginaActual =
+    pathname === "/dashboard"
+      ? translate(locale, "nav.inicio")
+      : pathname === "/dashboard/mis-alumnos"
+        ? translate(locale, "nav.misAlumnos")
+        : itemActual
+          ? translate(locale, itemActual.labelKey)
+          : "Docentium";
+
   // En cuanto se navega a otra página, cerramos el menú deslizante del
   // móvil solo — así no hay que acordarse de cerrarlo a mano en cada enlace.
   useEffect(() => {
@@ -204,6 +219,29 @@ export function Sidebar({
     }, 300);
     return () => clearTimeout(id);
   }, [busqueda]);
+
+  // Un icono de la barra inferior: fondo en forma de píldora detrás del
+  // icono cuando está activo (como Wallapop/Instagram), en vez de un
+  // simple cambio de color, más un pequeño "hundido" al tocar para que
+  // se note el toque igual que en cualquier app nativa.
+  function ItemBarraInferior({ href, icon: Icon, label }: { href: string; icon: typeof Home; label: string }) {
+    const active = pathname === href;
+    return (
+      <Link
+        href={href}
+        className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1 px-1 py-1.5 text-[10px] font-semibold text-slate-400 transition-transform active:scale-95"
+      >
+        <span
+          className={`flex h-7 w-11 items-center justify-center rounded-full transition-colors ${
+            active ? "bg-[#FD5249]/10 text-[#FD5249]" : "text-slate-400"
+          }`}
+        >
+          <Icon className="h-5 w-5" />
+        </span>
+        <span className={`max-w-full truncate ${active ? "text-[#FD5249]" : "text-slate-400"}`}>{label}</span>
+      </Link>
+    );
+  }
 
   return (
     <>
@@ -237,7 +275,11 @@ export function Sidebar({
           <BuscadorGlobal />
         </div>
 
-        <div className="flex-1 sm:hidden" />
+        <div className="flex-1 truncate sm:hidden">
+          {esNativo && (
+            <span className="text-base font-bold text-[#0B1D4D]">{tituloPaginaActual}</span>
+          )}
+        </div>
 
         <div className="flex shrink-0 items-center gap-2">
           {contractedModules.includes("comunicacion") && (
@@ -635,55 +677,21 @@ export function Sidebar({
         zonas de toque grandes, como cualquier app nativa. */}
     {esNativo && (
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom,0px)] lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-2px_12px_rgba(15,23,42,0.06)] backdrop-blur lg:hidden"
         aria-label="Navegación principal"
       >
-        <Link
-          href="/dashboard"
-          className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-medium ${
-            pathname === "/dashboard" ? "text-[#FD5249]" : "text-slate-500"
-          }`}
-        >
-          <Home className="h-5 w-5" />
-          {translate(locale, "nav.inicio")}
-        </Link>
+        <ItemBarraInferior href="/dashboard" icon={Home} label={translate(locale, "nav.inicio")} />
 
         {isSuperAdmin ? (
           <>
-            <Link
-              href="/dashboard/centros"
-              className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-medium ${
-                pathname === "/dashboard/centros" ? "text-[#FD5249]" : "text-slate-500"
-              }`}
-            >
-              <Landmark className="h-5 w-5" />
-              {translate(locale, "nav.centros")}
-            </Link>
-            <Link
-              href="/dashboard/usuarios"
-              className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-medium ${
-                pathname === "/dashboard/usuarios" ? "text-[#FD5249]" : "text-slate-500"
-              }`}
-            >
-              <Users className="h-5 w-5" />
-              {translate(locale, "nav.usuarios")}
-            </Link>
+            <ItemBarraInferior href="/dashboard/centros" icon={Landmark} label={translate(locale, "nav.centros")} />
+            <ItemBarraInferior href="/dashboard/usuarios" icon={Users} label={translate(locale, "nav.usuarios")} />
           </>
         ) : (
           modulosBarraInferior.map((item) => (
-            <Link
-              key={item.key}
-              href={item.href}
-              className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-medium ${
-                pathname === item.href ? "text-[#FD5249]" : "text-slate-500"
-              }`}
-            >
-              <item.icon className="h-5 w-5" />
-              <span className="max-w-full truncate">{translate(locale, item.labelKey)}</span>
-            </Link>
+            <ItemBarraInferior key={item.key} href={item.href} icon={item.icon} label={translate(locale, item.labelKey)} />
           ))
         )}
-
       </nav>
     )}
     </>
