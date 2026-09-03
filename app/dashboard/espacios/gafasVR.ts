@@ -15,7 +15,7 @@ const MAX_HORAS_RESERVA = 3;
 const MAX_DIAS_ANTELACION = 7;
 
 function esDirectivo(role?: string) {
-  return role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
+  return role === "SUPERADMIN" || role === "DIRECCION" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
 }
 
 function minutosDesdeMedianoche(hhmm: string) {

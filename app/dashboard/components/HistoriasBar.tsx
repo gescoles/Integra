@@ -313,7 +313,7 @@ function StoryViewer({
   const puedeEliminar =
     !!historia &&
     (currentUserRole === "SUPERADMIN" ||
-      ((currentUserRole === "COORDINADOR" || currentUserRole === "ADMIN_CENTRO" || currentUserRole === "ADMINISTRACION") && grupo?.schoolId === currentUserSchoolId) ||
+      ((currentUserRole === "DIRECCION" || currentUserRole === "COORDINADOR" || currentUserRole === "ADMIN_CENTRO" || currentUserRole === "ADMINISTRACION") && grupo?.schoolId === currentUserSchoolId) ||
       historia.autorId === currentUserId);
 
   useEffect(() => {

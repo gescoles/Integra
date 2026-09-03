@@ -241,7 +241,7 @@ export async function obtenerEspectadores(historiaId: string) {
   const role = session.user.role;
   const puedeVer =
     role === "SUPERADMIN" ||
-    ((role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION") && historia.schoolId === session.user.schoolId) ||
+    ((role === "DIRECCION" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION") && historia.schoolId === session.user.schoolId) ||
     historia.autorId === session.user.id;
   if (!puedeVer) return { ok: false as const };
 
@@ -271,7 +271,7 @@ export async function eliminarHistoria(id: string) {
   const role = session.user.role;
   const puedeEliminar =
     role === "SUPERADMIN" ||
-    ((role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION") && historia.schoolId === session.user.schoolId) ||
+    ((role === "DIRECCION" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION") && historia.schoolId === session.user.schoolId) ||
     historia.autorId === session.user.id;
   if (!puedeEliminar) throw new Error("No puedes eliminar esta historia.");
 

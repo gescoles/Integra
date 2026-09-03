@@ -26,7 +26,7 @@ export async function GET(req: NextRequest, { params }: { params: { documentoId:
   // PI de un alumno al que él mismo tutoriza.
   const school = await prisma.school.findUnique({ where: { id: session.user.schoolId }, select: { psicopedagogaId: true } });
   const esPsicopedagoga = school?.psicopedagogaId === session.user.id;
-  const esEquipoDirectivo = ["SUPERADMIN", "COORDINADOR", "ADMIN_CENTRO", "ADMINISTRACION"].includes(session.user.role ?? "");
+  const esEquipoDirectivo = ["SUPERADMIN", "DIRECCION", "COORDINADOR", "ADMIN_CENTRO", "ADMINISTRACION"].includes(session.user.role ?? "");
   const esDirectorFijo = Boolean(documento.alumnoPi.school.directorPIEmail) && session.user.email === documento.alumnoPi.school.directorPIEmail;
   const esTutorDelAlumno = documento.alumnoPi.alumno.profesorId === session.user.id;
 

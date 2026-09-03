@@ -272,6 +272,16 @@ export async function deleteUser(id: string) {
   await prisma.espacioReserva.deleteMany({ where: { OR: [{ userId: id }, { creadoPorId: id }] } });
   await prisma.coberturaGuardia.deleteMany({ where: { OR: [{ profesorAusenteId: id }, { profesorSustitutoId: id }, { creadoPorId: id }] } });
 
+  // Reservas de Gafas VR: el vínculo con el usuario es obligatorio (no se
+  // puede dejar "huérfano" con SetNull), así que hay que borrarlas antes
+  // de poder borrar al propio usuario.
+  await prisma.gafasVRReserva.deleteMany({ where: { userId: id } });
+
+  // Fichas de Psicopedagogia (PI) de las que sea la psicopedagoga: el
+  // vínculo también es obligatorio. Al borrar la ficha se arrastran en
+  // cascada sus actuaciones, documentos y el documento PI formal.
+  await prisma.alumnoPI.deleteMany({ where: { psicopedagogaId: id } });
+
   // Los mensajes de chat en los que participaba se quedan (con SetNull en
   // la base de datos) — no hace falta borrarlos aquí; la interfaz del
   // chat muestra "Usuario no encontrado" cuando falta el emisor/receptor.

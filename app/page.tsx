@@ -6,6 +6,7 @@ import { ModulosInteractivo } from "./components/ModulosInteractivo";
 import { CTAConLoader } from "./components/CTAConLoader";
 import { SiteHeader } from "./components/SiteHeader";
 import { SiteFooter } from "./components/SiteFooter";
+import { WhatsAppFloat } from "./components/WhatsAppFloat";
 import {
   Bell,
   ChevronDown,
@@ -645,6 +646,7 @@ export default function LandingPage() {
       <Testimonials />
       <CTABanner />
       <SiteFooter />
+      <WhatsAppFloat />
     </main>
   );
 }

@@ -9,7 +9,7 @@ import { sendOnboardingArchivoEmail } from "@/lib/email";
 import { getSupabaseAdmin, ONBOARDING_BUCKET } from "@/lib/supabaseAdmin";
 
 function esDirectivo(role?: string) {
-  return role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
+  return role === "SUPERADMIN" || role === "DIRECCION" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
 }
 
 async function requiereDirectivo() {

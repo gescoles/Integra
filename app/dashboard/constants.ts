@@ -63,7 +63,8 @@ export const MATERIAL_ESTADO_DOT: Record<string, string> = {
 export const ROLE_LABELS_FULL: Record<string, string> = {
   SUPERADMIN: "Super Usuario",
   ADMIN_CENTRO: "Administrador de centro",
-  COORDINADOR: "Coordinación / Dirección",
+  COORDINADOR: "Equipo Directivo",
+  DIRECCION: "Dirección",
   ADMINISTRACION: "Administración",
   PROFESOR: "Profesor",
 };

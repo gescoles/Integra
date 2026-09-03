@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { buildTutoriasWorkbook, buildMaterialWorkbook, buildSalidasWorkbook, buildPracticasWorkbook, buildCertificacionesWorkbookPorCentro, buildAbsentismoWorkbook, safeFileName } from "@/lib/exportWorkbooks";
+import { buildTutoriasWorkbook, buildMaterialWorkbook, buildSalidasWorkbook, buildPracticasWorkbook, buildCertificacionesWorkbookPorCentro, buildAbsentismoWorkbook, buildJustificantesWorkbook, safeFileName } from "@/lib/exportWorkbooks";
 import { ensureSubfolder, uploadXlsxToDrive } from "@/lib/googleDrive";
 import { uploadFileToOneDrive } from "@/lib/oneDrive";
 
-export type ResultadoBackupExcel = { centro: string; ok: boolean; error?: string };
+export type ResultadoBackupExcel = { centro: string; ok: boolean; error?: string; usoDrive: boolean; usoOneDrive: boolean };
 
 // La copia "de verdad" en Excel: una carpeta por centro, una subcarpeta
 // por módulo, y dentro una subcarpeta con la fecha de hoy — igual que
@@ -28,9 +28,20 @@ export async function ejecutarBackupExcelModulos(): Promise<{ fecha: string; res
   const resultados: ResultadoBackupExcel[] = [];
 
   for (const school of schools) {
+    // Se usan para que el mensaje que ve el SuperAdmin diga de verdad a
+    // dónde se ha subido cada centro (Drive, OneDrive, o los dos) — antes
+    // el mensaje decía siempre "Drive" aunque el centro solo tuviera
+    // OneDrive configurado.
+    let usoDrive = false;
+    let usoOneDrive = false;
+
     try {
+      // Si el centro no tiene su propia carpeta de Drive configurada, se
+      // usa la carpeta general de la cuenta ya conectada a la plataforma
+      // — cada centro sigue yendo a su propia subcarpeta ahí dentro.
       const rootFolderId = school.driveBackupFolderId || rootFolderIdGlobal;
       const schoolFolderId = rootFolderId ? await ensureSubfolder(rootFolderId, safeFileName(school.name)) : null;
+      if (schoolFolderId) usoDrive = true;
 
       // Sube un módulo a Drive (si hay carpeta configurada) y a OneDrive
       // (si el centro tiene correo configurado) — mejor esfuerzo: si
@@ -49,6 +60,7 @@ export async function ejecutarBackupExcelModulos(): Promise<{ fecha: string; res
               buffer,
               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             );
+            usoOneDrive = true;
           } catch (e) {
             console.error(`No se pudo subir "${nombreModulo}" de "${school.name}" a OneDrive:`, e);
           }
@@ -91,7 +103,13 @@ export async function ejecutarBackupExcelModulos(): Promise<{ fecha: string; res
         await subirModulo("Absentismo", `Absentismo_${fecha}.xlsx`, buffer);
       }
 
-      resultados.push({ centro: school.name, ok: true });
+      if (school.modules.includes("justificantes")) {
+        const workbook = await buildJustificantesWorkbook(school.id);
+        const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
+        await subirModulo("Justificantes", `Justificantes_${fecha}.xlsx`, buffer);
+      }
+
+      resultados.push({ centro: school.name, ok: true, usoDrive, usoOneDrive });
     } catch (e) {
       // Si falla un centro (por ejemplo, Drive da un error puntual), seguimos
       // con el resto en vez de abortar todo el backup.
@@ -99,6 +117,8 @@ export async function ejecutarBackupExcelModulos(): Promise<{ fecha: string; res
         centro: school.name,
         ok: false,
         error: e instanceof Error ? e.message : "Error desconocido",
+        usoDrive,
+        usoOneDrive,
       });
     }
   }

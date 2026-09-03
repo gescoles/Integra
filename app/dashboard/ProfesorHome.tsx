@@ -88,7 +88,7 @@ export async function ProfesorHome({
 
   const [numAlumnos, numDocentes, avisosRaw] = await Promise.all([
     prisma.alumno.count({ where: { schoolId } }),
-    prisma.user.count({ where: { schoolId, role: { in: ["PROFESOR", "COORDINADOR", "ADMIN_CENTRO"] } } }),
+    prisma.user.count({ where: { schoolId, role: { in: ["PROFESOR", "COORDINADOR", "ADMIN_CENTRO", "DIRECCION"] } } }),
     prisma.aviso.findMany({
       where: {},
       include: { school: { select: { name: true } } },

@@ -11,8 +11,10 @@ import {
   Trash2,
   AlertTriangle,
   EyeOff,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
-import { saveSchoolSettings, deleteSchool, uploadSchoolLogo, getSchoolDeleteImpact } from "./actions";
+import { saveSchoolSettings, deleteSchool, uploadSchoolLogo, getSchoolDeleteImpact, setSchoolStatus } from "./actions";
 import { useLocale, useGuardadoTransition } from "../SchoolContext";
 import { translate } from "../i18n";
 import { ButtonSpinner } from "../components/ButtonSpinner";
@@ -57,6 +59,22 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isUploadingLogo, startLogoTransition] = useGuardadoTransition();
   const [logoError, setLogoError] = useState<string | null>(null);
+  const [tab, setTab] = useState<"activos" | "archivados">("activos");
+  const [isTogglingArchive, startArchiveTransition] = useGuardadoTransition();
+  const [archiveError, setArchiveError] = useState<string | null>(null);
+
+  function handleToggleArchive(school: SchoolRow) {
+    setArchiveError(null);
+    const nuevoEstado = school.status === "ARCHIVADO" ? "ACTIVO" : "ARCHIVADO";
+    startArchiveTransition(async () => {
+      try {
+        await setSchoolStatus(school.id, nuevoEstado);
+        if (selectedId === school.id) setSelectedId(null);
+      } catch (e) {
+        setArchiveError(e instanceof Error ? e.message : "No se pudo cambiar el estado del centro.");
+      }
+    });
+  }
 
   function handleLogoUpload(schoolId: string, file: File) {
     setLogoError(null);
@@ -129,6 +147,11 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
 
   const filtered = useMemo(() => {
     return schools.filter((s) => {
+      if (tab === "archivados") {
+        if (s.status !== "ARCHIVADO") return false;
+      } else if (s.status === "ARCHIVADO") {
+        return false;
+      }
       if (search && !s.name.toLowerCase().includes(search.toLowerCase())) return false;
       if (estadoFilter !== "Todos" && s.status !== estadoFilter) return false;
       if (planFilter !== "Todos" && s.plan !== planFilter) return false;
@@ -136,7 +159,9 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
       if (ciudadFilter !== "Todas" && s.city !== ciudadFilter) return false;
       return true;
     });
-  }, [schools, search, estadoFilter, planFilter, moduloFilter, ciudadFilter]);
+  }, [schools, tab, search, estadoFilter, planFilter, moduloFilter, ciudadFilter]);
+
+  const totalArchivados = useMemo(() => schools.filter((s) => s.status === "ARCHIVADO").length, [schools]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -171,9 +196,40 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
       <div className="rounded-2xl border border-slate-200 bg-white p-5">
         <h3 className="mb-4 text-sm font-bold text-[#0B1D4D]">Lista de centros</h3>
 
+        <div className="mb-4 flex gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 text-xs font-semibold">
+          <button
+            onClick={() => {
+              setTab("activos");
+              setPage(1);
+            }}
+            className={`flex-1 rounded-md py-1.5 ${
+              tab === "activos" ? "bg-white text-[#0B1D4D] shadow-sm" : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            Centros
+          </button>
+          <button
+            onClick={() => {
+              setTab("archivados");
+              setPage(1);
+            }}
+            className={`flex-1 rounded-md py-1.5 ${
+              tab === "archivados" ? "bg-white text-[#0B1D4D] shadow-sm" : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            Archivados {totalArchivados > 0 && `(${totalArchivados})`}
+          </button>
+        </div>
+
         {deleteError && (
           <div className="mb-4 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600">
             {deleteError}
+          </div>
+        )}
+
+        {archiveError && (
+          <div className="mb-4 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600">
+            {archiveError}
           </div>
         )}
 
@@ -364,6 +420,18 @@ export function CentrosClient({ schools }: { schools: SchoolRow[] }) {
                             className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#FD5249]"
                           >
                             <Eye className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleToggleArchive(s)}
+                            disabled={isTogglingArchive}
+                            title={s.status === "ARCHIVADO" ? "Desarchivar centro" : "Archivar centro"}
+                            className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#FD5249] disabled:opacity-50"
+                          >
+                            {s.status === "ARCHIVADO" ? (
+                              <ArchiveRestore className="h-3.5 w-3.5" />
+                            ) : (
+                              <Archive className="h-3.5 w-3.5" />
+                            )}
                           </button>
                           <button
                             onClick={() => handleDelete(s.id, s.name)}

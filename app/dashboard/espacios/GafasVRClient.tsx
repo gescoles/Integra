@@ -168,7 +168,7 @@ export function GafasVRClient({
               <option value="">Sin TIC asignado</option>
               {profesoresParaTic.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.nombre} ({p.role === "COORDINADOR" || p.role === "ADMIN_CENTRO" || p.role === "ADMINISTRACION" ? "Equipo directivo" : "Profesor/a"})
+                  {p.nombre} ({p.role === "COORDINADOR" || p.role === "ADMIN_CENTRO" || p.role === "ADMINISTRACION" || p.role === "DIRECCION" ? "Equipo directivo" : "Profesor/a"})
                 </option>
               ))}
             </select>

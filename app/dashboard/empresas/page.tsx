@@ -19,7 +19,7 @@ export default async function EmpresasPage({
   const role = session?.user.role ?? "COORDINADOR";
   const isSuperAdmin = role === "SUPERADMIN";
   const puedeEditar =
-    role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
+    role === "SUPERADMIN" || role === "DIRECCION" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
 
   if (isSuperAdmin) {
     const schools = await prisma.school.findMany({

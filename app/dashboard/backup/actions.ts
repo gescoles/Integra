@@ -2,7 +2,7 @@
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { generarCopiaSeguridadPorCentro, generarCopiaSeguridadSQLPorCentro, restaurarCopiaSeguridadPorCentro, carpetasBackupBBDD, subirBackupOneDriveSiCorresponde, type CopiaSeguridad } from "@/lib/backup";
+import { generarCopiaSeguridadPorCentro, generarCopiaSeguridadSQLPorCentro, restaurarCopiaSeguridadPorCentro, carpetasBackupBBDD, carpetaCopiaSeguridad, subirBackupOneDriveSiCorresponde, type CopiaSeguridad } from "@/lib/backup";
 import { ensureSubfolder, uploadGenericFileToDrive, listFilesInFolder, downloadFileFromDrive, extraerIdCarpetaDrive } from "@/lib/googleDrive";
 import { ejecutarBackupExcelModulos } from "@/lib/backupExcel";
 import { safeFileName } from "@/lib/exportWorkbooks";
@@ -29,13 +29,21 @@ export async function crearCopiaSeguridad(schoolId: string) {
   const nombre = `copia-${ahora.toISOString().replace(/[:.]/g, "-")}.json`;
 
   // Igual que el resto de copias, cada centro va a su propia carpeta —
-  // nunca se mezclan varios centros en el mismo sitio.
+  // nunca se mezclan varios centros en el mismo sitio. Esta, a
+  // diferencia del "Backup BBDD instantáneo", va a su propia carpeta
+  // "Copia de seguridad" (tal como dice el propio texto del botón).
+  // Si este centro no tiene su propia carpeta de Drive configurada, se
+  // usa la carpeta general de la cuenta de Drive ya conectada a la
+  // plataforma — cada centro va igualmente a su propia subcarpeta ahí
+  // dentro (por nombre), nunca se mezcla con otro. OneDrive no tiene
+  // este mismo respaldo: no hay ninguna cuenta de Microsoft 365 general
+  // configurada, así que sin correo propio, sencillamente no sube nada ahí.
   const rootFolderId = school.driveBackupFolderId || process.env.GOOGLE_DRIVE_BACKUP_FOLDER_ID;
   if (rootFolderId) {
-    const { jsonFolderId } = await carpetasBackupBBDD(rootFolderId, safeFileName(school.name));
-    await uploadGenericFileToDrive(jsonFolderId, nombre, buffer, "application/json");
+    const folderId = await carpetaCopiaSeguridad(rootFolderId, safeFileName(school.name));
+    await uploadGenericFileToDrive(folderId, nombre, buffer, "application/json");
   }
-  await subirBackupOneDriveSiCorresponde(school.oneDriveBackupEmail, school.name, [{ nombre, buffer, contentType: "application/json" }]);
+  await subirBackupOneDriveSiCorresponde(school.oneDriveBackupEmail, school.name, [{ nombre, buffer, contentType: "application/json" }], "Copia de seguridad");
 
   revalidatePath("/dashboard/backup");
 }
@@ -66,11 +74,17 @@ export async function listarCopiasSeguridad(schoolId: string) {
 
   const school = await prisma.school.findUnique({ where: { id: schoolId }, select: { name: true, driveBackupFolderId: true } });
   if (!school) return [];
+  // Si este centro no tiene su propia carpeta de Drive configurada, se
+  // usa la carpeta general de la cuenta de Drive ya conectada a la
+  // plataforma — cada centro va igualmente a su propia subcarpeta ahí
+  // dentro (por nombre), nunca se mezcla con otro. OneDrive no tiene
+  // este mismo respaldo: no hay ninguna cuenta de Microsoft 365 general
+  // configurada, así que sin correo propio, sencillamente no sube nada ahí.
   const rootFolderId = school.driveBackupFolderId || process.env.GOOGLE_DRIVE_BACKUP_FOLDER_ID;
   if (!rootFolderId) return [];
 
-  const { jsonFolderId } = await carpetasBackupBBDD(rootFolderId, safeFileName(school.name));
-  const archivos = await listFilesInFolder(jsonFolderId);
+  const folderId = await carpetaCopiaSeguridad(rootFolderId, safeFileName(school.name));
+  const archivos = await listFilesInFolder(folderId);
 
   return archivos
     .filter((f) => (f.name ?? "").startsWith("copia-"))
@@ -105,12 +119,18 @@ export async function restaurarDesdeArchivo(schoolId: string, fileId: string) {
   const copiaAntesDeRestaurar = await generarCopiaSeguridadPorCentro(schoolId);
   const bufferSeguridad = Buffer.from(JSON.stringify(copiaAntesDeRestaurar), "utf-8");
   const nombreSeguridad = `antes-de-restaurar-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+  // Si este centro no tiene su propia carpeta de Drive configurada, se
+  // usa la carpeta general de la cuenta de Drive ya conectada a la
+  // plataforma — cada centro va igualmente a su propia subcarpeta ahí
+  // dentro (por nombre), nunca se mezcla con otro. OneDrive no tiene
+  // este mismo respaldo: no hay ninguna cuenta de Microsoft 365 general
+  // configurada, así que sin correo propio, sencillamente no sube nada ahí.
   const rootFolderId = school.driveBackupFolderId || process.env.GOOGLE_DRIVE_BACKUP_FOLDER_ID;
   if (rootFolderId) {
-    const { jsonFolderId } = await carpetasBackupBBDD(rootFolderId, safeFileName(school.name));
-    await uploadGenericFileToDrive(jsonFolderId, nombreSeguridad, bufferSeguridad, "application/json");
+    const folderId = await carpetaCopiaSeguridad(rootFolderId, safeFileName(school.name));
+    await uploadGenericFileToDrive(folderId, nombreSeguridad, bufferSeguridad, "application/json");
   }
-  await subirBackupOneDriveSiCorresponde(school.oneDriveBackupEmail, school.name, [{ nombre: nombreSeguridad, buffer: bufferSeguridad, contentType: "application/json" }]);
+  await subirBackupOneDriveSiCorresponde(school.oneDriveBackupEmail, school.name, [{ nombre: nombreSeguridad, buffer: bufferSeguridad, contentType: "application/json" }], "Copia de seguridad");
 
   await restaurarCopiaSeguridadPorCentro(schoolId, copia);
 
@@ -130,6 +150,12 @@ export async function crearBackupBaseDatosInstantaneo(schoolId: string) {
   const school = await prisma.school.findUnique({ where: { id: schoolId }, select: { name: true, driveBackupFolderId: true, oneDriveBackupEmail: true } });
   if (!school) throw new Error("No se ha encontrado el centro.");
 
+  // Si este centro no tiene su propia carpeta de Drive configurada, se
+  // usa la carpeta general de la cuenta de Drive ya conectada a la
+  // plataforma — cada centro va igualmente a su propia subcarpeta ahí
+  // dentro (por nombre), nunca se mezcla con otro. OneDrive no tiene
+  // este mismo respaldo: no hay ninguna cuenta de Microsoft 365 general
+  // configurada, así que sin correo propio, sencillamente no sube nada ahí.
   const rootFolderId = school.driveBackupFolderId || process.env.GOOGLE_DRIVE_BACKUP_FOLDER_ID;
 
   // A diferencia de la copia general (crearCopiaSeguridad, que sí lleva
@@ -153,10 +179,10 @@ export async function crearBackupBaseDatosInstantaneo(schoolId: string) {
     await uploadGenericFileToDrive(jsonFolderId, nombreJson, jsonBuffer, "application/json");
     await uploadGenericFileToDrive(sqlFolderId, nombreSql, sqlBuffer, "text/plain");
   }
-  await subirBackupOneDriveSiCorresponde(school.oneDriveBackupEmail, school.name, [
-    { nombre: nombreJson, buffer: jsonBuffer, contentType: "application/json" },
-    { nombre: nombreSql, buffer: sqlBuffer, contentType: "text/plain" },
-  ]);
+  // En OneDrive también se separan en dos subcarpetas, igual que en
+  // Drive — no se mezclan el .json y el .sql sueltos en la misma carpeta.
+  await subirBackupOneDriveSiCorresponde(school.oneDriveBackupEmail, school.name, [{ nombre: nombreJson, buffer: jsonBuffer, contentType: "application/json" }], "Backup BBDD JSON");
+  await subirBackupOneDriveSiCorresponde(school.oneDriveBackupEmail, school.name, [{ nombre: nombreSql, buffer: sqlBuffer, contentType: "text/plain" }], "Backup BBDD SQL");
 
   revalidatePath("/dashboard/backup");
   return { nombre: nombreSql, generadaEn: copia.generadaEn };
@@ -168,10 +194,15 @@ export async function listarBackupsCentro(schoolId: string) {
   const session = await getServerSession(authOptions);
   if (!esSuperAdmin(session?.user.role)) return [];
 
-  const school = await prisma.school.findUnique({ where: { id: schoolId }, select: { name: true } });
+  const school = await prisma.school.findUnique({ where: { id: schoolId }, select: { name: true, driveBackupFolderId: true } });
   if (!school) return [];
 
-  const rootFolderId = process.env.GOOGLE_DRIVE_BACKUP_FOLDER_ID;
+  // Antes esto miraba siempre la carpeta general sin comprobar primero
+  // la propia del centro — podía listar archivos que no eran los suyos
+  // si el centro tenía su propia carpeta configurada. Ahora mira
+  // exactamente la misma carpeta donde crearBackupBaseDatosInstantaneo()
+  // los guarda de verdad: la suya propia si la tiene, si no la general.
+  const rootFolderId = school.driveBackupFolderId || process.env.GOOGLE_DRIVE_BACKUP_FOLDER_ID;
   if (!rootFolderId) return [];
 
   const schoolFolderId = await ensureSubfolder(rootFolderId, safeFileName(school.name));
@@ -212,6 +243,12 @@ export async function restaurarBackupCentro(schoolId: string, fileId: string) {
   // .json (que ya sabe usar el propio botón de "Restaurar" de aquí
   // arriba) y el .sql (por si prefieres ejecutarlo tú mismo en Supabase,
   // sin depender para nada de la app).
+  // Si este centro no tiene su propia carpeta de Drive configurada, se
+  // usa la carpeta general de la cuenta de Drive ya conectada a la
+  // plataforma — cada centro va igualmente a su propia subcarpeta ahí
+  // dentro (por nombre), nunca se mezcla con otro. OneDrive no tiene
+  // este mismo respaldo: no hay ninguna cuenta de Microsoft 365 general
+  // configurada, así que sin correo propio, sencillamente no sube nada ahí.
   const rootFolderId = school.driveBackupFolderId || process.env.GOOGLE_DRIVE_BACKUP_FOLDER_ID;
   const copiaActual = await generarCopiaSeguridadPorCentro(schoolId);
   const sqlActual = await generarCopiaSeguridadSQLPorCentro(schoolId);
@@ -226,10 +263,8 @@ export async function restaurarBackupCentro(schoolId: string, fileId: string) {
     await uploadGenericFileToDrive(jsonFolderId, nombreJsonActual, jsonBufferActual, "application/json");
     await uploadGenericFileToDrive(sqlFolderId, nombreSqlActual, sqlBufferActual, "text/plain");
   }
-  await subirBackupOneDriveSiCorresponde(school.oneDriveBackupEmail, school.name, [
-    { nombre: nombreJsonActual, buffer: jsonBufferActual, contentType: "application/json" },
-    { nombre: nombreSqlActual, buffer: sqlBufferActual, contentType: "text/plain" },
-  ]);
+  await subirBackupOneDriveSiCorresponde(school.oneDriveBackupEmail, school.name, [{ nombre: nombreJsonActual, buffer: jsonBufferActual, contentType: "application/json" }], "Backup BBDD JSON");
+  await subirBackupOneDriveSiCorresponde(school.oneDriveBackupEmail, school.name, [{ nombre: nombreSqlActual, buffer: sqlBufferActual, contentType: "text/plain" }], "Backup BBDD SQL");
 
   await restaurarCopiaSeguridadPorCentro(schoolId, copia);
 

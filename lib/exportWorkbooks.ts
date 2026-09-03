@@ -732,6 +732,61 @@ export async function buildAbsentismoWorkbook(schoolId: string) {
   return workbook;
 }
 
+// Justificantes de asistencia: el detalle de cada uno, línea por línea,
+// con todos los campos — alumno, tutor, fecha, franja horaria,
+// asignatura, si se entregó, quién lo registró y a quién se avisó.
+export async function buildJustificantesWorkbook(schoolId: string) {
+  const justificantes = await prisma.justificanteAsistencia.findMany({
+    where: { schoolId },
+    orderBy: { fecha: "desc" },
+    include: {
+      alumno: { select: { nombre: true, curso: true, profesor: { select: { name: true, email: true } } } },
+      creadoPor: { select: { name: true, email: true } },
+      avisado: { select: { name: true, email: true } },
+    },
+  });
+
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "Docentium";
+  workbook.created = new Date();
+
+  const sheet = workbook.addWorksheet("Justificantes");
+  sheet.columns = [
+    { header: "Alumno", key: "alumno", width: 26 },
+    { header: "Curso", key: "curso", width: 18 },
+    { header: "Tutor/a", key: "tutor", width: 24 },
+    { header: "Fecha", key: "fecha", width: 14 },
+    { header: "Hora inicio", key: "inicio", width: 12 },
+    { header: "Hora fin", key: "fin", width: 12 },
+    { header: "Asignatura", key: "asignatura", width: 20 },
+    { header: "Justificante entregado", key: "entregado", width: 18 },
+    { header: "Registrado por", key: "registradoPor", width: 24 },
+    { header: "Avisado/a", key: "avisado", width: 24 },
+    { header: "Fecha de registro", key: "fechaRegistro", width: 18 },
+  ];
+  styleHeaderRow(sheet.getRow(1));
+
+  justificantes.forEach((j) => {
+    sheet.addRow({
+      alumno: j.alumno.nombre,
+      curso: j.alumno.curso,
+      tutor: j.alumno.profesor.name ?? j.alumno.profesor.email,
+      fecha: j.fecha.toLocaleDateString("es-ES"),
+      inicio: j.horaInicio,
+      fin: j.horaFin,
+      asignatura: j.asignatura ?? "",
+      entregado: j.entregado ? "Sí" : "No",
+      registradoPor: j.creadoPor?.name ?? j.creadoPor?.email ?? "",
+      avisado: j.avisado?.name ?? j.avisado?.email ?? "",
+      fechaRegistro: j.createdAt.toLocaleDateString("es-ES"),
+    });
+  });
+
+  zebraStripe(sheet);
+
+  return workbook;
+}
+
 // Seguimiento de Coordinación: qué profesor tiene qué curso asignado, y
 // si ya lo ha programado, con toda la información que él mismo ha
 // introducido (fechas, sede, estado...).

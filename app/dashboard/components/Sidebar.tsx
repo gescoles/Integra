@@ -33,6 +33,7 @@ import {
   Award,
   Search,
   HelpCircle,
+  ClipboardCheck,
 } from "lucide-react";
 import { HexLogo } from "@/app/components/Logo";
 import { ROLE_LABELS_FULL } from "../constants";
@@ -79,6 +80,7 @@ const superadminSections: {
       { href: "/dashboard/onboarding", labelKey: "nav.onboarding", icon: FolderKanban },
       { href: "/dashboard/espacios", labelKey: "nav.espacios", icon: Building2 },
       { href: "/dashboard/psicopedagogia", labelKey: "nav.psicopedagogia", icon: Brain },
+      { href: "/dashboard/justificantes", labelKey: "nav.justificantes", icon: ClipboardCheck },
       { href: "/dashboard/salidas", labelKey: "nav.salidas", icon: Bus },
       { href: "/dashboard/salidas/aprobaciones", labelKey: "nav.aprobaciones", icon: CheckSquare },
       { href: "/dashboard/calendario", labelKey: "nav.calendario", icon: CalendarDays },
@@ -112,16 +114,17 @@ const superadminSections: {
 // el centro del usuario los tiene contratados (School.modules).
 const centroModulos: { key: string; href: string; labelKey: TranslationKey; icon: typeof Users }[] = [
   { key: "tutorias", href: "/dashboard/tutorias", labelKey: "nav.tutorias", icon: Users },
+  { key: "practicas", href: "/dashboard/practicas", labelKey: "nav.practicas", icon: Briefcase },
+  { key: "salidas", href: "/dashboard/salidas", labelKey: "nav.salidas", icon: Bus },
+  { key: "expedientes", href: "/dashboard/expedientes", labelKey: "nav.expedientes", icon: AlertTriangle },
   { key: "guardias", href: "/dashboard/guardias", labelKey: "nav.guardias", icon: ShieldCheck },
   { key: "material", href: "/dashboard/material", labelKey: "nav.material", icon: BookOpen },
-  { key: "salidas", href: "/dashboard/salidas", labelKey: "nav.salidas", icon: Bus },
-  { key: "practicas", href: "/dashboard/practicas", labelKey: "nav.practicas", icon: Briefcase },
-  { key: "expedientes", href: "/dashboard/expedientes", labelKey: "nav.expedientes", icon: AlertTriangle },
-  { key: "onboarding", href: "/dashboard/onboarding", labelKey: "nav.onboarding", icon: FolderKanban },
-  { key: "espacios", href: "/dashboard/espacios", labelKey: "nav.espacios", icon: Building2 },
+  { key: "justificantes", href: "/dashboard/justificantes", labelKey: "nav.justificantes", icon: ClipboardCheck },
   { key: "psicopedagogia", href: "/dashboard/psicopedagogia", labelKey: "nav.psicopedagogia", icon: Brain },
-  { key: "empresas", href: "/dashboard/empresas", labelKey: "nav.empresas", icon: Handshake },
+  { key: "espacios", href: "/dashboard/espacios", labelKey: "nav.espacios", icon: Building2 },
   { key: "certificaciones", href: "/dashboard/certificaciones", labelKey: "nav.certificaciones", icon: Award },
+  { key: "empresas", href: "/dashboard/empresas", labelKey: "nav.empresas", icon: Handshake },
+  { key: "onboarding", href: "/dashboard/onboarding", labelKey: "nav.onboarding", icon: FolderKanban },
 ];
 
 // Utilidades (Calendario y Horario): igual que los módulos de arriba, solo
@@ -393,7 +396,7 @@ export function Sidebar({
             esta ficha de alumnos, así que siempre está disponible.
             Coordinación/Dirección ven, además, la opción de consultar todo
             el centro (no solo sus propios alumnos tutorizados). */}
-        {!isSuperAdmin && (role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION") && (
+        {!isSuperAdmin && (role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION" || role === "DIRECCION") && (
           <div className="pt-1">
             <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
               {translate(locale, "nav.alumnos")}
@@ -433,7 +436,7 @@ export function Sidebar({
           </Link>
         )}
 
-        {!isSuperAdmin && (role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION") && (
+        {!isSuperAdmin && (role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION" || role === "DIRECCION") && (
           <Link
             href="/dashboard/grupos"
             className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -511,7 +514,7 @@ export function Sidebar({
                 {/* "Aprobaciones" es un submenú de Salidas en concreto, así
                     que va justo debajo de ese enlace, no del último módulo
                     de toda la lista. */}
-                {item.key === "salidas" && (role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION") && (
+                {item.key === "salidas" && (role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION" || role === "DIRECCION") && (
                   <Link
                     href="/dashboard/salidas/aprobaciones"
                     className={`ml-6 flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors ${

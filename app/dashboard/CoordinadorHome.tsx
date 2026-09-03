@@ -17,6 +17,7 @@ import { BienvenidaCard } from "./components/BienvenidaCard";
 import { AgendaTimeline, type AgendaItem } from "./components/AgendaTimeline";
 import { ComunidadPanel } from "./components/ComunidadPanel";
 import { GuardiaAlerta } from "./components/GuardiaAlerta";
+import { MaterialComprarBanner } from "./components/MaterialComprarBanner";
 import {
   ShieldCheck,
   Package,
@@ -94,7 +95,7 @@ export async function CoordinadorHome({
 
   const [numAlumnos, numDocentes, avisosRaw] = await Promise.all([
     prisma.alumno.count({ where: { schoolId } }),
-    prisma.user.count({ where: { schoolId, role: { in: ["PROFESOR", "COORDINADOR", "ADMIN_CENTRO"] } } }),
+    prisma.user.count({ where: { schoolId, role: { in: ["PROFESOR", "COORDINADOR", "ADMIN_CENTRO", "DIRECCION"] } } }),
     prisma.aviso.findMany({
       where: {},
       include: { school: { select: { name: true } } },
@@ -120,9 +121,21 @@ export async function CoordinadorHome({
     : 0;
   const guardiasQueDebeCubrir = hasGuardias ? await contarGuardiasPendientesDeCubrir(schoolId, userId) : 0;
   const alumnosPendientesExpulsion = await contarAlumnosConTresIncidenciasSinExpediente(schoolId);
-  const materialPendienteValidar = await prisma.materialRequest.count({
-    where: { schoolId, estado: "PENDIENTE_VALIDACION" },
-  });
+  // Validar es exclusivo de Dirección; marcar como comprado, de
+  // Administración — cada uno solo ve en su pantalla principal el aviso
+  // que de verdad le toca gestionar a él.
+  const materialPendienteValidar =
+    role === "DIRECCION"
+      ? await prisma.materialRequest.count({ where: { schoolId, estado: "PENDIENTE_VALIDACION" } })
+      : 0;
+  // Este aviso se basa en las notificaciones (no en el recuento real de
+  // material pendiente de comprar): así, en cuanto Administración le da
+  // clic, desaparece de la pantalla principal aunque el material siga
+  // apareciendo en Material hasta que se compre de verdad.
+  const materialPendienteComprar =
+    role === "ADMINISTRACION"
+      ? await prisma.notificacion.count({ where: { userId, tipo: "MATERIAL_PENDIENTE_COMPRAR" } })
+      : 0;
 
   const hoy = startOfToday();
   const finHoy = endOfToday();
@@ -365,6 +378,8 @@ export async function CoordinadorHome({
           <span className="text-xs font-semibold text-amber-700 underline">Revisar en Material</span>
         </Link>
       )}
+
+      {materialPendienteComprar > 0 && <MaterialComprarBanner cantidad={materialPendienteComprar} />}
 
       <div className="mb-5">
         <AgendaTimeline

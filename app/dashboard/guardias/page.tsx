@@ -223,6 +223,10 @@ export default async function GuardiasPage({
     : { horarios: [], guardias: [] };
 
   const solicitudes = !isProfesor ? await obtenerSolicitudesPendientes() : [];
+  // Gestionar de verdad (aceptar, asignar sustituto, editar, eliminar...)
+  // es exclusivo de Dirección y SuperAdmin — el resto del equipo
+  // directivo solo consulta.
+  const puedeGestionar = role === "DIRECCION";
 
   // El horario propio (para poder avisar de una ausencia) lo necesita
   // cualquiera con sesión, no solo un Profesor — Coordinación/Dirección
@@ -268,7 +272,9 @@ export default async function GuardiasPage({
           return (
             <>
               {role === "COORDINADOR" && <MisCoberturas modo="buscador" schoolId={schoolId} />}
-              <CoberturaWizard schoolId={schoolId} profesores={profesores} horarios={horarios} guardias={guardias} />
+              {puedeGestionar && (
+                <CoberturaWizard schoolId={schoolId} profesores={profesores} horarios={horarios} guardias={guardias} />
+              )}
               <div className="mb-5 mt-8 flex items-center justify-between">
                 <h2 className="text-base font-bold text-[#0B1D4D]">{translate(locale, "guardias.programadas")}</h2>
                 <GuardiaFormModal schoolId={schoolId} profesores={profesores} />
@@ -281,7 +287,7 @@ export default async function GuardiasPage({
         // "solicitudes" — la vista por defecto para Coordinación/Dirección.
         return (
           <Suspense fallback={null}>
-            <SolicitudesPendientes solicitudes={solicitudes} profesores={profesores} guardias={guardias} horarios={horarios} />
+            <SolicitudesPendientes solicitudes={solicitudes} profesores={profesores} guardias={guardias} horarios={horarios} puedeGestionar={puedeGestionar} />
           </Suspense>
         );
       })()}

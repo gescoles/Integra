@@ -91,5 +91,31 @@ export async function createTeamsCalendarEvent(params: {
     throw new Error(`No se pudo crear el evento en el calendario de ${params.userEmail}: ${text}`);
   }
 
-  return res.json();
+  return res.json() as Promise<{ id: string }>;
+}
+
+/**
+ * Borra un evento del calendario de Outlook/Teams de un profesor, dado
+ * el id que devolvió createTeamsCalendarEvent() al crearlo — se usa al
+ * cancelar o editar una guardia/cobertura, para que no se quede un
+ * evento huérfano en su calendario. Si el evento ya no existe (404,
+ * por ejemplo porque el profesor ya lo borró él mismo a mano), no se
+ * considera un error: el resultado que se buscaba (que no esté) ya se
+ * cumple igual.
+ */
+export async function deleteTeamsCalendarEvent(userEmail: string, eventId: string) {
+  const token = await getGraphToken();
+
+  const res = await fetch(
+    `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(userEmail)}/events/${encodeURIComponent(eventId)}`,
+    {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
+
+  if (!res.ok && res.status !== 404) {
+    const text = await res.text();
+    throw new Error(`No se pudo eliminar el evento del calendario de ${userEmail}: ${text}`);
+  }
 }

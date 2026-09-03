@@ -40,7 +40,7 @@ export default async function HorarioPage({
 
     if (!searchParams.user) {
       const usuarios = await prisma.user.findMany({
-        where: { schoolId: searchParams.school, role: { in: ["PROFESOR", "COORDINADOR", "ADMIN_CENTRO"] } },
+        where: { schoolId: searchParams.school, role: { in: ["PROFESOR", "COORDINADOR", "ADMIN_CENTRO", "DIRECCION"] } },
         select: { id: true, name: true, email: true },
         orderBy: { name: "asc" },
       });

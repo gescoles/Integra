@@ -65,6 +65,14 @@ export async function saveSchoolSettings(formData: FormData) {
   revalidatePath("/dashboard/centros");
 }
 
+export async function setSchoolStatus(id: string, status: SchoolStatus) {
+  if (!id) {
+    throw new Error("Falta el identificador del centro.");
+  }
+  await prisma.school.update({ where: { id }, data: { status } });
+  revalidatePath("/dashboard/centros");
+}
+
 export async function getSchoolDeleteImpact(id: string) {
   const [usuarios, tutorias, guardias, material, alumnos, avisos] = await Promise.all([
     prisma.user.count({ where: { schoolId: id } }),

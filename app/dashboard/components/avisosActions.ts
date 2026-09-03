@@ -9,7 +9,7 @@ import { AvisoCategoria } from "@prisma/client";
 export async function createAviso(formData: FormData) {
   const session = await getServerSession(authOptions);
   if (!session?.user.id || !session.user.schoolId) throw new Error("No autorizado.");
-  if (!["COORDINADOR", "ADMIN_CENTRO", "SUPERADMIN", "ADMINISTRACION"].includes(session.user.role)) {
+  if (!["COORDINADOR", "ADMIN_CENTRO", "SUPERADMIN", "ADMINISTRACION", "DIRECCION"].includes(session.user.role)) {
     throw new Error("No tienes permiso para publicar avisos.");
   }
 

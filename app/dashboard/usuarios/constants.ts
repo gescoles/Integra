@@ -3,6 +3,7 @@ export const ROLE_LABELS: Record<string, string> = {
   COORDINADOR: "Equipo Directivo",
   ADMINISTRACION: "Administración",
   ADMIN_CENTRO: "Administrador de centro",
+  DIRECCION: "Dirección",
   SUPERADMIN: "Super Admin",
 };
 
@@ -11,11 +12,12 @@ export const ROLE_COLORS: Record<string, string> = {
   COORDINADOR: "bg-violet-50 text-violet-600",
   ADMINISTRACION: "bg-teal-50 text-teal-600",
   ADMIN_CENTRO: "bg-amber-50 text-amber-600",
+  DIRECCION: "bg-rose-50 text-rose-600",
   SUPERADMIN: "bg-slate-100 text-slate-600",
 };
 
 // Roles que el SuperAdmin puede asignar al crear un usuario de centro
-export const ASSIGNABLE_ROLES = ["PROFESOR", "COORDINADOR", "ADMINISTRACION"] as const;
+export const ASSIGNABLE_ROLES = ["PROFESOR", "COORDINADOR", "ADMINISTRACION", "DIRECCION"] as const;
 
 export const STATUS_LABELS: Record<string, string> = {
   ACTIVO: "Activo",

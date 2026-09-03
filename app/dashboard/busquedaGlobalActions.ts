@@ -41,7 +41,7 @@ export async function buscarGlobal(query: string): Promise<ResultadoBusquedaGlob
     prisma.user.findMany({
       where: {
         schoolId,
-        role: { in: ["PROFESOR", "COORDINADOR", "ADMIN_CENTRO", "ADMINISTRACION"] },
+        role: { in: ["PROFESOR", "COORDINADOR", "ADMIN_CENTRO", "ADMINISTRACION", "DIRECCION"] },
         OR: [{ name: { contains: texto, mode: "insensitive" } }, { email: { contains: texto, mode: "insensitive" } }],
       },
       select: { id: true, name: true, email: true, role: true },

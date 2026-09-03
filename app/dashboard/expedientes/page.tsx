@@ -128,7 +128,7 @@ export default async function ExpedientesPage({
   const userId = session?.user.id ?? "";
   const role = session?.user.role ?? "PROFESOR";
   const isSuperAdmin = role === "SUPERADMIN";
-  const isEquipoDirectivo = role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
+  const isEquipoDirectivo = role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION" || role === "DIRECCION";
   const vista =
     searchParams.vista === "expedientes" ? "expedientes" : searchParams.vista === "expulsiones" ? "expulsiones" : "incidencias";
 

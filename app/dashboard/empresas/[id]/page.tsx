@@ -17,7 +17,7 @@ export default async function EmpresaFichaPage({
 
   const userName = session.user.name || session.user.email.split("@")[0];
   const role = session.user.role;
-  const puedeEditar = role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
+  const puedeEditar = role === "SUPERADMIN" || role === "DIRECCION" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
 
   const empresa = await obtenerEmpresa(params.id);
 

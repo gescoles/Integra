@@ -13,7 +13,7 @@ export default async function GruposPage() {
   const role = session?.user.role;
   const userName = session?.user.name || session?.user.email?.split("@")[0] || "Usuario";
 
-  if (role !== "COORDINADOR" && role !== "ADMIN_CENTRO" && role !== "ADMINISTRACION") {
+  if (role !== "COORDINADOR" && role !== "ADMIN_CENTRO" && role !== "ADMINISTRACION" && role !== "DIRECCION") {
     redirect("/dashboard");
   }
   if (!session?.user.schoolId) {

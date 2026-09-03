@@ -11,7 +11,7 @@ import { calcularEstadoPorFechas } from "@/lib/certificacionesAutoEstado";
 // Server Actions solo puede exportar funciones async, nunca constantes.
 
 function esDirectivo(role?: string) {
-  return role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
+  return role === "SUPERADMIN" || role === "DIRECCION" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
 }
 
 // Departamentos que tienen al menos un curso cargado en el catálogo —

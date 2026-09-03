@@ -7,7 +7,7 @@ import { authOptions } from "@/lib/auth";
 import { getSupabaseAdmin, EMPRESAS_DOCUMENTOS_BUCKET } from "@/lib/supabaseAdmin";
 
 function esDirectivo(role?: string) {
-  return role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
+  return role === "SUPERADMIN" || role === "DIRECCION" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
 }
 
 export async function obtenerEmpresas(schoolIdParam?: string) {

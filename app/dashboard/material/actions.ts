@@ -6,10 +6,26 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { MaterialCategoria } from "@prisma/client";
 import { notifyUsers } from "@/lib/notifications";
-import { sendMaterialNuevoEmail, sendMaterialValidadoEmail, sendMaterialCompradoEmail, sendMaterialModificadoEmail, sendMaterialEliminadoEmail } from "@/lib/email";
+import { sendMaterialNuevoEmail, sendMaterialValidadoEmail, sendMaterialParaComprarEmail, sendMaterialCompradoEmail, sendMaterialModificadoEmail, sendMaterialEliminadoEmail } from "@/lib/email";
 
+// Acceso amplio de equipo directivo (editar/eliminar cualquier solicitud):
+// incluye a Dirección, que además tiene sus propios permisos exclusivos.
 function esAdministracion(role?: string) {
-  return role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
+  return role === "SUPERADMIN" || role === "DIRECCION" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
+}
+
+// Validar un material (decidir si se aprueba la compra): exclusivo de
+// Dirección y SuperAdmin.
+function esDireccion(role?: string) {
+  return role === "SUPERADMIN" || role === "DIRECCION";
+}
+
+// Marcarlo como comprado, una vez llega de verdad al centro: exclusivo
+// del rol Administración (y SuperAdmin) — ni Dirección ni el resto del
+// equipo directivo lo hacen, porque es Administración quien gestiona la
+// compra física.
+function esSoloAdministracion(role?: string) {
+  return role === "SUPERADMIN" || role === "ADMINISTRACION";
 }
 
 export async function createMaterial(formData: FormData) {
@@ -54,25 +70,22 @@ export async function createMaterial(formData: FormData) {
     },
   });
 
-  // Avisamos dentro de la app a Administración y equipo directivo (mismos
-  // permisos), pero el CORREO de la solicitud solo se manda a quien tenga
-  // el rol Administración específicamente, nadie más.
+  // Ahora la solicitud llega primero a Dirección: es quien decide si se
+  // aprueba, así que es la única que recibe tanto la notificación dentro
+  // de la app como el correo de "nueva solicitud". Administración solo se
+  // entera cuando Dirección aprueba (ver validarMaterial), no antes.
   try {
-    const [creador, administracion, soloAdministracion] = await Promise.all([
+    const [creador, direccion] = await Promise.all([
       prisma.user.findUnique({ where: { id: session.user.id }, select: { name: true, email: true } }),
       prisma.user.findMany({
-        where: { schoolId: session.user.schoolId, role: { in: ["ADMINISTRACION", "COORDINADOR", "ADMIN_CENTRO"] } },
-        select: { id: true, name: true, email: true },
-      }),
-      prisma.user.findMany({
-        where: { schoolId: session.user.schoolId, role: "ADMINISTRACION" },
+        where: { schoolId: session.user.schoolId, role: "DIRECCION" },
         select: { id: true, name: true, email: true },
       }),
     ]);
     const creadorNombre = creador?.name ?? creador?.email ?? "Un profesor";
 
     await notifyUsers(
-      administracion.map((a) => a.id),
+      direccion.map((a) => a.id),
       {
         schoolId: session.user.schoolId,
         tipo: "MATERIAL_NUEVO",
@@ -84,7 +97,7 @@ export async function createMaterial(formData: FormData) {
     );
 
     await Promise.all(
-      soloAdministracion.map((a) =>
+      direccion.map((a) =>
         sendMaterialNuevoEmail({
           to: a.email,
           adminNombre: a.name ?? a.email,
@@ -106,8 +119,8 @@ export async function createMaterial(formData: FormData) {
 
 export async function validarMaterial(id: string) {
   const session = await getServerSession(authOptions);
-  if (!session?.user.id || !esAdministracion(session.user.role)) {
-    throw new Error("Solo Administración o equipo directivo puede validar un material.");
+  if (!session?.user.id || !esDireccion(session.user.role)) {
+    throw new Error("Solo Dirección o SuperAdmin puede validar un material.");
   }
 
   const material = await prisma.materialRequest.findUnique({
@@ -139,6 +152,46 @@ export async function validarMaterial(id: string) {
         nombreMaterial: material.nombre,
       });
     }
+
+    // Dirección ya lo ha aprobado: ahora le toca a Administración comprarlo
+    // de verdad, así que es quien recibe el aviso (dentro de la app y por
+    // correo) de que ya puede pasar a la compra.
+    const administracion = await prisma.user.findMany({
+      where: { schoolId: material.schoolId, role: "ADMINISTRACION" },
+      select: { id: true, name: true, email: true },
+    });
+    const profesorNombre = material.profesor.name ?? material.profesor.email;
+
+    // Tipo propio (no "MATERIAL_NUEVO") para poder distinguir este aviso
+    // del resto en la pantalla principal, y poder hacerlo desaparecer de
+    // ahí en cuanto Administración le da clic — sin tocar el resto de
+    // notificaciones ni la propia solicitud, que sigue viéndose en Material
+    // hasta que se compre de verdad.
+    await notifyUsers(
+      administracion.map((a) => a.id),
+      {
+        schoolId: material.schoolId,
+        tipo: "MATERIAL_PENDIENTE_COMPRAR",
+        titulo: "Material aprobado, pendiente de comprar",
+        mensaje: `Dirección ha aprobado "${material.nombre}" (${profesorNombre}) — ya puedes comprarlo.`,
+        link: "/dashboard/material",
+        relatedId: material.id,
+      }
+    );
+
+    await Promise.all(
+      administracion.map((a) =>
+        sendMaterialParaComprarEmail({
+          to: a.email,
+          adminNombre: a.name ?? a.email,
+          profesorNombre,
+          nombreMaterial: material.nombre,
+          curso: material.curso,
+          cantidad: material.cantidad,
+          precioUnidad: material.precioUnidad,
+        })
+      )
+    );
   } catch {
     // Ya se ha validado; si el aviso falla no lo bloqueamos.
   }
@@ -149,8 +202,8 @@ export async function validarMaterial(id: string) {
 
 export async function marcarMaterialComprado(id: string) {
   const session = await getServerSession(authOptions);
-  if (!session?.user.id || !esAdministracion(session.user.role)) {
-    throw new Error("Solo Administración o equipo directivo puede marcar un material como comprado.");
+  if (!session?.user.id || !esSoloAdministracion(session.user.role)) {
+    throw new Error("Solo Administración puede marcar un material como comprado.");
   }
 
   const material = await prisma.materialRequest.findUnique({
@@ -200,7 +253,7 @@ export async function updateMaterial(formData: FormData) {
   const material = await prisma.materialRequest.findUnique({ where: { id } });
   const canManageAll =
     session.user.role === "SUPERADMIN" ||
-    ((session.user.role === "COORDINADOR" || session.user.role === "ADMIN_CENTRO" || session.user.role === "ADMINISTRACION") &&
+    ((session.user.role === "DIRECCION" || session.user.role === "COORDINADOR" || session.user.role === "ADMIN_CENTRO" || session.user.role === "ADMINISTRACION") &&
       material?.schoolId === session.user.schoolId);
   if (!material || (material.profesorId !== session.user.id && !canManageAll)) {
     throw new Error("No puedes editar un material que no has pedido tú.");
@@ -285,7 +338,7 @@ export async function deleteMaterial(id: string) {
   const material = await prisma.materialRequest.findUnique({ where: { id } });
   const canManageAll =
     session.user.role === "SUPERADMIN" ||
-    ((session.user.role === "COORDINADOR" || session.user.role === "ADMIN_CENTRO" || session.user.role === "ADMINISTRACION") &&
+    ((session.user.role === "DIRECCION" || session.user.role === "COORDINADOR" || session.user.role === "ADMIN_CENTRO" || session.user.role === "ADMINISTRACION") &&
       material?.schoolId === session.user.schoolId);
   if (!material || (material.profesorId !== session.user.id && !canManageAll)) {
     throw new Error("No puedes eliminar un material que no es tuyo.");

@@ -58,9 +58,13 @@ export default async function AprobacionesPage({
   const userName = session?.user.name || session?.user.email.split("@")[0] || "Usuario";
   const role = session?.user.role ?? "PROFESOR";
   const isSuperAdmin = role === "SUPERADMIN";
-  const isEquipoDirectivo = role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
+  const isEquipoDirectivo = role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION" || role === "DIRECCION";
+  // Aprobar/rechazar de verdad es exclusivo de Dirección y SuperAdmin — el
+  // resto del equipo directivo solo consulta las salidas pendientes.
+  const puedeAprobar = isSuperAdmin || role === "DIRECCION";
 
-  // Solo el equipo directivo y el SuperAdmin pueden aprobar/rechazar salidas.
+  // El equipo directivo y el SuperAdmin pueden entrar a consultar esta
+  // pantalla; solo Dirección/SuperAdmin pueden aprobar/rechazar de verdad.
   if (!isSuperAdmin && !isEquipoDirectivo) {
     redirect("/dashboard/salidas");
   }
@@ -92,7 +96,7 @@ export default async function AprobacionesPage({
       <div>
         <DashboardHeader title={translate(locale, "nav.aprobaciones")} subtitle={translate(locale, "salidas.subtitle.aprobaciones")} userName={userName} role={role} />
         <SchoolSwitcher schools={schools} currentSchoolId={searchParams.school} locale={locale} basePath="/dashboard/salidas/aprobaciones" />
-        <AprobacionesClient rows={rows} />
+        <AprobacionesClient rows={rows} puedeAprobar={puedeAprobar} />
       </div>
     );
   }
@@ -124,7 +128,7 @@ export default async function AprobacionesPage({
   return (
     <div>
       <DashboardHeader title={translate(locale, "nav.aprobaciones")} subtitle={translate(locale, "salidas.subtitle.aprobaciones")} userName={userName} role={role} notificationCount={0} />
-      <AprobacionesClient rows={rows} />
+      <AprobacionesClient rows={rows} puedeAprobar={puedeAprobar} />
     </div>
   );
 }

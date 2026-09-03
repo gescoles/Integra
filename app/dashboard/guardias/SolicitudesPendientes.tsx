@@ -100,12 +100,14 @@ function PanelDetalle({
   guardias,
   horarios,
   onCerrar,
+  puedeGestionar,
 }: {
   s: Solicitud;
   profesores: Profesor[];
   guardias: GuardiaProgramada[];
   horarios: Horario[];
   onCerrar: () => void;
+  puedeGestionar: boolean;
 }) {
   const router = useRouter();
   const { locale } = useLocale();
@@ -316,7 +318,13 @@ function PanelDetalle({
 
       {error && <div className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{error}</div>}
 
-      {s.estado === "PENDIENTE" && (
+      {s.estado === "PENDIENTE" && !puedeGestionar && (
+        <div className="mb-5 rounded-lg bg-amber-50 px-3 py-2.5 text-xs font-semibold text-amber-700">
+          Pendiente de que Dirección la acepte o rechace.
+        </div>
+      )}
+
+      {s.estado === "PENDIENTE" && puedeGestionar && (
         <div className="mb-5">
           {confirmandoRechazo ? (
             <div className="space-y-2">
@@ -379,7 +387,7 @@ function PanelDetalle({
               <button
                 key={op}
                 onClick={() => handleCambiarJustificante(op)}
-                disabled={pendingJustificante || s.estado === "PENDIENTE"}
+                disabled={pendingJustificante || s.estado === "PENDIENTE" || !puedeGestionar}
                 className="flex items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <CircleDot
@@ -412,7 +420,7 @@ function PanelDetalle({
             </a>
           ) : (
             <label className={`flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed px-4 py-4 text-center text-xs ${
-              s.estado === "PENDIENTE"
+              s.estado === "PENDIENTE" || !puedeGestionar
                 ? "cursor-not-allowed border-slate-200 text-slate-300"
                 : "cursor-pointer border-slate-300 text-slate-400 hover:border-[#FD5249] hover:text-[#FD5249]"
             }`}>
@@ -428,7 +436,7 @@ function PanelDetalle({
                 type="file"
                 accept=".pdf,.jpg,.jpeg,.png"
                 className="hidden"
-                disabled={subiendoArchivo || s.estado === "PENDIENTE"}
+                disabled={subiendoArchivo || s.estado === "PENDIENTE" || !puedeGestionar}
                 onChange={(e) => {
                   const f = e.target.files?.[0];
                   if (f) handleSubirArchivo(f);
@@ -443,20 +451,26 @@ function PanelDetalle({
         <div className="mb-5">
           <p className="mb-2 text-sm font-bold text-[#0B1D4D]">Asignar guardia</p>
 
-          {s.estado === "ASIGNADA" && s.profesorSustitutoNombre && !editandoAsignacion ? (
+          {s.estado === "ASIGNADA" && s.profesorSustitutoNombre && (!editandoAsignacion || !puedeGestionar) ? (
             <div className="flex items-center justify-between gap-2 rounded-lg bg-emerald-50 px-3 py-2.5 text-sm font-semibold text-emerald-700">
               <span>Guardia ya enviada — la cubre {s.profesorSustitutoNombre}.</span>
-              <button
-                onClick={() => {
-                  setSustitutoId(null);
-                  setEditandoAsignacion(true);
-                }}
-                title="Editar y asignar manualmente a otro profesor"
-                className="flex shrink-0 items-center gap-1 rounded-md border border-emerald-200 bg-white px-2 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
-              >
-                <Pencil className="h-3 w-3" /> Editar
-              </button>
+              {puedeGestionar && (
+                <button
+                  onClick={() => {
+                    setSustitutoId(null);
+                    setEditandoAsignacion(true);
+                  }}
+                  title="Editar y asignar manualmente a otro profesor"
+                  className="flex shrink-0 items-center gap-1 rounded-md border border-emerald-200 bg-white px-2 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+                >
+                  <Pencil className="h-3 w-3" /> Editar
+                </button>
+              )}
             </div>
+          ) : !puedeGestionar ? (
+            <p className="rounded-lg bg-amber-50 px-3 py-2.5 text-xs font-semibold text-amber-700">
+              Pendiente de que Dirección asigne quién cubre esta guardia.
+            </p>
           ) : (
             <>
               <input
@@ -557,11 +571,13 @@ export function SolicitudesPendientes({
   profesores,
   guardias,
   horarios,
+  puedeGestionar = true,
 }: {
   solicitudes: Solicitud[];
   profesores: Profesor[];
   guardias: GuardiaProgramada[];
   horarios: Horario[];
+  puedeGestionar?: boolean;
 }) {
   const searchParams = useSearchParams();
   const solicitudDestacada = searchParams.get("solicitud");
@@ -809,6 +825,7 @@ export function SolicitudesPendientes({
             guardias={guardias}
             horarios={horarios}
             onCerrar={() => setSeleccionadaId(null)}
+            puedeGestionar={puedeGestionar}
           />
         </div>
       )}

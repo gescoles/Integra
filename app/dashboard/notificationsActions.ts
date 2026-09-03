@@ -67,6 +67,20 @@ export async function eliminarNotificacion(id: string) {
   revalidatePath("/dashboard");
 }
 
+// Borra, solo para el usuario que ha entrado, todas sus notificaciones de
+// un tipo concreto — lo usa el aviso de "pendiente de comprar" en la
+// pantalla principal para desaparecer en cuanto se le da clic, sin tocar
+// el resto de notificaciones ni las de otros usuarios.
+export async function eliminarNotificacionesPorTipo(tipo: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user.id) return;
+
+  await prisma.notificacion.deleteMany({
+    where: { userId: session.user.id, tipo },
+  });
+  revalidatePath("/dashboard");
+}
+
 export async function eliminarTodasNotificaciones() {
   const session = await getServerSession(authOptions);
   if (!session?.user.id) return;

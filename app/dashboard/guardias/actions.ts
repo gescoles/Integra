@@ -6,14 +6,26 @@ import { GuardiaStatus } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sendGuardiaEmail, sendCoberturaEmail, sendSolicitudCoberturaEmail, sendCoberturaResueltaEmail, sendSolicitudRechazadaEmail, sendGuardiaEliminadaEmail, sendGuardiaModificadaEmail, sendCoberturaEliminadaEmail, sendCoberturaModificadaEmail, sendAusenciaAceptadaEmail } from "@/lib/email";
-import { createTeamsCalendarEvent } from "@/lib/microsoftGraph";
+import { createTeamsCalendarEvent, deleteTeamsCalendarEvent } from "@/lib/microsoftGraph";
 import { notifyUsers } from "@/lib/notifications";
 import { getSupabaseAdmin, JUSTIFICANTES_BUCKET } from "@/lib/supabaseAdmin";
 import { ensureSubfolder, uploadGenericFileToDrive } from "@/lib/googleDrive";
 import { safeFileName } from "@/lib/exportWorkbooks";
 
+// Acceso de solo lectura (consultar solicitudes, historial...): todo el
+// equipo directivo, incluida Dirección.
 function esDirectivo(role?: string) {
-  return role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
+  return role === "SUPERADMIN" || role === "DIRECCION" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
+}
+
+// Gestión de verdad (asignar/reasignar sustituto, aceptar o rechazar un
+// aviso de ausencia, editar o eliminar una guardia ya programada...): solo
+// Dirección y SuperAdmin. El resto del equipo directivo se queda con
+// acceso de solo lectura a Guardias — solo puede avisar de sus propias
+// ausencias (como cualquier profesor) o crear guardias directas, igual
+// que antes.
+function esDireccion(role?: string) {
+  return role === "SUPERADMIN" || role === "DIRECCION";
 }
 
 // Aviso al sustituto (notificación + email), reutilizado tanto cuando
@@ -66,25 +78,71 @@ async function avisarSustituto(params: {
   }
 
   try {
-    if (params.sustitutoEmail) {
-      const [hIni, mIni] = params.horaInicio.split(":").map(Number);
-      const [hFin, mFin] = params.horaFin.split(":").map(Number);
-      const inicio = new Date(params.fecha);
-      inicio.setHours(hIni, mIni, 0, 0);
-      const fin = new Date(params.fecha);
-      fin.setHours(hFin, mFin, 0, 0);
-      await createTeamsCalendarEvent({
-        userEmail: params.sustitutoEmail,
-        subject: `Guardia: cubrir a ${params.ausenteNombre}`,
-        bodyHtml: `Cobertura de guardia.${params.asignatura ? ` Asignatura: ${params.asignatura}.` : ""}${params.grupo ? ` Grupo: ${params.grupo}.` : ""}`,
-        start: inicio,
-        end: fin,
-        location: params.ubicacion || undefined,
-      });
-    }
+    await crearEventoTeamsCobertura({
+      coberturaId: params.coberturaId,
+      sustitutoEmail: params.sustitutoEmail,
+      ausenteNombre: params.ausenteNombre,
+      asignatura: params.asignatura,
+      grupo: params.grupo,
+      ubicacion: params.ubicacion,
+      fecha: params.fecha,
+      horaInicio: params.horaInicio,
+      horaFin: params.horaFin,
+    });
   } catch {
     // Igual que el email: si falla Teams, no pasa nada — la notificación
     // en la app y el correo ya han avisado de todas formas.
+  }
+}
+
+// Crea el evento de la cobertura en el calendario de Teams del sustituto
+// y GUARDA su id en la cobertura — sin ese id, luego no habría forma de
+// borrar el evento si la cobertura se cancela, se reasigna a otra
+// persona o se edita, y se quedaría huérfano en su calendario para
+// siempre. Se usa tanto al asignar por primera vez como al reasignar o
+// editar (llamando antes a eliminarEventoTeamsCobertura con el id
+// anterior, si lo había).
+async function crearEventoTeamsCobertura(params: {
+  coberturaId: string;
+  sustitutoEmail: string | null;
+  ausenteNombre: string;
+  asignatura: string | null;
+  grupo: string | null;
+  ubicacion: string | null;
+  fecha: Date;
+  horaInicio: string;
+  horaFin: string;
+}) {
+  if (!params.sustitutoEmail) return;
+
+  const [hIni, mIni] = params.horaInicio.split(":").map(Number);
+  const [hFin, mFin] = params.horaFin.split(":").map(Number);
+  const inicio = new Date(params.fecha);
+  inicio.setHours(hIni, mIni, 0, 0);
+  const fin = new Date(params.fecha);
+  fin.setHours(hFin, mFin, 0, 0);
+
+  const evento = await createTeamsCalendarEvent({
+    userEmail: params.sustitutoEmail,
+    subject: `Guardia: cubrir a ${params.ausenteNombre}`,
+    bodyHtml: `Cobertura de guardia.${params.asignatura ? ` Asignatura: ${params.asignatura}.` : ""}${params.grupo ? ` Grupo: ${params.grupo}.` : ""}`,
+    start: inicio,
+    end: fin,
+    location: params.ubicacion || undefined,
+  });
+
+  await prisma.coberturaGuardia.update({ where: { id: params.coberturaId }, data: { teamsEventId: evento.id } });
+}
+
+// Borra (mejor esfuerzo, nunca bloquea el flujo principal) el evento de
+// Teams de una cobertura si tenía uno guardado.
+async function eliminarEventoTeamsCobertura(sustitutoEmail: string | null | undefined, teamsEventId: string | null | undefined) {
+  if (!sustitutoEmail || !teamsEventId) return;
+  try {
+    await deleteTeamsCalendarEvent(sustitutoEmail, teamsEventId);
+  } catch {
+    // No bloqueamos por esto — en el peor caso, queda un evento suelto
+    // en el calendario que el profesor puede borrar él mismo a mano.
   }
 }
 
@@ -93,8 +151,8 @@ async function avisarSustituto(params: {
 // Al confirmarlo, se avisa al sustituto por email + notificación en la app.
 export async function crearCobertura(formData: FormData) {
   const session = await getServerSession(authOptions);
-  if (!session?.user.id || !esDirectivo(session.user.role)) {
-    throw new Error("Solo Coordinación, Dirección o SuperAdmin puede asignar coberturas.");
+  if (!session?.user.id || !esDireccion(session.user.role)) {
+    throw new Error("Solo Dirección o SuperAdmin puede asignar coberturas.");
   }
 
   const schoolId = (formData.get("schoolId") as string)?.trim();
@@ -224,8 +282,11 @@ export async function crearSolicitudCobertura(formData: FormData) {
     },
   });
 
+  // Solo Dirección gestiona de verdad las ausencias (aceptar, buscar
+  // sustituto...), así que es la única que recibe el aviso de que un
+  // profesor ha avisado que falta.
   const directivos = await prisma.user.findMany({
-    where: { schoolId, role: { in: ["COORDINADOR", "ADMIN_CENTRO", "ADMINISTRACION"] } },
+    where: { schoolId, role: { in: ["DIRECCION"] } },
     select: { id: true, email: true },
   });
 
@@ -268,8 +329,8 @@ export async function crearSolicitudCobertura(formData: FormData) {
 // A partir de aquí ya se puede "Gestionar guardia" para buscar a alguien.
 export async function aceptarAusencia(coberturaId: string) {
   const session = await getServerSession(authOptions);
-  if (!session?.user.id || !esDirectivo(session.user.role)) {
-    throw new Error("Solo Coordinación, Dirección o SuperAdmin puede aceptar un aviso de ausencia.");
+  if (!session?.user.id || !esDireccion(session.user.role)) {
+    throw new Error("Solo Dirección o SuperAdmin puede aceptar un aviso de ausencia.");
   }
 
   const cobertura = await prisma.coberturaGuardia.findUnique({
@@ -316,8 +377,8 @@ export async function aceptarAusencia(coberturaId: string) {
 // aplica), independientemente de si la ausencia ya está aceptada o no.
 export async function actualizarEstadoJustificante(coberturaId: string, estado: "PENDIENTE" | "RECIBIDO" | "NO_ENTREGADO" | "NO_APLICA") {
   const session = await getServerSession(authOptions);
-  if (!session?.user.id || !esDirectivo(session.user.role)) {
-    throw new Error("Solo Coordinación, Dirección o SuperAdmin puede actualizar el justificante.");
+  if (!session?.user.id || !esDireccion(session.user.role)) {
+    throw new Error("Solo Dirección o SuperAdmin puede actualizar el justificante.");
   }
 
   const cobertura = await prisma.coberturaGuardia.findUnique({ where: { id: coberturaId } });
@@ -338,8 +399,8 @@ export async function actualizarEstadoJustificante(coberturaId: string, estado: 
 // Recibido automáticamente.
 export async function subirJustificante(coberturaId: string, formData: FormData) {
   const session = await getServerSession(authOptions);
-  if (!session?.user.id || !esDirectivo(session.user.role)) {
-    throw new Error("Solo Coordinación, Dirección o SuperAdmin puede subir un justificante.");
+  if (!session?.user.id || !esDireccion(session.user.role)) {
+    throw new Error("Solo Dirección o SuperAdmin puede subir un justificante.");
   }
 
   const cobertura = await prisma.coberturaGuardia.findUnique({
@@ -409,8 +470,8 @@ export async function subirJustificante(coberturaId: string, formData: FormData)
 
 export async function asignarSustitutoCobertura(coberturaId: string, profesorSustitutoId: string) {
   const session = await getServerSession(authOptions);
-  if (!session?.user.id || !esDirectivo(session.user.role)) {
-    throw new Error("Solo Coordinación, Dirección o SuperAdmin puede asignar quién cubre una guardia.");
+  if (!session?.user.id || !esDireccion(session.user.role)) {
+    throw new Error("Solo Dirección o SuperAdmin puede asignar quién cubre una guardia.");
   }
 
   const cobertura = await prisma.coberturaGuardia.findUnique({
@@ -483,8 +544,8 @@ export async function asignarSustitutoCobertura(coberturaId: string, profesorSus
 // disponible o no procede). Avisa al profesor que la mandó.
 export async function rechazarSolicitud(coberturaId: string, motivoRechazo: string) {
   const session = await getServerSession(authOptions);
-  if (!session?.user.id || !esDirectivo(session.user.role)) {
-    throw new Error("Solo Coordinación, Dirección o SuperAdmin puede rechazar una solicitud.");
+  if (!session?.user.id || !esDireccion(session.user.role)) {
+    throw new Error("Solo Dirección o SuperAdmin puede rechazar una solicitud.");
   }
 
   const motivo = motivoRechazo?.trim();
@@ -576,7 +637,7 @@ export async function obtenerSolicitudesPendientes(schoolIdParam?: string) {
 
 export async function updateGuardiaStatus(id: string, status: GuardiaStatus) {
   const session = await getServerSession(authOptions);
-  if (!esDirectivo(session?.user.role)) throw new Error("No autorizado.");
+  if (!esDireccion(session?.user.role)) throw new Error("No autorizado.");
 
   await prisma.guardia.update({ where: { id }, data: { status } });
   revalidatePath("/dashboard/guardias");
@@ -587,7 +648,7 @@ export async function updateGuardiaStatus(id: string, status: GuardiaStatus) {
 // formateados/combinados que se usan solo para pintar la tabla).
 export async function obtenerGuardiaProgramadaParaEditar(id: string, origen: "guardia" | "cobertura") {
   const session = await getServerSession(authOptions);
-  if (!esDirectivo(session?.user.role)) throw new Error("No autorizado.");
+  if (!esDireccion(session?.user.role)) throw new Error("No autorizado.");
 
   if (origen === "guardia") {
     const g = await prisma.guardia.findUnique({ where: { id } });
@@ -628,7 +689,7 @@ export async function actualizarGuardiaProgramada(
   formData: FormData
 ) {
   const session = await getServerSession(authOptions);
-  if (!esDirectivo(session?.user.role)) throw new Error("No autorizado.");
+  if (!esDireccion(session?.user.role)) throw new Error("No autorizado.");
 
   const ubicacion = ((formData.get("ubicacion") as string) || "").trim() || null;
   const grupo = ((formData.get("grupo") as string) || "").trim() || null;
@@ -645,11 +706,40 @@ export async function actualizarGuardiaProgramada(
     const fecha = new Date(`${fechaRaw}T${hora}:00`);
     if (Number.isNaN(fecha.getTime())) throw new Error("Fecha u hora no válidas.");
 
+    const guardiaAnterior = await prisma.guardia.findUnique({ where: { id }, select: { teamsEventId: true } });
+
     const guardia = await prisma.guardia.update({
       where: { id },
       data: { turno, ubicacion, grupo, tarea, fecha },
       include: { profesor: { select: { name: true, email: true } } },
     });
+
+    // El evento anterior ya no vale (la hora/fecha ha podido cambiar): se
+    // borra y se crea uno nuevo con los datos actualizados, en vez de
+    // dejar el viejo huérfano en el calendario del profesor.
+    if (guardiaAnterior?.teamsEventId) {
+      try {
+        await deleteTeamsCalendarEvent(guardia.profesor.email, guardiaAnterior.teamsEventId);
+      } catch {
+        // No bloqueamos por esto.
+      }
+    }
+    try {
+      const [h, m] = hora.split(":").map(Number);
+      const finGuardia = new Date(fecha);
+      finGuardia.setHours(h, m + 55);
+      const evento = await createTeamsCalendarEvent({
+        userEmail: guardia.profesor.email,
+        subject: `Guardia: ${grupo}`,
+        bodyHtml: `Guardia asignada.${grupo ? ` Grupo: ${grupo}.` : ""}${ubicacion ? ` Aula: ${ubicacion}.` : ""}${tarea ? ` Tarea: ${tarea}.` : ""}`,
+        start: fecha,
+        end: finGuardia,
+        location: ubicacion || undefined,
+      });
+      await prisma.guardia.update({ where: { id }, data: { teamsEventId: evento.id } });
+    } catch {
+      // No bloqueamos por esto — el email ya avisa del cambio igualmente.
+    }
 
     try {
       await sendGuardiaModificadaEmail({
@@ -702,7 +792,10 @@ export async function actualizarGuardiaProgramada(
     });
 
     if (cambiaSustituto) {
-      // Al profesor sustituto anterior: ya no hace falta que vaya.
+      // Al profesor sustituto anterior: ya no hace falta que vaya — se
+      // borra su evento del calendario, si tenía uno.
+      await eliminarEventoTeamsCobertura(anterior.profesorSustituto?.email, anterior.teamsEventId);
+
       if (anterior.profesorSustituto?.email) {
         try {
           await sendCoberturaEliminadaEmail({
@@ -741,7 +834,27 @@ export async function actualizarGuardiaProgramada(
         }
       }
     } else if (cobertura.profesorSustituto?.email) {
-      // Mismo sustituto: solo avisamos de que han cambiado datos.
+      // Mismo sustituto: el evento anterior ya no vale (la hora/fecha ha
+      // podido cambiar), se borra y se crea uno nuevo con los datos
+      // actualizados.
+      await eliminarEventoTeamsCobertura(cobertura.profesorSustituto.email, anterior.teamsEventId);
+      try {
+        await crearEventoTeamsCobertura({
+          coberturaId: cobertura.id,
+          sustitutoEmail: cobertura.profesorSustituto.email,
+          ausenteNombre: cobertura.profesorAusente?.name ?? "otro profesor",
+          asignatura,
+          grupo,
+          ubicacion,
+          fecha,
+          horaInicio,
+          horaFin,
+        });
+      } catch {
+        // No bloqueamos por esto — el email ya avisa del cambio igualmente.
+      }
+
+      // Avisamos de que han cambiado datos.
       try {
         await sendCoberturaModificadaEmail({
           to: cobertura.profesorSustituto.email,
@@ -769,13 +882,22 @@ export async function actualizarGuardiaProgramada(
 // orígenes) y se avisa por email al profesor que la tenía asignada.
 export async function eliminarGuardiaProgramada(id: string, origen: "guardia" | "cobertura") {
   const session = await getServerSession(authOptions);
-  if (!esDirectivo(session?.user.role)) throw new Error("No autorizado.");
+  if (!esDireccion(session?.user.role)) throw new Error("No autorizado.");
 
   if (origen === "guardia") {
     const guardia = await prisma.guardia.delete({
       where: { id },
       include: { profesor: { select: { name: true, email: true } } },
     });
+
+    if (guardia.teamsEventId) {
+      try {
+        await deleteTeamsCalendarEvent(guardia.profesor.email, guardia.teamsEventId);
+      } catch {
+        // No bloqueamos por esto — en el peor caso, queda un evento
+        // suelto en el calendario que el profesor puede borrar a mano.
+      }
+    }
 
     try {
       await sendGuardiaEliminadaEmail({
@@ -796,6 +918,8 @@ export async function eliminarGuardiaProgramada(id: string, origen: "guardia" | 
         profesorAusente: { select: { name: true } },
       },
     });
+
+    await eliminarEventoTeamsCobertura(cobertura.profesorSustituto?.email, cobertura.teamsEventId);
 
     if (cobertura.profesorSustituto?.email) {
       try {
@@ -914,7 +1038,7 @@ export async function obtenerProfesoresDelCentro(schoolIdParam?: string) {
 export async function createGuardia(formData: FormData) {
   const session = await getServerSession(authOptions);
   const role = session?.user.role;
-  if (!session?.user.id || (role !== "SUPERADMIN" && role !== "COORDINADOR" && role !== "ADMIN_CENTRO" && role !== "ADMINISTRACION")) {
+  if (!session?.user.id || (role !== "SUPERADMIN" && role !== "DIRECCION" && role !== "COORDINADOR" && role !== "ADMIN_CENTRO" && role !== "ADMINISTRACION")) {
     throw new Error("No autorizado.");
   }
 
@@ -987,7 +1111,7 @@ export async function createGuardia(formData: FormData) {
     const [horas, minutos] = horaRaw.split(":").map(Number);
     const finGuardia = new Date(fecha);
     finGuardia.setHours(horas, minutos + 55); // guardia de 55 min por defecto, como una clase
-    await createTeamsCalendarEvent({
+    const evento = await createTeamsCalendarEvent({
       userEmail: profesor.email,
       subject: `Guardia: ${grupo}`,
       bodyHtml: `Guardia asignada.${grupo ? ` Grupo: ${grupo}.` : ""}${ubicacion ? ` Aula: ${ubicacion}.` : ""}${tarea ? ` Tarea: ${tarea}.` : ""}`,
@@ -995,6 +1119,7 @@ export async function createGuardia(formData: FormData) {
       end: finGuardia,
       location: ubicacion || undefined,
     });
+    await prisma.guardia.update({ where: { id: nuevaGuardia.id }, data: { teamsEventId: evento.id } });
     avisos.push({ canal: "teams", ok: true });
   } catch (e) {
     avisos.push({ canal: "teams", ok: false, error: e instanceof Error ? e.message : "Error desconocido" });

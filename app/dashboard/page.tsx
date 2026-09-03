@@ -18,7 +18,7 @@ export default async function DashboardHomePage() {
     return <SuperAdminHome userId={session?.user.id ?? ""} userName={userName} role={role} locale={locale} />;
   }
 
-  if (role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION") {
+  if (role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION" || role === "DIRECCION") {
     return (
       <CoordinadorHome
         userId={session?.user.id ?? ""}

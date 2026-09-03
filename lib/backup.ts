@@ -12,13 +12,18 @@ import { safeFileName } from "@/lib/exportWorkbooks";
 export async function subirBackupOneDriveSiCorresponde(
   oneDriveBackupEmail: string | null | undefined,
   nombreCentro: string,
-  archivos: { nombre: string; buffer: Buffer; contentType: string }[]
+  archivos: { nombre: string; buffer: Buffer; contentType: string }[],
+  subcarpeta?: string
 ) {
   if (!oneDriveBackupEmail) return;
 
+  const carpeta = subcarpeta
+    ? `Docentium_Backup/${safeFileName(nombreCentro)}/${subcarpeta}`
+    : `Docentium_Backup/${safeFileName(nombreCentro)}`;
+
   try {
     for (const archivo of archivos) {
-      await uploadFileToOneDrive(oneDriveBackupEmail, `Docentium_Backup/${safeFileName(nombreCentro)}/${archivo.nombre}`, archivo.buffer, archivo.contentType);
+      await uploadFileToOneDrive(oneDriveBackupEmail, `${carpeta}/${archivo.nombre}`, archivo.buffer, archivo.contentType);
     }
   } catch (e) {
     console.error(`No se pudo subir el backup de "${nombreCentro}" a OneDrive:`, e);
@@ -394,6 +399,16 @@ export async function carpetasBackupBBDD(rootFolderId: string, nombreCentro: str
   return { jsonFolderId, sqlFolderId };
 }
 
+// Carpeta del botón "Crear copia de seguridad" — distinta de las de
+// arriba (que usa "Backup BBDD instantáneo" y el cron de cada noche):
+// esta es la que el propio texto del botón le promete al SuperAdmin
+// ("...en la carpeta 'Copia de seguridad'"), así que tiene que llamarse
+// literalmente así, dentro de la carpeta del centro.
+export async function carpetaCopiaSeguridad(rootFolderId: string, nombreCentro: string) {
+  const schoolFolderId = await ensureSubfolder(rootFolderId, nombreCentro);
+  return ensureSubfolder(schoolFolderId, "Copia de seguridad");
+}
+
 /**
  * El cron de cada noche: genera el backup (json + sql) de TODOS los
  * centros, uno por uno, con el sufijo "automatico" en el nombre para
@@ -418,18 +433,18 @@ export async function ejecutarBackupBBDDTodosCentros() {
       const nombreSql = `backup-bbdd-automatico-${fecha}-${hora}.sql`;
 
       // Cada centro puede tener su propia carpeta raíz de Drive
-      // configurada desde SuperAdmin; si no la tiene, se usa la
-      // carpeta general de la plataforma como respaldo.
+      // configurada desde SuperAdmin; si no la tiene, se usa la carpeta
+      // general de la cuenta de Drive ya conectada a la plataforma — cada
+      // centro sigue yendo a su propia subcarpeta ahí dentro, nunca se
+      // mezcla con otro.
       const rootFolderId = school.driveBackupFolderId || rootFolderIdGlobal;
       if (rootFolderId) {
         const { jsonFolderId, sqlFolderId } = await carpetasBackupBBDD(rootFolderId, safeFileName(school.name));
         await uploadGenericFileToDrive(jsonFolderId, nombreJson, jsonBuffer, "application/json");
         await uploadGenericFileToDrive(sqlFolderId, nombreSql, sqlBuffer, "text/plain");
       }
-      await subirBackupOneDriveSiCorresponde(school.oneDriveBackupEmail, school.name, [
-        { nombre: nombreJson, buffer: jsonBuffer, contentType: "application/json" },
-        { nombre: nombreSql, buffer: sqlBuffer, contentType: "text/plain" },
-      ]);
+      await subirBackupOneDriveSiCorresponde(school.oneDriveBackupEmail, school.name, [{ nombre: nombreJson, buffer: jsonBuffer, contentType: "application/json" }], "Backup BBDD JSON");
+      await subirBackupOneDriveSiCorresponde(school.oneDriveBackupEmail, school.name, [{ nombre: nombreSql, buffer: sqlBuffer, contentType: "text/plain" }], "Backup BBDD SQL");
 
       resultados.push({ centro: school.name, ok: true });
     } catch (e) {

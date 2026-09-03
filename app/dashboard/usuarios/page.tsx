@@ -16,7 +16,7 @@ const UNASSIGNED = "sin-asignar";
 
 async function getUsersForSchool(schoolId: string | null) {
   const usersRaw = await prisma.user.findMany({
-    where: { schoolId, role: { in: ["PROFESOR", "COORDINADOR", "ADMINISTRACION"] } },
+    where: { schoolId, role: { in: ["PROFESOR", "COORDINADOR", "ADMINISTRACION", "DIRECCION"] } },
     include: {
       school: { select: { name: true } },
       departamentos: { select: { id: true, nombre: true } },

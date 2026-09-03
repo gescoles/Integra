@@ -64,6 +64,7 @@ export const authOptions: NextAuthOptions = {
 
         const user = await prisma.user.findUnique({
           where: { email: emailLimpio },
+          include: { school: { select: { status: true } } },
         });
 
         if (!user) {
@@ -85,6 +86,14 @@ export const authOptions: NextAuthOptions = {
         // ha desactivado la cuenta — antes solo se cortaba al refrescar
         // el token, pero eso no bloqueaba el primer login.
         if (user.status !== "ACTIVO") {
+          return null;
+        }
+
+        // Ni tampoco si el centro al que pertenece está archivado — un
+        // centro archivado deja a todos sus usuarios sin acceso hasta que
+        // se desarchive (los SuperAdmin no tienen centro, así que no les
+        // afecta esta comprobación).
+        if (user.school?.status === "ARCHIVADO") {
           return null;
         }
 
@@ -127,8 +136,13 @@ export const authOptions: NextAuthOptions = {
       if (account?.provider === "azure-ad") {
         const email = profile?.email?.toLowerCase();
         if (!email) return false;
-        const existe = await prisma.user.findUnique({ where: { email } });
-        const autorizado = Boolean(existe && existe.status === "ACTIVO");
+        const existe = await prisma.user.findUnique({
+          where: { email },
+          include: { school: { select: { status: true } } },
+        });
+        const autorizado = Boolean(
+          existe && existe.status === "ACTIVO" && existe.school?.status !== "ARCHIVADO"
+        );
         // Un intento de entrar por Teams con un correo que no existe en
         // Docentium (o que está desactivado) cuenta como intento fallido
         // igual que una contraseña incorrecta — mismo contador, mismo
@@ -187,13 +201,19 @@ export const authOptions: NextAuthOptions = {
         if (haPasadoUnMinuto) {
           const fresh = await prisma.user.findUnique({
             where: { id: userId as string },
-            select: { role: true, schoolId: true, locale: true, status: true },
+            select: {
+              role: true,
+              schoolId: true,
+              locale: true,
+              status: true,
+              school: { select: { status: true } },
+            },
           });
-          // Revocación inmediata: si un SuperAdmin desactiva a alguien
-          // mientras tiene la sesión abierta, se le corta el acceso en
-          // cuanto se refresca el token (como mucho, un minuto después),
-          // sin tener que esperar a que caduque la sesión entera.
-          if (!fresh || fresh.status !== "ACTIVO") {
+          // Revocación inmediata: si un SuperAdmin desactiva a alguien (o
+          // archiva su centro) mientras tiene la sesión abierta, se le
+          // corta el acceso en cuanto se refresca el token (como mucho, un
+          // minuto después), sin tener que esperar a que caduque la sesión.
+          if (!fresh || fresh.status !== "ACTIVO" || fresh.school?.status === "ARCHIVADO") {
             throw new Error("CUENTA_DESACTIVADA");
           }
           token.role = fresh.role;

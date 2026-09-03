@@ -20,7 +20,7 @@ export default async function AbsentismoPage() {
   const schoolId = session?.user.schoolId;
   const userName = session?.user.name || session?.user.email?.split("@")[0] || "Usuario";
 
-  const esDirectivo = role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
+  const esDirectivo = role === "SUPERADMIN" || role === "DIRECCION" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
   if (!esDirectivo || !schoolId) redirect("/dashboard/guardias");
 
   // Contamos como "falta real" cualquier aviso que no haya sido rechazado

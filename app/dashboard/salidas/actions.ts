@@ -15,6 +15,98 @@ import {
   sendSalidaYaNoAcompananteEmail,
 } from "@/lib/email";
 import { notifyUsers, clearNotificationsFor } from "@/lib/notifications";
+import { createTeamsCalendarEvent, deleteTeamsCalendarEvent } from "@/lib/microsoftGraph";
+
+// Crea (mejor esfuerzo, nunca bloquea el flujo principal) el evento de
+// Teams de un acompañante en el calendario de esa salida ya aprobada, y
+// guarda el id devuelto para poder borrarlo/actualizarlo más adelante.
+async function crearEventoTeamsAcompanante(params: {
+  salidaId: string;
+  userId: string;
+  userEmail: string;
+  actividad: string;
+  curso: string;
+  observaciones: string | null;
+  fecha: Date;
+  horaSalida: string;
+  horaVuelta: string;
+}) {
+  try {
+    // Si ya tenía un evento (por ejemplo, se está recreando tras editar la
+    // fecha/hora), se borra primero el viejo para no dejarlo huérfano en
+    // su calendario junto al nuevo.
+    const existente = await prisma.salidaTeamsEvento.findUnique({
+      where: { salidaId_userId: { salidaId: params.salidaId, userId: params.userId } },
+    });
+    if (existente) {
+      try {
+        await deleteTeamsCalendarEvent(params.userEmail, existente.teamsEventId);
+      } catch {
+        // no bloqueamos por esto.
+      }
+    }
+
+    const [hIni, mIni] = params.horaSalida.split(":").map(Number);
+    const [hFin, mFin] = params.horaVuelta.split(":").map(Number);
+    const inicio = new Date(params.fecha);
+    inicio.setHours(hIni, mIni, 0, 0);
+    const fin = new Date(params.fecha);
+    fin.setHours(hFin, mFin, 0, 0);
+
+    const evento = await createTeamsCalendarEvent({
+      userEmail: params.userEmail,
+      subject: `Salida: ${params.actividad} (${params.curso})`,
+      bodyHtml: params.observaciones ?? "",
+      start: inicio,
+      end: fin,
+    });
+
+    await prisma.salidaTeamsEvento.upsert({
+      where: { salidaId_userId: { salidaId: params.salidaId, userId: params.userId } },
+      create: { salidaId: params.salidaId, userId: params.userId, teamsEventId: evento.id },
+      update: { teamsEventId: evento.id },
+    });
+  } catch {
+    // No bloqueamos por esto — en el peor caso, el acompañante no ve la
+    // salida en su calendario de Teams pero sigue recibiendo el email.
+  }
+}
+
+// Borra (mejor esfuerzo) el evento de Teams de un acompañante, si tenía
+// uno guardado para esta salida.
+async function eliminarEventoTeamsAcompanante(salidaId: string, userId: string, userEmail: string | null | undefined) {
+  const registro = await prisma.salidaTeamsEvento.findUnique({
+    where: { salidaId_userId: { salidaId, userId } },
+  });
+  if (!registro) return;
+  if (userEmail) {
+    try {
+      await deleteTeamsCalendarEvent(userEmail, registro.teamsEventId);
+    } catch {
+      // igual que arriba: no bloqueamos por esto.
+    }
+  }
+  await prisma.salidaTeamsEvento.delete({ where: { id: registro.id } }).catch(() => {});
+}
+
+// Borra todos los eventos de Teams de todos los acompañantes de una
+// salida (se usa al anularla o eliminarla).
+async function eliminarTodosEventosTeamsSalida(salidaId: string) {
+  const registros = await prisma.salidaTeamsEvento.findMany({
+    where: { salidaId },
+    include: { user: { select: { email: true } } },
+  });
+  await Promise.all(
+    registros.map(async (r) => {
+      try {
+        await deleteTeamsCalendarEvent(r.user.email, r.teamsEventId);
+      } catch {
+        // no bloqueamos por esto.
+      }
+    })
+  );
+  await prisma.salidaTeamsEvento.deleteMany({ where: { salidaId } });
+}
 
 export async function createSalida(formData: FormData) {
   const session = await getServerSession(authOptions);
@@ -28,7 +120,7 @@ export async function createSalida(formData: FormData) {
   const horaSalida = (formData.get("horaSalida") as string)?.trim();
   const horaVuelta = (formData.get("horaVuelta") as string)?.trim();
   const rolActual = session.user.role;
-  const esDirectivoSesion = rolActual === "SUPERADMIN" || rolActual === "COORDINADOR" || rolActual === "ADMIN_CENTRO" || rolActual === "ADMINISTRACION";
+  const esDirectivoSesion = rolActual === "SUPERADMIN" || rolActual === "DIRECCION" || rolActual === "COORDINADOR" || rolActual === "ADMIN_CENTRO" || rolActual === "ADMINISTRACION";
   // Un profesor siempre es el responsable de la salida que crea — aunque
   // manipule el formulario, aquí se ignora lo que mande y se fuerza a que
   // sea él mismo.
@@ -88,13 +180,14 @@ export async function createSalida(formData: FormData) {
   revalidatePath("/dashboard/salidas/aprobaciones");
   revalidatePath("/dashboard");
 
-  // Aviso al equipo directivo del centro (mejor esfuerzo: si el email falla,
-  // la salida ya se ha creado igualmente).
+  // Aviso a Dirección (mejor esfuerzo: si el email falla, la salida ya se
+  // ha creado igualmente). Solo Dirección aprueba salidas, así que es la
+  // única que necesita enterarse de que hay una pendiente.
   let avisoOk = true;
   let avisoError: string | undefined;
   try {
     const equipoDirectivo = await prisma.user.findMany({
-      where: { schoolId, role: { in: ["COORDINADOR", "ADMIN_CENTRO", "ADMINISTRACION"] } },
+      where: { schoolId, role: { in: ["DIRECCION"] } },
       select: { id: true, email: true },
     });
     const creador = await prisma.user.findUnique({
@@ -139,8 +232,8 @@ export async function createSalida(formData: FormData) {
 export async function aprobarSalida(id: string) {
   const session = await getServerSession(authOptions);
   const role = session?.user.role;
-  if (!session?.user.id || (role !== "SUPERADMIN" && role !== "COORDINADOR" && role !== "ADMIN_CENTRO" && role !== "ADMINISTRACION")) {
-    throw new Error("No autorizado.");
+  if (!session?.user.id || (role !== "SUPERADMIN" && role !== "DIRECCION")) {
+    throw new Error("Solo Dirección o SuperAdmin puede aprobar una salida.");
   }
 
   const existente = await prisma.salida.findUnique({ where: { id }, select: { schoolId: true } });
@@ -173,7 +266,7 @@ export async function aprobarSalida(id: string) {
     // la salida (si tiene uno asignado), para que todo el mundo se entere
     // de la decisión, no solo quien la haya aprobado.
     const equipoDirectivo = await prisma.user.findMany({
-      where: { schoolId: salida.schoolId, role: { in: ["COORDINADOR", "ADMIN_CENTRO", "ADMINISTRACION"] } },
+      where: { schoolId: salida.schoolId, role: { in: ["COORDINADOR", "ADMIN_CENTRO", "ADMINISTRACION", "DIRECCION"] } },
       select: { id: true, email: true },
     });
     const profesoresDepartamento = salida.departamento
@@ -224,7 +317,7 @@ export async function aprobarSalida(id: string) {
     if (salida.profesoresIds.length > 0) {
       const acompanantes = await prisma.user.findMany({
         where: { id: { in: salida.profesoresIds } },
-        select: { name: true, email: true },
+        select: { id: true, name: true, email: true },
       });
       await Promise.all(
         acompanantes.map((a) =>
@@ -244,6 +337,27 @@ export async function aprobarSalida(id: string) {
           })
         )
       );
+
+      // Y a cada uno se le añade el evento en su calendario de Teams,
+      // ahora que la salida ya es oficial.
+      const horaVuelta = salida.horaVuelta;
+      if (horaVuelta) {
+        await Promise.all(
+          acompanantes.map((a) =>
+            crearEventoTeamsAcompanante({
+              salidaId: salida.id,
+              userId: a.id,
+              userEmail: a.email,
+              actividad: salida.actividad,
+              curso: salida.curso,
+              observaciones: salida.observaciones,
+              fecha: salida.fecha,
+              horaSalida: salida.horaSalida,
+              horaVuelta,
+            })
+          )
+        );
+      }
     }
   } catch {
     // La aprobación ya se ha guardado; si el email falla no lo bloqueamos.
@@ -253,8 +367,8 @@ export async function aprobarSalida(id: string) {
 export async function rechazarSalida(id: string) {
   const session = await getServerSession(authOptions);
   const role = session?.user.role;
-  if (!session?.user.id || (role !== "SUPERADMIN" && role !== "COORDINADOR" && role !== "ADMIN_CENTRO" && role !== "ADMINISTRACION")) {
-    throw new Error("No autorizado.");
+  if (!session?.user.id || (role !== "SUPERADMIN" && role !== "DIRECCION")) {
+    throw new Error("Solo Dirección o SuperAdmin puede rechazar una salida.");
   }
 
   const existente = await prisma.salida.findUnique({ where: { id }, select: { schoolId: true } });
@@ -277,7 +391,7 @@ export async function rechazarSalida(id: string) {
 
   try {
     const equipoDirectivo = await prisma.user.findMany({
-      where: { schoolId: salida.schoolId, role: { in: ["COORDINADOR", "ADMIN_CENTRO", "ADMINISTRACION"] } },
+      where: { schoolId: salida.schoolId, role: { in: ["COORDINADOR", "ADMIN_CENTRO", "ADMINISTRACION", "DIRECCION"] } },
       select: { id: true, email: true },
     });
     const destinatarios = new Set([salida.creadoPor.email, ...equipoDirectivo.map((u) => u.email)]);
@@ -323,10 +437,11 @@ async function obtenerImplicadosSalida(salida: {
 export async function anularSalida(id: string, motivo: string) {
   const session = await getServerSession(authOptions);
   const role = session?.user.role;
-  // Anular lo puede hacer todo el equipo directivo (Coordinador y
-  // Admin. de Centro), igual que aprobar/rechazar.
-  if (!session?.user.id || (role !== "SUPERADMIN" && role !== "COORDINADOR" && role !== "ADMIN_CENTRO" && role !== "ADMINISTRACION")) {
-    throw new Error("No autorizado.");
+  // Anular es una decisión del mismo tipo que aprobar/rechazar: exclusiva
+  // de Dirección (y SuperAdmin). El resto del equipo directivo solo
+  // consulta las salidas, no decide sobre ellas.
+  if (!session?.user.id || (role !== "SUPERADMIN" && role !== "DIRECCION")) {
+    throw new Error("Solo Dirección o SuperAdmin puede anular una salida.");
   }
 
   const motivoLimpio = motivo?.trim();
@@ -357,6 +472,7 @@ export async function anularSalida(id: string, motivo: string) {
   revalidatePath("/dashboard");
 
   await clearNotificationsFor(id);
+  await eliminarTodosEventosTeamsSalida(id);
 
   try {
     const anuladoPor = await prisma.user.findUnique({
@@ -405,7 +521,7 @@ export async function deleteSalida(id: string) {
   const role = session.user.role;
   const puedeGestionarTodo =
     role === "SUPERADMIN" ||
-    ((role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION") && salida.schoolId === session.user.schoolId);
+    ((role === "DIRECCION" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION") && salida.schoolId === session.user.schoolId);
 
   if (!puedeGestionarTodo) {
     if (salida.creadoPorId !== session.user.id) {
@@ -416,6 +532,11 @@ export async function deleteSalida(id: string) {
     }
   }
 
+  // Hay que borrar los eventos de Teams ANTES de borrar la salida (el
+  // borrado de la salida arrastra en cascada las filas de SalidaTeamsEvento,
+  // así que después ya no tendríamos cómo saber qué evento borrar de cada
+  // calendario).
+  await eliminarTodosEventosTeamsSalida(id);
   await prisma.salida.delete({ where: { id } });
   revalidatePath("/dashboard/salidas");
   revalidatePath("/dashboard/salidas/aprobaciones");
@@ -468,7 +589,7 @@ export async function editarSalida(formData: FormData) {
   const role = session.user.role;
   const puedeGestionarTodo =
     role === "SUPERADMIN" ||
-    ((role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION") && salidaActual.schoolId === session.user.schoolId);
+    ((role === "DIRECCION" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION") && salidaActual.schoolId === session.user.schoolId);
 
   if (!puedeGestionarTodo) {
     if (salidaActual.creadoPorId !== session.user.id) {
@@ -594,11 +715,12 @@ export async function editarSalida(formData: FormData) {
 
     // A quien se ha quitado como acompañante: aviso de que ya no forma
     // parte de esta salida (la salida en sí sigue adelante, no se ha
-    // eliminado — solo se le ha quitado a él).
+    // eliminado — solo se le ha quitado a él), y se le borra su evento
+    // del calendario de Teams si lo tenía.
     if (removidos.length > 0) {
       const usuariosRemovidos = await prisma.user.findMany({
         where: { id: { in: removidos } },
-        select: { name: true, email: true },
+        select: { id: true, name: true, email: true },
       });
       await Promise.all(
         usuariosRemovidos.map((u) =>
@@ -612,14 +734,17 @@ export async function editarSalida(formData: FormData) {
           })
         )
       );
+      await Promise.all(usuariosRemovidos.map((u) => eliminarEventoTeamsAcompanante(id, u.id, u.email)));
     }
 
     // A quien se ha añadido nuevo como acompañante: toda la información,
-    // igual que cuando se aprueba la salida.
+    // igual que cuando se aprueba la salida, y su evento en el calendario
+    // de Teams (solo si la salida ya está aprobada — si sigue pendiente,
+    // el evento se creará cuando se apruebe, igual que a los demás).
     if (añadidos.length > 0) {
       const usuariosAñadidos = await prisma.user.findMany({
         where: { id: { in: añadidos } },
-        select: { name: true, email: true },
+        select: { id: true, name: true, email: true },
       });
       await Promise.all(
         usuariosAñadidos.map((u) =>
@@ -639,6 +764,54 @@ export async function editarSalida(formData: FormData) {
           })
         )
       );
+      const horaVueltaAñadidos = salidaActualizada.horaVuelta;
+      if (salidaActualizada.estado === "APROBADA" && horaVueltaAñadidos) {
+        await Promise.all(
+          usuariosAñadidos.map((u) =>
+            crearEventoTeamsAcompanante({
+              salidaId: id,
+              userId: u.id,
+              userEmail: u.email,
+              actividad: salidaActualizada.actividad,
+              curso: salidaActualizada.curso,
+              observaciones: salidaActualizada.observaciones,
+              fecha: salidaActualizada.fecha,
+              horaSalida: salidaActualizada.horaSalida,
+              horaVuelta: horaVueltaAñadidos,
+            })
+          )
+        );
+      }
+    }
+
+    // Los acompañantes que ya lo eran y lo siguen siendo: si la salida ya
+    // está aprobada (y por tanto ya tenían un evento en su calendario),
+    // se les recrea con los datos actualizados por si ha cambiado la
+    // fecha, la hora o la actividad.
+    const horaVueltaContinuan = salidaActualizada.horaVuelta;
+    if (salidaActualizada.estado === "APROBADA" && horaVueltaContinuan) {
+      const continuan = profesoresIds.filter((pid) => acompanantesAntes.has(pid));
+      if (continuan.length > 0) {
+        const usuariosContinuan = await prisma.user.findMany({
+          where: { id: { in: continuan } },
+          select: { id: true, name: true, email: true },
+        });
+        await Promise.all(
+          usuariosContinuan.map((u) =>
+            crearEventoTeamsAcompanante({
+              salidaId: id,
+              userId: u.id,
+              userEmail: u.email,
+              actividad: salidaActualizada.actividad,
+              curso: salidaActualizada.curso,
+              observaciones: salidaActualizada.observaciones,
+              fecha: salidaActualizada.fecha,
+              horaSalida: salidaActualizada.horaSalida,
+              horaVuelta: horaVueltaContinuan,
+            })
+          )
+        );
+      }
     }
   } catch {
     // La salida ya se ha actualizado; si el email falla no lo bloqueamos.

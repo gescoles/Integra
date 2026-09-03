@@ -1376,6 +1376,44 @@ export async function sendMaterialValidadoEmail(params: {
   });
 }
 
+// Dirección acaba de aprobar un material: Administración es quien tiene
+// que comprarlo de verdad, así que es quien recibe este aviso (no el
+// profesor, que ya recibe el suyo aparte con sendMaterialValidadoEmail).
+export async function sendMaterialParaComprarEmail(params: {
+  to: string;
+  adminNombre: string;
+  profesorNombre: string;
+  nombreMaterial: string;
+  curso: string;
+  cantidad: number;
+  precioUnidad: number;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+  const total = (params.cantidad * params.precioUnidad).toFixed(2);
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `Material aprobado, pendiente de comprar: ${params.nombreMaterial}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.adminNombre},</h2>
+        <p style="margin:0 0 12px;">Dirección ha aprobado el material que pidió ${params.profesorNombre} — ya puedes comprarlo.</p>
+        <div style="background:#F1F5F9; border-radius:8px; padding:16px; margin:16px 0;">
+          <p style="margin:0;"><strong>Material:</strong> ${params.nombreMaterial}</p>
+          <p style="margin:8px 0 0;"><strong>Curso:</strong> ${params.curso}</p>
+          <p style="margin:8px 0 0;"><strong>Cantidad:</strong> ${params.cantidad}</p>
+          <p style="margin:8px 0 0;"><strong>Total estimado:</strong> ${total} €</p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Cuando lo tengas, márcalo como comprado desde Docentium, en el apartado "Material", para que el profesor sepa que ya puede recogerlo.
+        </p>
+      </div>
+    `,
+  });
+}
+
 export async function sendMaterialCompradoEmail(params: {
   to: string;
   profesorNombre: string;
@@ -1844,6 +1882,56 @@ export async function sendPsicopedagogaAsignadaEmail(params: { to: string; nombr
         </p>
         <p style="color:#64748B; font-size:13px;">
           Desde ahora puedes entrar en Docentium, en Psicopedagogia, para gestionar los expedientes y los PI de los alumnos del centro.
+        </p>
+      </div>
+    `,
+  });
+}
+
+// Aviso al profesor "responsable" que el tutor elige al justificar una
+// hora — pensado sobre todo para el profesor de esa asignatura, para
+// que sepa que la ausencia de ese alumno en su clase ya está
+// justificada (o no), sin tener que preguntarlo.
+export async function sendJustificanteAvisoEmail(params: {
+  to: string;
+  avisadoNombre: string;
+  alumnoNombre: string;
+  asignatura: string | null;
+  fecha: Date;
+  horaInicio: string;
+  horaFin: string;
+  entregado: boolean;
+  actualizado?: boolean;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  });
+
+  const verbo = params.actualizado ? "actualizado" : "registrado";
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: `${params.actualizado ? "Actualizado: " : ""}${params.alumnoNombre} tiene una hora justificada${params.asignatura ? ` de ${params.asignatura}` : ""}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#0B1D4D; margin-bottom: 8px;">Hola ${params.avisadoNombre}</h2>
+        <p style="color:#64748B; font-size:13px; margin-top:0;">
+          El tutor/a de <strong>${params.alumnoNombre}</strong> ha ${verbo} una ausencia
+          ${params.asignatura ? `en <strong>${params.asignatura}</strong> ` : ""}que te afecta a ti.
+        </p>
+        <div style="background:#FEF2F2; border-radius:8px; padding:16px; margin:16px 0; border:1px solid #FECACA;">
+          <p style="margin:0;"><strong>Fecha:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0;"><strong>Hora:</strong> ${params.horaInicio} – ${params.horaFin}</p>
+          <p style="margin:8px 0 0;"><strong>Justificante:</strong> ${params.entregado ? "Entregado" : "Todavía no entregado"}</p>
+        </div>
+        <p style="color:#64748B; font-size:13px;">
+          Puedes consultar el historial completo del alumno desde Docentium, en Justificantes Ausencia.
         </p>
       </div>
     `,

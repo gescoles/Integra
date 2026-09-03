@@ -13,7 +13,7 @@ type Noticia = {
   titulo: string;
   resumen: string;
   imagenPortada: string | null;
-  categoria: "CENTRO" | "EDUCACION_ESPANA";
+  categoria: "CENTRO" | "EDUCACION_ESPANA" | "CIENCIA" | "IA" | "BUENAS_NOTICIAS";
   escuela: string | null;
   publicada: boolean;
   publishedAt: string | null;
@@ -94,7 +94,15 @@ export function NoticiasAdminClient({ noticias, centros }: { noticias: Noticia[]
               </div>
               <div className="p-4">
                 <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-[#FD5249]">
-                  {n.categoria === "CENTRO" ? n.escuela : "Educación en España"}
+                  {n.categoria === "CENTRO"
+                    ? n.escuela
+                    : n.categoria === "CIENCIA"
+                      ? "Ciencia"
+                      : n.categoria === "IA"
+                        ? "Inteligencia artificial"
+                        : n.categoria === "BUENAS_NOTICIAS"
+                          ? "Buenas noticias"
+                          : "Educación en España"}
                 </p>
                 <h3 className="mb-1 line-clamp-2 text-sm font-bold text-[#0B1D4D]">{n.titulo}</h3>
                 <p className="mb-3 line-clamp-2 text-xs text-slate-500">{n.resumen}</p>

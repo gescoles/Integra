@@ -16,7 +16,7 @@ export default async function CertificacionesPage() {
   const userName = session?.user.name || session?.user.email.split("@")[0] || "Usuario";
   const userId = session?.user.id ?? null;
   const schoolId = session?.user.schoolId ?? null;
-  const esDirectivo = role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
+  const esDirectivo = role === "SUPERADMIN" || role === "DIRECCION" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
 
   if (!schoolId) {
     return (

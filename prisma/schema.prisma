@@ -19,10 +19,17 @@ enum EstadoPresencia {
 
 enum Role {
   SUPERADMIN
+  // Por encima del resto del equipo directivo: tiene todos sus permisos
+  // y, además, es el único rol (junto a SuperAdmin) que puede aprobar
+  // salidas, validar material y gestionar guardias (asignar sustituto,
+  // aceptar/rechazar ausencias, editar o eliminar) — el resto del equipo
+  // directivo se queda en esos 3 módulos con acceso de solo lectura.
+  DIRECCION
   ADMIN_CENTRO
   COORDINADOR
   // Mismos permisos que Coordinador/Admin. de Centro en todo lo demás,
-  // pero es quien gestiona de verdad la compra del material (Material).
+  // pero es quien gestiona de verdad la compra del material (Material):
+  // es el único rol que puede marcar un material como comprado.
   ADMINISTRACION
   PROFESOR
 }
@@ -48,6 +55,10 @@ enum SchoolStatus {
   ACTIVO
   REVISION
   INACTIVO
+  // Centro archivado por el SuperAdmin: sus usuarios no pueden iniciar
+  // sesión mientras dure, y vuelven a poder en cuanto se desarchiva —
+  // pero no se borra nada, a diferencia de "Eliminar centro".
+  ARCHIVADO
 }
 
 enum Locale {
@@ -123,6 +134,7 @@ model School {
   coberturas CoberturaGuardia[]
   departamentos Departamento[]
   modulosProfesionales ModuloProfesional[]
+  justificantesAsistencia JustificanteAsistencia[]
 }
 
 // Departamento del centro (p. ej. "Matemàtiques", "Informàtica"). Cada
@@ -455,6 +467,7 @@ model User {
   salidasCreadas     Salida[] @relation("SalidaCreador")
   salidasResponsable Salida[] @relation("SalidaResponsable")
   salidasAnuladas    Salida[] @relation("SalidaAnuladaPor")
+  salidaEventosTeams SalidaTeamsEvento[]
   practicasComoTutor PracticaAlumno[] @relation("PracticaTutorIMES")
   practicasComoResponsable PracticaAlumno[] @relation("PracticaResponsable")
   conveniosCerrados  Convenio[] @relation("ConvenioCerradoPor")
@@ -478,6 +491,8 @@ model User {
   departamentos             Departamento[]     @relation("DepartamentoProfesores")
   departamentosCoordinados  Departamento[]     @relation("DepartamentoCoordinadores")
   notificaciones     Notificacion[]
+  justificantesCreados JustificanteAsistencia[] @relation("JustificanteCreador")
+  justificantesAvisado JustificanteAsistencia[] @relation("JustificanteAvisado")
 }
 
 enum TutoriaStatus {
@@ -572,6 +587,38 @@ model Alumno {
   expedientes Expediente[]
   alumnoPI AlumnoPI?
   historial AlumnoHistorial[]
+  justificantes JustificanteAsistencia[]
+}
+
+// Justificantes de asistencia: cuándo ha faltado un alumno (fecha y
+// franja horaria) y si ha entregado o no el justificante de esa
+// ausencia. Cualquier profesor del centro puede CONSULTARLO todo, pero
+// solo puede AÑADIR justificantes a los alumnos que él mismo tutoriza
+// (alumno.profesorId) — eso se controla en las acciones, no aquí.
+// Dirección/Coordinación puede añadir a cualquier alumno.
+model JustificanteAsistencia {
+  id          String   @id @default(cuid())
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id])
+  alumnoId    String
+  alumno      Alumno   @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
+  fecha       DateTime
+  horaInicio  String
+  horaFin     String
+  // Asignatura de esa hora (texto libre, igual que en Guardias) y, si el
+  // tutor lo elige, el profesor "responsable" de avisar — normalmente el
+  // que da esa asignatura — para que reciba email + notificación de que
+  // esa hora del alumno ya está justificada.
+  asignatura  String?
+  entregado   Boolean  @default(false)
+  creadoPorId String?
+  creadoPor   User?    @relation("JustificanteCreador", fields: [creadoPorId], references: [id], onDelete: SetNull)
+  avisadoId   String?
+  avisado     User?    @relation("JustificanteAvisado", fields: [avisadoId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+
+  @@index([alumnoId])
+  @@index([schoolId, fecha])
 }
 
 enum TipoDocumento {
@@ -673,6 +720,27 @@ model Salida {
   creadoPor    User         @relation("SalidaCreador", fields: [creadoPorId], references: [id])
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @default(now()) @updatedAt
+  eventosTeams SalidaTeamsEvento[]
+}
+
+// Un evento de calendario de Teams por cada profesor acompañante de una
+// salida ya aprobada — cada uno tiene su propio evento en su propio
+// calendario, así que hace falta guardar el id de cada uno por separado
+// (a diferencia de una guardia, donde solo hay un sustituto). Se crea al
+// aprobar la salida o al añadir a alguien nuevo por edición, se borra al
+// quitarlo/anular/eliminar la salida, y se recrea si cambian fecha u
+// horas mientras la persona sigue siendo acompañante.
+model SalidaTeamsEvento {
+  id           String   @id @default(cuid())
+  salidaId     String
+  salida       Salida   @relation(fields: [salidaId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teamsEventId String
+  createdAt    DateTime @default(now())
+
+  @@unique([salidaId, userId])
+  @@index([salidaId])
 }
 
 enum Promocion {
@@ -886,6 +954,10 @@ model Guardia {
   tarea      String?
   fecha      DateTime
   status     GuardiaStatus @default(PENDIENTE)
+  // Id del evento creado en el calendario de Teams del profesor, para
+  // poder borrarlo si la guardia se cancela o se edita — sin esto, el
+  // evento se queda huérfano en su calendario para siempre.
+  teamsEventId String?
   createdAt  DateTime      @default(now())
 }
 
@@ -1002,6 +1074,11 @@ model CoberturaGuardia {
   justificanteFecha   DateTime?
   creadoPorId         String
   creadoPor           User            @relation("CoberturaCreador", fields: [creadoPorId], references: [id])
+  // Id del evento creado en el calendario de Teams del sustituto, para
+  // poder borrarlo si la cobertura se cancela, se reasigna a otra
+  // persona o se edita — sin esto, el evento se queda huérfano en su
+  // calendario para siempre.
+  teamsEventId        String?
   createdAt           DateTime        @default(now())
 }
 
@@ -1044,6 +1121,9 @@ enum NoticiaModo {
 enum NoticiaCategoria {
   CENTRO // noticia/publicidad de un centro concreto
   EDUCACION_ESPANA // noticia general de educación en España, sin centro asociado
+  CIENCIA // actualidad científica, sin centro asociado
+  BUENAS_NOTICIAS // noticias positivas de actualidad general, sin centro asociado
+  IA // actualidad de inteligencia artificial, sin centro asociado
 }
 
 // Noticias/publicidad que el SuperAdmin publica en la web pública de

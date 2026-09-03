@@ -7,11 +7,14 @@ import { createSchool } from "./actions";
 import { MODULES, PLAN_LABELS, TYPE_LABELS } from "./constants";
 import { ButtonSpinner } from "../components/ButtonSpinner";
 
+type DestinoBackup = "ninguno" | "drive" | "onedrive" | "ambos";
+
 export function CreateSchoolModal() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [destino, setDestino] = useState<DestinoBackup>("ninguno");
   const formRef = useRef<HTMLFormElement>(null);
 
   async function handleSubmit(formData: FormData) {
@@ -21,6 +24,7 @@ export function CreateSchoolModal() {
       await createSchool(formData);
       setOpen(false);
       formRef.current?.reset();
+      setDestino("ninguno");
       router.refresh();
     } catch (e) {
       setError(
@@ -163,26 +167,44 @@ export function CreateSchoolModal() {
               <div className="rounded-lg border border-slate-200 p-3">
                 <p className="mb-2 text-sm font-semibold text-slate-700">Copia de seguridad</p>
                 <p className="mb-3 text-[11px] text-slate-400">
-                  Dónde se guarda la copia de este centro (la carpeta con su nombre, con las carpetas de tutorías, prácticas... y todos los excels, .sql y .json dentro). Puedes dejarlo vacío y configurarlo luego desde Backup → &quot;Destinos por centro&quot;.
+                  Dónde se guarda la copia de este centro (la carpeta con su nombre, con las carpetas de tutorías, prácticas... y todos los excels, .sql y .json dentro). Si no pones una carpeta de Drive propia, se usa la carpeta general de la cuenta de Drive ya conectada (con su propia subcarpeta para este centro, nunca mezclada con otro). OneDrive es distinto: si no pones un correo, sencillamente no se sube nada ahí para este centro.
                 </p>
+
+                <label className="mb-1.5 block text-xs font-semibold text-slate-600">Dónde guardar</label>
+                <select
+                  value={destino}
+                  onChange={(e) => setDestino(e.target.value as DestinoBackup)}
+                  className="mb-3 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+                >
+                  <option value="ninguno">Solo Google Drive (carpeta general)</option>
+                  <option value="drive">Google Drive (carpeta propia)</option>
+                  <option value="onedrive">Microsoft OneDrive</option>
+                  <option value="ambos">Google Drive (carpeta propia) y OneDrive</option>
+                </select>
+
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 block text-xs font-semibold text-slate-600">Carpeta de Google Drive</label>
-                    <input
-                      name="driveBackupFolderId"
-                      placeholder="Id de la carpeta (opcional)"
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-semibold text-slate-600">Correo de OneDrive</label>
-                    <input
-                      name="oneDriveBackupEmail"
-                      type="email"
-                      placeholder="correo@tucentro.com (opcional)"
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
-                    />
-                  </div>
+                  {(destino === "drive" || destino === "ambos") && (
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold text-slate-600">Carpeta de Google Drive</label>
+                      <input
+                        name="driveBackupFolderId"
+                        placeholder="Id o enlace de la carpeta"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+                      />
+                    </div>
+                  )}
+                  {(destino === "onedrive" || destino === "ambos") && (
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold text-slate-600">Correo de OneDrive</label>
+                      <input
+                        name="oneDriveBackupEmail"
+                        type="email"
+                        required
+                        placeholder="correo@tucentro.com"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 

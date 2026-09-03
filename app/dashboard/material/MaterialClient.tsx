@@ -30,12 +30,16 @@ export function MaterialClient({
   rows,
   currentUserId,
   canManageAll = false,
+  canValidar = false,
+  canComprar = false,
   schoolId,
   showFilters = false,
 }: {
   rows: MaterialRow[];
   currentUserId: string;
   canManageAll?: boolean;
+  canValidar?: boolean;
+  canComprar?: boolean;
   schoolId?: string;
   showFilters?: boolean;
 }) {
@@ -223,7 +227,7 @@ export function MaterialClient({
                     </td>
                     <td className="py-4">
                       <div className="flex items-center gap-1">
-                        {canManageAll && r.estado === "PENDIENTE_VALIDACION" && (
+                        {canValidar && r.estado === "PENDIENTE_VALIDACION" && (
                           <button
                             onClick={() => handleValidar(r.id)}
                             disabled={isPending}
@@ -233,7 +237,7 @@ export function MaterialClient({
                             <CheckCircle2 className="h-4 w-4" /> Validar
                           </button>
                         )}
-                        {canManageAll && r.estado === "VALIDADO_PENDIENTE_COMPRA" && (
+                        {canComprar && r.estado === "VALIDADO_PENDIENTE_COMPRA" && (
                           <button
                             onClick={() => handleComprado(r.id)}
                             disabled={isPending}

@@ -54,7 +54,7 @@ export default async function MisAlumnosPage({
   const userId = session?.user.id ?? "";
   const role = session?.user.role ?? "PROFESOR";
   const isSuperAdmin = role === "SUPERADMIN";
-  const isEquipoDirectivo = role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
+  const isEquipoDirectivo = role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION" || role === "DIRECCION";
 
   if (isSuperAdmin) {
     const schools = await prisma.school.findMany({

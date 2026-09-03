@@ -85,8 +85,11 @@ export default async function SalidasPage({
     session?.user.name || session?.user.email.split("@")[0] || "Usuario";
   const role = session?.user.role ?? "PROFESOR";
   const isSuperAdmin = role === "SUPERADMIN";
-  const isEquipoDirectivo = role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
+  const isEquipoDirectivo = role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION" || role === "DIRECCION";
   const isProfesor = role === "PROFESOR";
+  // Anular es una decisión exclusiva de Dirección/SuperAdmin, igual que
+  // aprobar/rechazar — el resto del equipo directivo solo consulta.
+  const puedeAnularSesion = isSuperAdmin || role === "DIRECCION";
 
   if (isSuperAdmin) {
     const schools = await prisma.school.findMany({
@@ -173,7 +176,7 @@ export default async function SalidasPage({
         departamentos={departamentos}
         currentUserId={userId}
         canManageAll={isEquipoDirectivo}
-        puedeAnular={isEquipoDirectivo}
+        puedeAnular={puedeAnularSesion}
         showFilters
         schoolId={schoolId}
       />

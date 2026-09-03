@@ -161,7 +161,18 @@ export function BackupClient({
       if (fallidos.length > 0) {
         setError(`Se ha completado con algún fallo: ${fallidos.map((f) => f.centro).join(", ")}.`);
       } else {
-        setExito("Copia en Excel por módulos guardada en Drive correctamente.");
+        // El mensaje dice de verdad a dónde se ha subido — según lo que
+        // tenga configurado cada centro, puede ser solo Drive, solo
+        // OneDrive, o los dos a la vez.
+        const usoDrive = resultados.some((r) => r.usoDrive);
+        const usoOneDrive = resultados.some((r) => r.usoOneDrive);
+        const destino =
+          usoDrive && usoOneDrive
+            ? "en Google Drive y OneDrive"
+            : usoOneDrive
+              ? "en OneDrive"
+              : "en Google Drive";
+        setExito(`Copia en Excel por módulos guardada ${destino} correctamente.`);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo generar la copia en Excel.");
@@ -566,6 +577,7 @@ function DestinosBackupPanel({
   const { locale } = useLocale();
   const [driveBackupFolderId, setDriveBackupFolderId] = useState("");
   const [oneDriveBackupEmail, setOneDriveBackupEmail] = useState("");
+  const [destino, setDestino] = useState<"ninguno" | "drive" | "onedrive" | "ambos">("ninguno");
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [guardado, setGuardado] = useState(false);
@@ -579,9 +591,20 @@ function DestinosBackupPanel({
       .then((d) => {
         setDriveBackupFolderId(d.driveBackupFolderId);
         setOneDriveBackupEmail(d.oneDriveBackupEmail);
+        const tieneDrive = Boolean(d.driveBackupFolderId);
+        const tieneOneDrive = Boolean(d.oneDriveBackupEmail);
+        setDestino(tieneDrive && tieneOneDrive ? "ambos" : tieneDrive ? "drive" : tieneOneDrive ? "onedrive" : "ninguno");
       })
       .finally(() => setCargando(false));
   }, [centroElegido]);
+
+  function handleCambiarDestino(nuevo: "ninguno" | "drive" | "onedrive" | "ambos") {
+    setDestino(nuevo);
+    // Al quitar una opción del desplegable, se borra también su valor —
+    // así no se guarda a escondidas algo que ya no se ve en pantalla.
+    if (nuevo !== "drive" && nuevo !== "ambos") setDriveBackupFolderId("");
+    if (nuevo !== "onedrive" && nuevo !== "ambos") setOneDriveBackupEmail("");
+  }
 
   async function handleGuardar() {
     setGuardando(true);
@@ -607,35 +630,53 @@ function DestinosBackupPanel({
       ) : (
         <div className="space-y-4">
           <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
-            Si dejas alguno de los dos vacío, ese centro sigue usando el destino general de la plataforma (Google Drive) o, en el caso de OneDrive, simplemente no se sube nada ahí para este centro.
+            Si no pones una carpeta de Drive propia, este centro usa la carpeta general de la cuenta de Drive ya conectada (con su propia subcarpeta, nunca mezclada con otro centro). OneDrive es distinto: sin correo propio, no se sube nada ahí para este centro.
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-700">Carpeta de Google Drive</label>
-            <input
-              value={driveBackupFolderId}
-              onChange={(e) => setDriveBackupFolderId(e.target.value)}
-              placeholder="Id de la carpeta de Drive (déjalo vacío para usar la general)"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
-            />
-            <p className="mt-1 text-[11px] text-slate-400">
-              Va dentro de la misma cuenta de Google ya conectada a la plataforma — copia el id de la carpeta desde su URL en Drive.
-            </p>
+            <label className="mb-1.5 block text-sm font-semibold text-slate-700">Dónde guardar</label>
+            <select
+              value={destino}
+              onChange={(e) => handleCambiarDestino(e.target.value as typeof destino)}
+              className="w-full max-w-xs rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+            >
+              <option value="ninguno">Solo Google Drive (carpeta general)</option>
+              <option value="drive">Google Drive (carpeta propia)</option>
+              <option value="onedrive">Microsoft OneDrive</option>
+              <option value="ambos">Google Drive (carpeta propia) y OneDrive</option>
+            </select>
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-700">Correo de OneDrive</label>
-            <input
-              type="email"
-              value={oneDriveBackupEmail}
-              onChange={(e) => setOneDriveBackupEmail(e.target.value)}
-              placeholder="correo@tucentro.com"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
-            />
-            <p className="mt-1 text-[11px] text-slate-400">
-              El correo de Microsoft 365 del centro en cuyo OneDrive se guarda esta copia.
-            </p>
-          </div>
+          {(destino === "drive" || destino === "ambos") && (
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-slate-700">Carpeta de Google Drive</label>
+              <input
+                value={driveBackupFolderId}
+                onChange={(e) => setDriveBackupFolderId(e.target.value)}
+                placeholder="Id o enlace de la carpeta de Drive"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+              />
+              <p className="mt-1 text-[11px] text-slate-400">
+                Va dentro de la misma cuenta de Google ya conectada a la plataforma — copia el id de la carpeta desde su URL en Drive.
+              </p>
+            </div>
+          )}
+
+          {(destino === "onedrive" || destino === "ambos") && (
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-slate-700">Correo de OneDrive</label>
+              <input
+                type="email"
+                value={oneDriveBackupEmail}
+                onChange={(e) => setOneDriveBackupEmail(e.target.value)}
+                placeholder="correo@tucentro.com"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+              />
+              <p className="mt-1 text-[11px] text-slate-400">
+                El correo de Microsoft 365 del centro en cuyo OneDrive se guarda esta copia.
+              </p>
+            </div>
+          )}
 
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex items-center gap-3">

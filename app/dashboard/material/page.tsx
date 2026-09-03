@@ -43,7 +43,12 @@ export default async function MaterialPage({
     session?.user.name || session?.user.email.split("@")[0] || "Usuario";
   const role = session?.user.role ?? "COORDINADOR";
   const isSuperAdmin = role === "SUPERADMIN";
-  const isCoordinacion = role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
+  const isCoordinacion = role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION" || role === "DIRECCION";
+  // Validar (aprobar la compra) es exclusivo de Dirección; marcarlo como
+  // comprado, de Administración — el resto del equipo directivo ve todo
+  // el material del centro pero sin esos dos botones.
+  const canValidar = isSuperAdmin || role === "DIRECCION";
+  const canComprar = isSuperAdmin || role === "ADMINISTRACION";
 
   // SuperAdmin: elige cualquier centro y ve/gestiona TODO su material.
   // Coordinación/Dirección: ve TODO el material de su propio centro (de
@@ -76,7 +81,7 @@ export default async function MaterialPage({
       <div>
         <DashboardHeader title={translate(locale, "material.title")} subtitle={translate(locale, "material.subtitle.superadmin")} userName={userName} role={role} />
         <SchoolSwitcher schools={schools} currentSchoolId={searchParams.school} locale={locale} basePath="/dashboard/material" />
-        <MaterialClient rows={rows} currentUserId={session!.user.id} canManageAll schoolId={searchParams.school} showFilters />
+        <MaterialClient rows={rows} currentUserId={session!.user.id} canManageAll canValidar canComprar schoolId={searchParams.school} showFilters />
       </div>
     );
   }
@@ -142,6 +147,8 @@ export default async function MaterialPage({
         rows={rows}
         currentUserId={userId}
         canManageAll={isCoordinacion}
+        canValidar={canValidar}
+        canComprar={canComprar}
         schoolId={schoolId}
         showFilters={isCoordinacion}
       />

@@ -7,7 +7,7 @@ import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
 function esDirectivo(role?: string) {
-  return role === "SUPERADMIN" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
+  return role === "SUPERADMIN" || role === "DIRECCION" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
 }
 
 async function requiereSuperAdmin() {
@@ -65,7 +65,7 @@ export async function obtenerProfesoresParaPsicopedagoga(schoolId: string) {
     orderBy: { name: "asc" },
   });
   const etiquetaRol = (role: string) =>
-    role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION" ? "Equipo directivo" : "Profesor/a";
+    role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION" || role === "DIRECCION" ? "Equipo directivo" : "Profesor/a";
   return profesores.map((p) => ({ id: p.id, nombre: p.name ?? p.email, rol: etiquetaRol(p.role) }));
 }
 
