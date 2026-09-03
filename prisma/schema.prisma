@@ -494,6 +494,26 @@ model User {
   justificantesCreados JustificanteAsistencia[] @relation("JustificanteCreador")
   justificantesAvisado JustificanteAsistencia[] @relation("JustificanteAvisado")
   deviceTokens DeviceToken[]
+  webPushSubscriptions WebPushSubscription[]
+}
+
+// Suscripción a notificaciones push del navegador (Web Push estándar —
+// funciona en Android e iPhone/iPad si el usuario ha "añadido la web a
+// pantalla de inicio", sin pasar por ninguna tienda de apps). Es un
+// sistema aparte del de la app Android (Firebase/DeviceToken): un mismo
+// usuario puede tener token de la app Y suscripción del navegador a la
+// vez, y recibe el aviso por los dos si los tiene.
+model WebPushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([userId])
 }
 
 // Token de notificaciones push (Firebase Cloud Messaging) del móvil de un

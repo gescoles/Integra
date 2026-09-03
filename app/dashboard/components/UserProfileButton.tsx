@@ -5,7 +5,8 @@ import { ChevronDown, Camera, X, LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useUserAvatar } from "../SchoolContext";
 import { uploadMyAvatar } from "../profileActions";
-import { eliminarDeviceToken } from "../notificationsActions";
+import { eliminarDeviceToken, eliminarWebPushSubscription } from "../notificationsActions";
+import { WEB_PUSH_ENDPOINT_KEY } from "./WebPushRegistration";
 import { translate, AppLocale } from "../i18n";
 import { ButtonSpinner } from "./ButtonSpinner";
 
@@ -19,9 +20,20 @@ const DEVICE_TOKEN_KEY = "docentium_push_token";
 async function olvidarDispositivoPush() {
   try {
     const token = window.localStorage.getItem(DEVICE_TOKEN_KEY);
-    if (!token) return;
-    await eliminarDeviceToken(token);
-    window.localStorage.removeItem(DEVICE_TOKEN_KEY);
+    if (token) {
+      await eliminarDeviceToken(token);
+      window.localStorage.removeItem(DEVICE_TOKEN_KEY);
+    }
+  } catch {
+    // No pasa nada si falla — el cierre de sesión sigue adelante igual.
+  }
+
+  try {
+    const endpoint = window.localStorage.getItem(WEB_PUSH_ENDPOINT_KEY);
+    if (endpoint) {
+      await eliminarWebPushSubscription(endpoint);
+      window.localStorage.removeItem(WEB_PUSH_ENDPOINT_KEY);
+    }
   } catch {
     // No pasa nada si falla — el cierre de sesión sigue adelante igual.
   }

@@ -6,6 +6,7 @@ import { Sidebar } from "./components/Sidebar";
 import { ChatWidget } from "./components/ChatWidget";
 import { ChatInternoWidget } from "./components/ChatInternoWidget";
 import { PushRegistration } from "./components/PushRegistration";
+import { WebPushRegistration } from "./components/WebPushRegistration";
 import { NativeBackButton } from "./components/NativeBackButton";
 import { SavingOverlay } from "./components/SavingOverlay";
 import { GlobalSavingListener } from "./components/GlobalSavingListener";
@@ -97,6 +98,7 @@ export default async function DashboardLayout({
         <ChatWidget userName={userName} />
         {!cuentaInactiva && contractedModules.includes("comunicacion") && <ChatInternoWidget />}
         <PushRegistration />
+        <WebPushRegistration />
         <NativeBackButton />
         <SavingOverlay />
         <GlobalSavingListener />

@@ -1,36 +1,55 @@
-// Service worker deliberadamente sencillo: NO cachea agresivamente (para no
-// arriesgarnos a servir una versión vieja de la app después de cada
-// despliegue). Solo existe para que el navegador considere la web
-// "instalable" como PWA y para dar una respuesta mínima si el usuario se
-// queda sin conexión un instante.
-
-const CACHE_NAME = "integra-shell-v1";
+// Service worker de Docentium — solo se encarga de las notificaciones Web
+// Push (recibirlas y abrir la app al tocarlas). No cachea nada de la web
+// a propósito: Docentium siempre tiene que mostrar datos en vivo, no una
+// versión guardada de hace un rato.
 
 self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
-  );
-  self.clients.claim();
+  event.waitUntil(self.clients.claim());
 });
 
-self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
 
-  event.respondWith(
-    fetch(event.request)
-      .then((res) => {
-        if (event.request.mode === "navigate" && res.ok) {
-          const copia = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copia));
+  let data;
+  try {
+    data = event.data.json();
+  } catch {
+    data = { title: "Docentium", body: event.data.text() };
+  }
+
+  const titulo = data.title || "Docentium";
+  const opciones = {
+    body: data.body || "",
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    data: { link: data.link || "/dashboard" },
+  };
+
+  event.waitUntil(self.registration.showNotification(titulo, opciones));
+});
+
+// Al tocar la notificación: si ya hay una pestaña/ventana de Docentium
+// abierta, la enfoca y la lleva a la página del aviso; si no, abre una
+// nueva.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const link = event.notification.data?.link || "/dashboard";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ("focus" in client) {
+          client.navigate(link);
+          return client.focus();
         }
-        return res;
-      })
-      .catch(() => caches.match(event.request))
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(link);
+      }
+    })
   );
 });

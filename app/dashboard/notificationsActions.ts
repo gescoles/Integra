@@ -30,6 +30,26 @@ export async function eliminarDeviceToken(token: string) {
   await prisma.deviceToken.deleteMany({ where: { token } });
 }
 
+// Igual que registrarDeviceToken/eliminarDeviceToken, pero para Web Push
+// (la web guardada en pantalla de inicio de cualquier móvil, no solo la
+// app Android) — un mismo "endpoint" identifica de forma única al
+// navegador/dispositivo que se suscribió.
+export async function registrarWebPushSubscription(sub: { endpoint: string; p256dh: string; auth: string }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user.id || !sub?.endpoint || !sub.p256dh || !sub.auth) return;
+
+  await prisma.webPushSubscription.upsert({
+    where: { endpoint: sub.endpoint },
+    create: { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth, userId: session.user.id },
+    update: { p256dh: sub.p256dh, auth: sub.auth, userId: session.user.id },
+  });
+}
+
+export async function eliminarWebPushSubscription(endpoint: string) {
+  if (!endpoint) return;
+  await prisma.webPushSubscription.deleteMany({ where: { endpoint } });
+}
+
 export async function getMyNotifications() {
   const session = await getServerSession(authOptions);
   if (!session?.user.id) return { notificaciones: [], noLeidas: 0 };

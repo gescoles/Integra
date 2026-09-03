@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { sendPushToTokens } from "@/lib/firebaseAdmin";
+import { sendWebPushToSubscriptions } from "@/lib/webPush";
 
 export async function notifyUsers(
   userIds: string[],
@@ -19,20 +20,39 @@ export async function notifyUsers(
   });
 
   // Además de guardarla en la app, se manda como notificación push de
-  // verdad a quien tenga la app Android instalada y haya dado permiso —
-  // mejor esfuerzo: si Firebase no está configurado o falla, la
-  // notificación ya se ha guardado igualmente arriba.
+  // verdad a quien tenga la app Android instalada y haya dado permiso
+  // (Firebase) y/o la web guardada en pantalla de inicio (Web Push,
+  // Android o iPhone/iPad) — mejor esfuerzo en los dos casos: si algo no
+  // está configurado o falla, la notificación ya se ha guardado
+  // igualmente arriba, en la campanita de la app.
   try {
-    const tokens = await prisma.deviceToken.findMany({
-      where: { userId: { in: userIds } },
-      select: { token: true },
-    });
-    if (tokens.length > 0) {
-      await sendPushToTokens(
-        tokens.map((t) => t.token),
-        { titulo: data.titulo, mensaje: data.mensaje, link: data.link }
-      );
-    }
+    const [tokens, subscripciones] = await Promise.all([
+      prisma.deviceToken.findMany({ where: { userId: { in: userIds } }, select: { token: true } }),
+      prisma.webPushSubscription.findMany({
+        where: { userId: { in: userIds } },
+        select: { endpoint: true, p256dh: true, auth: true },
+      }),
+    ]);
+
+    await Promise.all([
+      tokens.length > 0
+        ? sendPushToTokens(
+            tokens.map((t) => t.token),
+            { titulo: data.titulo, mensaje: data.mensaje, link: data.link }
+          )
+        : Promise.resolve(),
+      subscripciones.length > 0
+        ? sendWebPushToSubscriptions(subscripciones, {
+            titulo: data.titulo,
+            mensaje: data.mensaje,
+            link: data.link,
+          }).then((caducadas) => {
+            if (caducadas.length > 0) {
+              return prisma.webPushSubscription.deleteMany({ where: { endpoint: { in: caducadas } } });
+            }
+          })
+        : Promise.resolve(),
+    ]);
   } catch (e) {
     console.error("No se pudo mandar la notificación push:", e);
   }
