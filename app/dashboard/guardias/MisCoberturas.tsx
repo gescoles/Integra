@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowUpRight, ArrowDownLeft, Search } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, Search, ClipboardList } from "lucide-react";
 import { obtenerMisCoberturas, obtenerMisSolicitudesPendientes, obtenerProfesoresDelCentro } from "./actions";
 import { useLocale } from "../SchoolContext";
 import { translate } from "../i18n";
@@ -11,6 +11,7 @@ type EstadoItem = "PENDIENTE" | "ASIGNADA" | "RECHAZADA";
 type Item = {
   id: string;
   otroNombre?: string;
+  tarea?: string | null;
   fecha: string;
   horaInicio: string;
   horaFin: string;
@@ -42,7 +43,7 @@ function InsigniaEstado({ estado }: { estado: EstadoItem }) {
   );
 }
 
-function FilaCobertura({ item, otroLabel }: { item: Item; otroLabel: string }) {
+function FilaCobertura({ item, otroLabel }: { item: Item; otroLabel: string | null }) {
   const { locale } = useLocale();
   const fondos: Record<EstadoItem, string> = {
     PENDIENTE: "border-amber-200 bg-amber-50/50",
@@ -55,6 +56,8 @@ function FilaCobertura({ item, otroLabel }: { item: Item; otroLabel: string }) {
         <p className="text-sm font-semibold text-slate-700">
           {item.estado !== "ASIGNADA" ? (
             <span className="text-slate-500">{translate(locale, "guardias.tuAusencia")}</span>
+          ) : otroLabel === null ? (
+            <span className="text-[#0B1D4D]">{item.tarea || "Guardia asignada"}</span>
           ) : (
             <>
               {otroLabel}: <span className="font-bold text-[#0B1D4D]">{item.otroNombre}</span>
@@ -83,9 +86,10 @@ export function MisCoberturas({
   schoolId?: string;
 }) {
   const { locale } = useLocale();
-  const [tab, setTab] = useState<"cubiertas" | "recibidas">("cubiertas");
+  const [tab, setTab] = useState<"cubiertas" | "recibidas" | "asignadas">("cubiertas");
   const [cubiertas, setCubiertas] = useState<Item[]>([]);
   const [recibidas, setRecibidas] = useState<Item[]>([]);
+  const [asignadas, setAsignadas] = useState<Item[]>([]);
   const [pendientes, setPendientes] = useState<Item[]>([]);
   const [cargado, setCargado] = useState(modo === "propio" ? false : true);
 
@@ -102,7 +106,7 @@ export function MisCoberturas({
   useEffect(() => {
     if (modo === "propio") {
       Promise.all([obtenerMisCoberturas(), obtenerMisSolicitudesPendientes()]).then(
-        ([{ cubiertas, recibidas: recibidasAsignadas }, pendientesRaw]) => {
+        ([{ cubiertas, recibidas: recibidasAsignadas, asignadas }, pendientesRaw]) => {
           // Los dos orígenes tienen formas distintas (las coberturas ya
           // asignadas traen otroNombre/ubicacion; las solicitudes pendientes
           // todavía no, porque aún no hay sustituto), así que se normalizan
@@ -120,6 +124,7 @@ export function MisCoberturas({
 
           setCubiertas(cubiertas);
           setRecibidas(recibidasCombinadas);
+          setAsignadas(asignadas);
           setPendientes(pendientesComoItem.filter((p) => p.estado === "PENDIENTE"));
           setCargado(true);
           if (pendientesComoItem.length > 0) setTab("recibidas");
@@ -131,16 +136,17 @@ export function MisCoberturas({
   useEffect(() => {
     if (modo === "buscador" && profesorElegido) {
       setCargado(false);
-      obtenerMisCoberturas(profesorElegido.id).then(({ cubiertas, recibidas }) => {
+      obtenerMisCoberturas(profesorElegido.id).then(({ cubiertas, recibidas, asignadas }) => {
         setCubiertas(cubiertas);
         setRecibidas(recibidas);
+        setAsignadas(asignadas);
         setCargado(true);
       });
     }
   }, [modo, profesorElegido]);
 
   const profesoresFiltrados = profesores.filter((p) => p.nombre.toLowerCase().includes(busqueda.toLowerCase()));
-  const lista = tab === "cubiertas" ? cubiertas : recibidas;
+  const lista = tab === "cubiertas" ? cubiertas : tab === "recibidas" ? recibidas : asignadas;
 
   return (
     <div className="mb-8">
@@ -209,6 +215,14 @@ export function MisCoberturas({
                 </span>
               )}
             </button>
+            <button
+              onClick={() => setTab("asignadas")}
+              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
+                tab === "asignadas" ? "bg-[#FD5249] text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+              }`}
+            >
+              <ClipboardList className="h-3.5 w-3.5" /> Asignadas manualmente ({asignadas.length})
+            </button>
           </div>
 
           {lista.length === 0 ? (
@@ -221,7 +235,13 @@ export function MisCoberturas({
                 <FilaCobertura
                   key={item.id}
                   item={item}
-                  otroLabel={tab === "cubiertas" ? translate(locale, "guardias.cubristeA") : translate(locale, "guardias.teCubrio")}
+                  otroLabel={
+                    tab === "cubiertas"
+                      ? translate(locale, "guardias.cubristeA")
+                      : tab === "recibidas"
+                        ? translate(locale, "guardias.teCubrio")
+                        : null
+                  }
                 />
               ))}
             </div>

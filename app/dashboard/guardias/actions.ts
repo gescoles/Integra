@@ -977,14 +977,14 @@ export async function obtenerMisSolicitudesPendientes() {
 // lo usa el equipo directivo para ver su propio historial personal.
 export async function obtenerMisCoberturas(profesorIdConsultado?: string) {
   const session = await getServerSession(authOptions);
-  if (!session?.user.id) return { cubiertas: [], recibidas: [] };
+  if (!session?.user.id) return { cubiertas: [], recibidas: [], asignadas: [] };
 
   // Un profesor solo puede ver las suyas propias; dirección/SuperAdmin
   // pueden consultar las de cualquier profesor del centro.
   const profesorId =
     profesorIdConsultado && esDirectivo(session.user.role) ? profesorIdConsultado : session.user.id;
 
-  const [cubiertas, recibidas] = await Promise.all([
+  const [cubiertas, recibidas, asignadas] = await Promise.all([
     prisma.coberturaGuardia.findMany({
       where: { profesorSustitutoId: profesorId, estado: "ASIGNADA" },
       include: { profesorAusente: { select: { name: true, email: true } } },
@@ -993,6 +993,13 @@ export async function obtenerMisCoberturas(profesorIdConsultado?: string) {
     prisma.coberturaGuardia.findMany({
       where: { profesorAusenteId: profesorId, estado: "ASIGNADA" },
       include: { profesorSustituto: { select: { name: true, email: true } } },
+      orderBy: { fecha: "desc" },
+    }),
+    // Guardias asignadas directamente desde "+ Nueva guardia" — no son
+    // una sustitución de nadie (no hay "profesor ausente"), así que van
+    // en su propia lista, no mezcladas con cubiertas/recibidas.
+    prisma.guardia.findMany({
+      where: { profesorId },
       orderBy: { fecha: "desc" },
     }),
   ]);
@@ -1020,6 +1027,20 @@ export async function obtenerMisCoberturas(profesorIdConsultado?: string) {
       ubicacion: c.ubicacion,
       estado: "ASIGNADA" as const,
     })),
+    asignadas: asignadas.map((g) => {
+      const hora = g.fecha.toISOString().slice(11, 16);
+      return {
+        id: g.id,
+        tarea: g.tarea,
+        fecha: g.fecha.toISOString(),
+        horaInicio: hora,
+        horaFin: hora,
+        asignatura: null as string | null,
+        grupo: g.grupo,
+        ubicacion: g.ubicacion,
+        estado: "ASIGNADA" as const,
+      };
+    }),
   };
 }
 

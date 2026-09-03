@@ -729,6 +729,52 @@ export async function buildAbsentismoWorkbook(schoolId: string) {
     });
   });
 
+  // Guardias asignadas directamente desde "+ Nueva guardia" — no son una
+  // sustitución de ningún profesor ausente (por eso van en su propia
+  // pestaña, no mezcladas con las de arriba), pero también hace falta
+  // poder controlarlas desde la copia en Excel.
+  const asignadas = await prisma.guardia.findMany({
+    where: { schoolId },
+    orderBy: { fecha: "desc" },
+    include: { profesor: { select: { name: true, email: true } } },
+  });
+
+  const ESTADO_GUARDIA_LABEL: Record<string, string> = {
+    PROGRAMADA: "Programada",
+    CUBIERTA: "Cubierta",
+    PENDIENTE: "Pendiente",
+    RECHAZADA: "Rechazada",
+  };
+
+  const sheetAsignadas = workbook.addWorksheet("Guardias asignadas");
+  sheetAsignadas.columns = [
+    { header: "Profesor", key: "profesor", width: 26 },
+    { header: "Fecha", key: "fecha", width: 14 },
+    { header: "Hora", key: "hora", width: 10 },
+    { header: "Turno", key: "turno", width: 16 },
+    { header: "Grupo", key: "grupo", width: 16 },
+    { header: "Aula", key: "aula", width: 16 },
+    { header: "Tarea", key: "tarea", width: 30 },
+    { header: "Estado", key: "estado", width: 14 },
+  ];
+  styleHeaderRow(sheetAsignadas.getRow(1));
+
+  asignadas.forEach((g) => {
+    sheetAsignadas.addRow({
+      profesor: g.profesor.name ?? g.profesor.email,
+      fecha: g.fecha.toLocaleDateString("es-ES"),
+      hora: g.fecha.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }),
+      turno: g.turno ?? "",
+      grupo: g.grupo ?? "",
+      aula: g.ubicacion ?? "",
+      tarea: g.tarea ?? "",
+      estado: ESTADO_GUARDIA_LABEL[g.status] ?? g.status,
+    });
+  });
+
+  zebraStripe(sheet);
+  zebraStripe(sheetAsignadas);
+
   return workbook;
 }
 
