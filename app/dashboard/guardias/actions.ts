@@ -1162,8 +1162,8 @@ export async function createGuardia(formData: FormData) {
   // caducado...), tampoco se le muestra el error a quien crea la guardia
   // — la guardia ya se ha guardado bien, eso es lo único que importa aquí.
   const avisarPorTeams = async (): Promise<{ canal: string; ok: boolean } | null> => {
-    if (!(await emailHaIniciadoConTeams(profesor.email))) return null;
     try {
+      if (!(await emailHaIniciadoConTeams(profesor.email))) return null;
       const [horas, minutos] = horaRaw.split(":").map(Number);
       const finGuardia = new Date(fecha);
       finGuardia.setHours(horas, minutos + 55); // guardia de 55 min por defecto, como una clase
