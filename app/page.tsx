@@ -65,7 +65,11 @@ function DashboardMock() {
   ];
 
   return (
-    <div className="animate-float overflow-hidden rounded-2xl border border-slate-200 shadow-xl">
+    // break-normal: esta maqueta va muy justa de espacio en algunas
+    // columnas — mejor dejar que una palabra se recorte con el propio
+    // overflow-hidden del borde (invisible, es solo decorativa) que
+    // forzar el corte letra a letra en mitad de la palabra.
+    <div className="animate-float overflow-hidden rounded-2xl border border-slate-200 shadow-xl break-normal">
       <div className="flex">
         {/* Sidebar */}
         <div className="flex w-48 flex-col justify-between bg-[#0B1D4D] px-4 py-5">
@@ -113,7 +117,7 @@ function DashboardMock() {
             </div>
           </div>
 
-          <div className="mb-5 grid grid-cols-4 gap-3">
+          <div className="mb-5 grid grid-cols-2 gap-3">
             {stats.map((s) => (
               <div key={s.label} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
                 <div className="text-[11px] text-slate-500">{s.label}</div>
@@ -208,7 +212,14 @@ function Hero() {
           </span>
         </div>
       </Reveal>
-      <Reveal delay={150}>
+      {/* Maqueta decorativa del dashboard: solo tiene sentido a partir de
+          lg, donde hay sitio de sobra (sidebar fija de 192px + panel con
+          4 columnas de estadísticas) — en móvil, con todo apretado en una
+          sola columna, esas 4 columnas se quedan sin espacio y el texto
+          de cada tarjeta se parte letra a letra. No aporta nada esencial
+          en móvil (el titular y los botones ya están arriba), así que se
+          oculta en vez de intentar que quepa. */}
+      <Reveal delay={150} className="hidden lg:block">
         <DashboardMock />
       </Reveal>
     </section>
