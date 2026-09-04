@@ -52,6 +52,28 @@ export async function obtenerAlumnosPorCiclo(ciclo: string, schoolIdParam?: stri
     .map((a) => ({ id: a.id, nombre: a.nombre, curso: a.curso }));
 }
 
+// Plantilla de "tipos de nota" para un nuevo grupo: se reutilizan el
+// nombre y el porcentaje de cada tipo de nota del último grupo creado en
+// esa misma ventana+ciclo (de cualquier profesor del centro, no solo el
+// suyo — es la rúbrica del proyecto, no algo privado), para que al crear
+// el segundo grupo en adelante solo haga falta elegir a los alumnos y
+// poner las notas, sin volver a montar los mismos apartados cada vez. El
+// valor y el comentario nunca se copian, son propios de cada grupo.
+export async function obtenerPlantillaNotas(ventanaId: string, ciclo: string, schoolIdParam?: string) {
+  const session = await getServerSession(authOptions);
+  const schoolId = schoolIdParam ?? session?.user.schoolId;
+  if (!schoolId || !ventanaId || !ciclo) return [];
+
+  const ultimoGrupo = await prisma.proyectoGrupo.findFirst({
+    where: { schoolId, ventanaId, ciclo },
+    orderBy: { createdAt: "desc" },
+    include: { notas: { orderBy: { createdAt: "asc" } } },
+  });
+
+  if (!ultimoGrupo) return [];
+  return ultimoGrupo.notas.map((n) => ({ nombre: n.nombre, porcentaje: n.porcentaje }));
+}
+
 // Listado de grupos/proyectos de una ventana, con el permiso "veo lo mío
 // vs. veo todo" ya aplicado: un profesor solo ve los suyos; Dirección y el
 // resto del equipo directivo ven todos los del centro, con filtros

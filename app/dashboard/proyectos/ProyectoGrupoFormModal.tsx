@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X, Trash2 } from "lucide-react";
-import { crearProyectoGrupo, actualizarProyectoGrupo, obtenerAlumnosPorCiclo } from "./actions";
+import { crearProyectoGrupo, actualizarProyectoGrupo, obtenerAlumnosPorCiclo, obtenerPlantillaNotas } from "./actions";
 import { ButtonSpinner } from "../components/ButtonSpinner";
 
 export type NotaFila = { nombre: string; porcentaje: string; valor: string; comentario: string };
@@ -53,6 +53,10 @@ export function ProyectoGrupoFormModal({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  // Si el usuario ya ha escrito algo en "Tipos de nota" para el ciclo
+  // recién elegido, la plantilla (que tarda un poco en llegar del
+  // servidor) no debe pisárselo al llegar tarde.
+  const notasTocadasRef = useRef(false);
 
   useEffect(() => {
     if (!ciclo) {
@@ -72,6 +76,30 @@ export function ProyectoGrupoFormModal({
     };
   }, [ciclo, schoolId]);
 
+  // Al crear un grupo nuevo (no al editar uno ya existente), en cuanto se
+  // elige el ciclo se recupera la rúbrica del último grupo creado en ese
+  // mismo ciclo dentro de esta ventana — así, a partir del segundo grupo,
+  // los tipos de nota y sus porcentajes ya salen puestos y solo hace
+  // falta elegir alumnos y poner las notas de este grupo en concreto.
+  useEffect(() => {
+    if (editing || !ciclo) return;
+    notasTocadasRef.current = false;
+    let cancelado = false;
+    obtenerPlantillaNotas(ventanaId, ciclo, schoolId).then((plantilla) => {
+      // Si mientras se cargaba la plantilla el usuario ya ha escrito algo
+      // a mano, no se lo pisamos aunque la respuesta llegue después.
+      if (cancelado || notasTocadasRef.current) return;
+      setNotas(
+        plantilla.length > 0
+          ? plantilla.map((p) => ({ nombre: p.nombre, porcentaje: String(p.porcentaje), valor: "", comentario: "" }))
+          : [filaVacia()]
+      );
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, [ciclo, ventanaId, schoolId, editing]);
+
   function toggleAlumno(id: string) {
     setAlumnosSeleccionados((prev) => {
       const next = new Set(prev);
@@ -82,14 +110,17 @@ export function ProyectoGrupoFormModal({
   }
 
   function actualizarNota(index: number, campo: keyof NotaFila, valor: string) {
+    notasTocadasRef.current = true;
     setNotas((prev) => prev.map((n, i) => (i === index ? { ...n, [campo]: valor } : n)));
   }
 
   function anadirNota() {
+    notasTocadasRef.current = true;
     setNotas((prev) => [...prev, filaVacia()]);
   }
 
   function quitarNota(index: number) {
+    notasTocadasRef.current = true;
     // Siempre tiene que quedar al menos un tipo de nota — todos los
     // campos del proyecto son obligatorios, este incluido.
     setNotas((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
