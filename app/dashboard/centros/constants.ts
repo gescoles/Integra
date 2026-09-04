@@ -13,6 +13,7 @@ import {
   Award,
   Brain,
   ClipboardCheck,
+  Layers,
 } from "lucide-react";
 
 export const MODULES = [
@@ -30,6 +31,7 @@ export const MODULES = [
   { key: "justificantes", label: "Justificantes Ausencia", icon: ClipboardCheck, color: "bg-lime-50 text-lime-600 border-lime-200" },
   { key: "comunicacion", label: "Comunicación", icon: MessageSquare, color: "bg-sky-50 text-sky-600 border-sky-200" },
   { key: "utilidades", label: "Utilidades (Calendario y Horario)", icon: CalendarClock, color: "bg-rose-50 text-rose-600 border-rose-200" },
+  { key: "proyectos", label: "Proyectos", icon: Layers, color: "bg-purple-50 text-purple-600 border-purple-200" },
 ] as const;
 
 export const PLAN_LABELS: Record<string, string> = {

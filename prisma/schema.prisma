@@ -135,6 +135,7 @@ model School {
   departamentos Departamento[]
   modulosProfesionales ModuloProfesional[]
   justificantesAsistencia JustificanteAsistencia[]
+  proyectosGrupos ProyectoGrupo[]
 }
 
 // Departamento del centro (p. ej. "Matemàtiques", "Informàtica"). Cada
@@ -495,6 +496,7 @@ model User {
   justificantesAvisado JustificanteAsistencia[] @relation("JustificanteAvisado")
   deviceTokens DeviceToken[]
   webPushSubscriptions WebPushSubscription[]
+  proyectosCreados ProyectoGrupo[]
 }
 
 // Suscripción a notificaciones push del navegador (Web Push estándar —
@@ -1702,4 +1704,62 @@ model PIDocumento {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+}
+
+// ── Módulo Proyectos ─────────────────────────────────────────────────
+// Pestaña/tipo de proyecto dentro del módulo (p. ej. "Projecte
+// Intermodular", "Proyecto Optativo") — la gestiona el SuperAdmin desde
+// su panel, y es global para toda la plataforma (no por centro): son
+// solo las "pestañas" del módulo, todas comparten exactamente los
+// mismos campos vía ProyectoGrupo.
+model ProyectoVentana {
+  id        String          @id @default(cuid())
+  nombre    String          @unique
+  orden     Int             @default(0)
+  createdAt DateTime        @default(now())
+  grupos    ProyectoGrupo[]
+}
+
+// Un grupo/proyecto concreto: nombre, ciclo formativo, alumnos, fecha de
+// entrega y su nota final (calculada a partir de sus ProyectoNota).
+// "Grupo" y "proyecto" son la misma cosa aquí — no hay una entidad
+// "proyecto" separada del grupo de alumnos que lo hace.
+model ProyectoGrupo {
+  id           String          @id @default(cuid())
+  schoolId     String
+  school       School          @relation(fields: [schoolId], references: [id])
+  ventanaId    String
+  ventana      ProyectoVentana @relation(fields: [ventanaId], references: [id], onDelete: Cascade)
+  nombre       String
+  // Ciclo formativo agrupado (p. ej. "DAM", agrupando DAM1 y DAM2 a la
+  // vez) — no el curso/grupo exacto del alumno, para poder mezclar
+  // alumnos de distintos cursos del mismo ciclo en un mismo proyecto.
+  ciclo        String
+  alumnosIds   String[]        @default([])
+  fechaEntrega DateTime
+  // Media ponderada de las notas (ver ProyectoNota) — solo se calcula
+  // cuando los porcentajes suman 100% y todas llevan un valor puesto;
+  // si no, se queda sin calificar (null) hasta que se complete.
+  notaFinal    Float?
+  creadoPorId  String
+  creadoPor    User            @relation(fields: [creadoPorId], references: [id])
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @default(now()) @updatedAt
+  notas        ProyectoNota[]
+
+  @@index([schoolId])
+  @@index([creadoPorId])
+}
+
+// Un "tipo de nota" del grupo (p. ej. "Memoria" 40%, "Presentación" 30%,
+// "Trabajo en equipo" 30%), con su propio comentario.
+model ProyectoNota {
+  id              String        @id @default(cuid())
+  proyectoGrupoId String
+  proyectoGrupo   ProyectoGrupo @relation(fields: [proyectoGrupoId], references: [id], onDelete: Cascade)
+  nombre          String
+  porcentaje      Float
+  valor           Float?
+  comentario      String?
+  createdAt       DateTime      @default(now())
 }

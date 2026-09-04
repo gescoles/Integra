@@ -34,6 +34,7 @@ import {
   Search,
   HelpCircle,
   ClipboardCheck,
+  Layers,
 } from "lucide-react";
 import { HexLogo } from "@/app/components/Logo";
 import { ROLE_LABELS_FULL } from "../constants";
@@ -86,6 +87,7 @@ const superadminSections: {
       { href: "/dashboard/salidas/aprobaciones", labelKey: "nav.aprobaciones", icon: CheckSquare },
       { href: "/dashboard/calendario", labelKey: "nav.calendario", icon: CalendarDays },
       { href: "/dashboard/horario", labelKey: "nav.horario", icon: CalendarClock },
+      { href: "/dashboard/proyectos", labelKey: "nav.proyectos", icon: Layers },
     ],
   },
   {
@@ -95,6 +97,7 @@ const superadminSections: {
       { href: "/dashboard/roles", labelKey: "nav.roles", icon: ShieldCheck },
       { href: "/dashboard/superadmin/departamentos", labelKey: "nav.departamentosAdmin", icon: Building2 },
       { href: "/dashboard/superadmin/certificaciones-catalogo", labelKey: "nav.certificacionesCatalogo", icon: Award },
+      { href: "/dashboard/superadmin/proyectos-ventanas", labelKey: "nav.proyectosVentanas", icon: Layers },
       { href: "/dashboard/superadmin/seguridad", labelKey: "nav.seguridadAccesos", icon: ShieldAlert },
       // Desactivados de momento a petición: todavía no hacen nada.
       // { href: "/dashboard/planes", labelKey: "nav.planes", icon: CreditCard },
@@ -126,6 +129,7 @@ const centroModulos: { key: string; href: string; labelKey: TranslationKey; icon
   { key: "certificaciones", href: "/dashboard/certificaciones", labelKey: "nav.certificaciones", icon: Award },
   { key: "empresas", href: "/dashboard/empresas", labelKey: "nav.empresas", icon: Handshake },
   { key: "onboarding", href: "/dashboard/onboarding", labelKey: "nav.onboarding", icon: FolderKanban },
+  { key: "proyectos", href: "/dashboard/proyectos", labelKey: "nav.proyectos", icon: Layers },
 ];
 
 // Utilidades (Calendario y Horario): igual que los módulos de arriba, solo
