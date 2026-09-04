@@ -112,8 +112,8 @@ export default async function EspaciosPage({
       );
     }
 
-    const { plantas, usuarios } = await getPlantasData(searchParams.school);
-    const [reservasGafas, ticActual, profesoresParaTic] = await Promise.all([
+    const [{ plantas, usuarios }, reservasGafas, ticActual, profesoresParaTic] = await Promise.all([
+      getPlantasData(searchParams.school),
       obtenerReservasGafasVR(searchParams.school),
       obtenerTicDelCentro(searchParams.school),
       obtenerProfesoresParaTic(searchParams.school),
@@ -169,8 +169,8 @@ export default async function EspaciosPage({
     );
   }
 
-  const { plantas, usuarios } = await getPlantasData(schoolId);
-  const [reservasGafas, ticActual] = await Promise.all([
+  const [{ plantas, usuarios }, reservasGafas, ticActual] = await Promise.all([
+    getPlantasData(schoolId),
     obtenerReservasGafasVR(schoolId),
     obtenerTicDelCentro(schoolId),
   ]);

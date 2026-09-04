@@ -31,9 +31,11 @@ export default async function BackupPage() {
     );
   }
 
-  const schools = await prisma.school.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } });
-  const loginPasswordHabilitado = await obtenerLoginPasswordHabilitado();
-  const historiasEntreCentrosHabilitado = await obtenerHistoriasEntreCentrosHabilitado();
+  const [schools, loginPasswordHabilitado, historiasEntreCentrosHabilitado] = await Promise.all([
+    prisma.school.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    obtenerLoginPasswordHabilitado(),
+    obtenerHistoriasEntreCentrosHabilitado(),
+  ]);
 
   return (
     <div>
