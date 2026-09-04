@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Cookie, Settings, X } from "lucide-react";
+import { useSidebarColapsado } from "../dashboard/SchoolContext";
 
 const COOKIE_NAME = "docentium-cookie-consent";
 const COOKIE_DIAS = 180;
@@ -36,6 +37,7 @@ function escribirCookie(nombre: string, valor: string, dias: number) {
 export function CookieBanner() {
   const pathname = usePathname();
   const dentroDelDashboard = pathname?.startsWith("/dashboard") ?? false;
+  const { colapsado: sidebarColapsado } = useSidebarColapsado();
   const [visible, setVisible] = useState(false);
   const [configurando, setConfigurando] = useState(false);
   const [prefs, setPrefs] = useState<Preferencias>(PREFERENCIAS_POR_DEFECTO);
@@ -85,7 +87,7 @@ export function CookieBanner() {
         aria-label="Configurar cookies"
         title="Configurar cookies"
         className={`fixed bottom-4 left-4 z-[300] flex h-11 w-11 items-center justify-center rounded-full bg-[#0B1D4D] text-white shadow-lg transition-transform hover:scale-105 ${
-          dentroDelDashboard ? "lg:left-[272px]" : ""
+          dentroDelDashboard && !sidebarColapsado ? "lg:left-[272px]" : ""
         }`}
       >
         <Cookie className="h-5 w-5" />
