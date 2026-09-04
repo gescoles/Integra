@@ -13,7 +13,7 @@ async function requireSuperAdmin() {
 export async function obtenerVentanas() {
   return prisma.proyectoVentana.findMany({
     orderBy: [{ orden: "asc" }, { createdAt: "asc" }],
-    include: { _count: { select: { grupos: true } } },
+    include: { _count: { select: { proyectos: true } } },
   });
 }
 
@@ -54,10 +54,10 @@ export async function renombrarVentana(id: string, nombre: string) {
 export async function eliminarVentana(id: string) {
   await requireSuperAdmin();
 
-  const grupos = await prisma.proyectoGrupo.count({ where: { ventanaId: id } });
-  if (grupos > 0) {
+  const proyectos = await prisma.proyecto.count({ where: { ventanaId: id } });
+  if (proyectos > 0) {
     throw new Error(
-      `No se puede eliminar: todavía hay ${grupos} proyecto(s) creado(s) en esta ventana. Bórralos primero.`
+      `No se puede eliminar: todavía hay ${proyectos} proyecto(s) creado(s) en esta ventana. Bórralos primero.`
     );
   }
 

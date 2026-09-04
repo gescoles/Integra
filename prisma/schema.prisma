@@ -135,7 +135,7 @@ model School {
   departamentos Departamento[]
   modulosProfesionales ModuloProfesional[]
   justificantesAsistencia JustificanteAsistencia[]
-  proyectosGrupos ProyectoGrupo[]
+  proyectos Proyecto[]
 }
 
 // Departamento del centro (p. ej. "Matemàtiques", "Informàtica"). Cada
@@ -496,7 +496,8 @@ model User {
   justificantesAvisado JustificanteAsistencia[] @relation("JustificanteAvisado")
   deviceTokens DeviceToken[]
   webPushSubscriptions WebPushSubscription[]
-  proyectosCreados ProyectoGrupo[]
+  proyectosCreados Proyecto[]
+  proyectoGruposCreados ProyectoGrupo[]
 }
 
 // Suscripción a notificaciones push del navegador (Web Push estándar —
@@ -1711,59 +1712,92 @@ model PIDocumento {
 // Intermodular", "Proyecto Optativo") — la gestiona el SuperAdmin desde
 // su panel, y es global para toda la plataforma (no por centro): son
 // solo las "pestañas" del módulo, todas comparten exactamente los
-// mismos campos vía ProyectoGrupo.
+// mismos campos vía Proyecto/ProyectoGrupo.
 model ProyectoVentana {
-  id        String          @id @default(cuid())
-  nombre    String          @unique
-  orden     Int             @default(0)
-  createdAt DateTime        @default(now())
-  grupos    ProyectoGrupo[]
+  id        String       @id @default(cuid())
+  nombre    String       @unique
+  orden     Int          @default(0)
+  createdAt DateTime     @default(now())
+  proyectos Proyecto[]
 }
 
-// Un grupo/proyecto concreto: nombre, ciclo formativo, alumnos, fecha de
-// entrega y su nota final (calculada a partir de sus ProyectoNota).
-// "Grupo" y "proyecto" son la misma cosa aquí — no hay una entidad
-// "proyecto" separada del grupo de alumnos que lo hace.
-model ProyectoGrupo {
-  id           String          @id @default(cuid())
-  schoolId     String
-  school       School          @relation(fields: [schoolId], references: [id])
-  ventanaId    String
-  ventana      ProyectoVentana @relation(fields: [ventanaId], references: [id], onDelete: Cascade)
-  nombre       String
+// El "proyecto" de una clase concreta dentro de una ventana: fija el
+// ciclo y la rúbrica (ver ProyectoTipoNota) UNA sola vez. Dentro de él
+// se crean varios ProyectoGrupo (grupos de alumnos) que rellenan esa
+// misma rúbrica cada uno con sus propias notas — como un desplegable,
+// igual que los Convenio dentro de la ficha de un alumno en Prácticas.
+model Proyecto {
+  id          String             @id @default(cuid())
+  schoolId    String
+  school      School             @relation(fields: [schoolId], references: [id])
+  ventanaId   String
+  ventana     ProyectoVentana    @relation(fields: [ventanaId], references: [id], onDelete: Cascade)
   // Curso/grupo exacto del centro (igual que Alumno.curso, p. ej. "DAM1")
   // — 1r y 2n son cursos distintos, cada uno su propio proyecto, nunca
   // se mezclan alumnos de los dos en un mismo grupo.
-  ciclo        String
-  alumnosIds   String[]        @default([])
-  fechaEntrega DateTime
-  // Comentario general del grupo/proyecto (distinto del comentario de
-  // cada tipo de nota, que es específico de esa nota).
-  comentarios  String
-  // Media ponderada de las notas (ver ProyectoNota) — todos los campos
-  // del formulario son obligatorios (incluidos los tipos de nota y sus
-  // valores), así que esto siempre queda calculado al guardar; los
-  // porcentajes tienen que sumar 100% o el guardado se rechaza.
-  notaFinal    Float?
-  creadoPorId  String
-  creadoPor    User            @relation(fields: [creadoPorId], references: [id])
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @default(now()) @updatedAt
-  notas        ProyectoNota[]
+  ciclo       String
+  creadoPorId String
+  creadoPor   User               @relation(fields: [creadoPorId], references: [id])
+  createdAt   DateTime           @default(now())
+  tiposNota   ProyectoTipoNota[]
+  grupos      ProyectoGrupo[]
 
   @@index([schoolId])
   @@index([creadoPorId])
 }
 
-// Un "tipo de nota" del grupo (p. ej. "Memoria" 40%, "Presentación" 30%,
-// "Trabajo en equipo" 30%), con su propio comentario.
+// Un tipo de nota de la rúbrica de un Proyecto (p. ej. "Memoria" 40%) —
+// se define una vez para todo el proyecto; cada ProyectoGrupo le pone su
+// propio valor y comentario en ProyectoNota.
+model ProyectoTipoNota {
+  id         String         @id @default(cuid())
+  proyectoId String
+  proyecto   Proyecto       @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  nombre     String
+  porcentaje Float
+  createdAt  DateTime       @default(now())
+  notas      ProyectoNota[]
+}
+
+// Un grupo de alumnos dentro de un Proyecto: nombre, alumnos, fecha de
+// entrega, comentario general y nota final (media ponderada de sus
+// ProyectoNota, calculada cuando todas tienen valor puesto).
+model ProyectoGrupo {
+  id           String         @id @default(cuid())
+  proyectoId   String
+  proyecto     Proyecto       @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  nombre       String
+  alumnosIds   String[]       @default([])
+  fechaEntrega DateTime
+  // Comentario general del grupo (distinto del comentario de cada tipo
+  // de nota, que es específico de esa nota).
+  comentarios  String
+  // Media ponderada de las notas — todos los campos del formulario son
+  // obligatorios excepto el comentario de cada nota, así que esto queda
+  // calculado en cuanto los porcentajes de la rúbrica del proyecto suman
+  // 100% y todas las notas de este grupo tienen valor puesto.
+  notaFinal    Float?
+  creadoPorId  String
+  creadoPor    User           @relation(fields: [creadoPorId], references: [id])
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @default(now()) @updatedAt
+  notas        ProyectoNota[]
+
+  @@index([proyectoId])
+  @@index([creadoPorId])
+}
+
+// El valor que un ProyectoGrupo concreto le pone a un ProyectoTipoNota
+// concreto de la rúbrica de su proyecto — una fila por combinación.
 model ProyectoNota {
-  id              String        @id @default(cuid())
+  id              String           @id @default(cuid())
   proyectoGrupoId String
-  proyectoGrupo   ProyectoGrupo @relation(fields: [proyectoGrupoId], references: [id], onDelete: Cascade)
-  nombre          String
-  porcentaje      Float
+  proyectoGrupo   ProyectoGrupo    @relation(fields: [proyectoGrupoId], references: [id], onDelete: Cascade)
+  tipoNotaId      String
+  tipoNota        ProyectoTipoNota @relation(fields: [tipoNotaId], references: [id], onDelete: Cascade)
   valor           Float?
   comentario      String?
-  createdAt       DateTime      @default(now())
+  createdAt       DateTime         @default(now())
+
+  @@unique([proyectoGrupoId, tipoNotaId])
 }

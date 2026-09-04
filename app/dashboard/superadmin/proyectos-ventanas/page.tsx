@@ -17,7 +17,7 @@ export default async function ProyectosVentanasPage() {
   }
 
   const ventanasRaw = await obtenerVentanas();
-  const ventanas = ventanasRaw.map((v) => ({ id: v.id, nombre: v.nombre, numProyectos: v._count.grupos }));
+  const ventanas = ventanasRaw.map((v) => ({ id: v.id, nombre: v.nombre, numProyectos: v._count.proyectos }));
 
   return (
     <div>

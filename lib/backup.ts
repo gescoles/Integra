@@ -70,6 +70,8 @@ export const MODELOS_BACKUP = [
   "empresaHistorial",
   "empresaObservacion",
   "proyectoVentana",
+  "proyecto",
+  "proyectoTipoNota",
   "proyectoGrupo",
   "proyectoNota",
 ] as const;
@@ -212,8 +214,10 @@ function construirFiltroPorCentro(schoolId: string): Record<string, unknown> {
     empresaHistorial: { empresa: { schoolId } },
     empresaObservacion: { empresa: { schoolId } },
     proyectoVentana: null, // son las pestañas del módulo, compartidas por toda la plataforma — se omiten
-    proyectoGrupo: { schoolId },
-    proyectoNota: { proyectoGrupo: { schoolId } },
+    proyecto: { schoolId },
+    proyectoTipoNota: { proyecto: { schoolId } },
+    proyectoGrupo: { proyecto: { schoolId } },
+    proyectoNota: { proyectoGrupo: { proyecto: { schoolId } } },
   };
 }
 

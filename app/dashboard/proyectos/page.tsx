@@ -6,7 +6,7 @@ import { ModuleLocked } from "../components/ModuleLocked";
 import { SchoolPicker, SchoolSwitcher } from "../components/SchoolPicker";
 import { ProyectosTabs } from "./ProyectosTabs";
 import { ProyectosClient } from "./ProyectosClient";
-import { obtenerVentanasProyecto, obtenerGruposProyecto, obtenerCiclosDelCentro } from "./actions";
+import { obtenerVentanasProyecto, obtenerProyectos, obtenerCiclosDelCentro } from "./actions";
 
 function esDirectivo(role?: string) {
   return role === "SUPERADMIN" || role === "DIRECCION" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
@@ -51,8 +51,8 @@ export default async function ProyectosPage({
 
     const schoolId = searchParams.school;
     const ventanaActiva = searchParams.ventana ?? ventanas[0]?.id ?? "";
-    const [grupos, ciclosCentro] = await Promise.all([
-      ventanaActiva ? obtenerGruposProyecto(ventanaActiva, { schoolId, ciclo: searchParams.ciclo, nombre: searchParams.nombre }) : Promise.resolve([]),
+    const [proyectos, ciclosCentro] = await Promise.all([
+      ventanaActiva ? obtenerProyectos(ventanaActiva, { schoolId, ciclo: searchParams.ciclo, nombre: searchParams.nombre }) : Promise.resolve([]),
       obtenerCiclosDelCentro(schoolId),
     ]);
 
@@ -62,7 +62,7 @@ export default async function ProyectosPage({
         <SchoolSwitcher schools={schools} currentSchoolId={schoolId} locale="ES" basePath="/dashboard/proyectos" />
         <ProyectosTabs ventanas={ventanas} ventanaActiva={ventanaActiva} schoolId={schoolId} />
         <ProyectosClient
-          grupos={grupos}
+          proyectos={proyectos}
           ciclosCentro={ciclosCentro}
           ventanaId={ventanaActiva}
           esDirectivo
@@ -100,9 +100,9 @@ export default async function ProyectosPage({
   }
 
   const ventanaActiva = searchParams.ventana ?? ventanas[0]?.id ?? "";
-  const [grupos, ciclosCentro] = await Promise.all([
+  const [proyectos, ciclosCentro] = await Promise.all([
     ventanaActiva
-      ? obtenerGruposProyecto(ventanaActiva, { ciclo: searchParams.ciclo, nombre: searchParams.nombre })
+      ? obtenerProyectos(ventanaActiva, { ciclo: searchParams.ciclo, nombre: searchParams.nombre })
       : Promise.resolve([]),
     obtenerCiclosDelCentro(),
   ]);
@@ -111,14 +111,14 @@ export default async function ProyectosPage({
     <div>
       <DashboardHeader
         title="Proyectos"
-        subtitle="Crea grupos de alumnos por ciclo, ponles fecha de entrega y saca su nota final ponderada."
+        subtitle="Crea un proyecto por clase con su rúbrica, y ve añadiendo dentro los grupos de alumnos con sus notas."
         userName={userName}
         role={role}
         notificationCount={0}
       />
       <ProyectosTabs ventanas={ventanas} ventanaActiva={ventanaActiva} />
       <ProyectosClient
-        grupos={grupos}
+        proyectos={proyectos}
         ciclosCentro={ciclosCentro}
         ventanaId={ventanaActiva}
         esDirectivo={puedeVerTodos}

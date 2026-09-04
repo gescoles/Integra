@@ -1,76 +1,64 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Trash2 } from "lucide-react";
-import { crearProyectoGrupo, actualizarProyectoGrupo, obtenerAlumnosPorCiclo, obtenerPlantillaNotas } from "./actions";
+import { X } from "lucide-react";
+import { crearProyectoGrupo, actualizarProyectoGrupo, obtenerAlumnosPorCiclo } from "./actions";
 import { ButtonSpinner } from "../components/ButtonSpinner";
 
-export type NotaFila = { nombre: string; porcentaje: string; valor: string; comentario: string };
+export type TipoNota = { id: string; nombre: string; porcentaje: number };
 
 export type ProyectoGrupoEditable = {
   id: string;
   nombre: string;
-  ciclo: string;
   alumnosIds: string[];
   fechaEntrega: string;
   comentarios: string;
-  notas: { nombre: string; porcentaje: number; valor: number | null; comentario: string | null }[];
+  notas: { tipoNotaId: string; valor: number | null; comentario: string | null }[];
 };
 
-function filaVacia(): NotaFila {
-  return { nombre: "", porcentaje: "", valor: "", comentario: "" };
-}
-
 export function ProyectoGrupoFormModal({
-  ventanaId,
-  ciclosCentro,
+  proyectoId,
+  ciclo,
+  tiposNota,
   schoolId,
   editing,
   onClose,
 }: {
-  ventanaId: string;
-  ciclosCentro: { value: string; label: string }[];
+  proyectoId: string;
+  ciclo: string;
+  tiposNota: TipoNota[];
   schoolId?: string;
   editing: ProyectoGrupoEditable | null;
   onClose: () => void;
 }) {
   const router = useRouter();
-  const [ciclo, setCiclo] = useState(editing?.ciclo ?? "");
   const [alumnosDisponibles, setAlumnosDisponibles] = useState<{ id: string; nombre: string; curso: string }[]>([]);
-  const [cargandoAlumnos, setCargandoAlumnos] = useState(false);
+  const [cargandoAlumnos, setCargandoAlumnos] = useState(true);
   const [alumnosSeleccionados, setAlumnosSeleccionados] = useState<Set<string>>(new Set(editing?.alumnosIds ?? []));
-  const [notas, setNotas] = useState<NotaFila[]>(
-    editing && editing.notas.length > 0
-      ? editing.notas.map((n) => ({
-          nombre: n.nombre,
-          porcentaje: String(n.porcentaje),
-          valor: n.valor === null ? "" : String(n.valor),
-          comentario: n.comentario ?? "",
-        }))
-      : [filaVacia()]
-  );
+  // Un valor/comentario por cada tipo de nota de la rúbrica del proyecto
+  // (fija, no se puede tocar aquí) — se inicializa con lo ya guardado si
+  // se está editando, o en blanco si es un grupo nuevo.
+  const [valores, setValores] = useState<Record<string, string>>(() => {
+    const inicial: Record<string, string> = {};
+    for (const t of tiposNota) {
+      const existente = editing?.notas.find((n) => n.tipoNotaId === t.id);
+      inicial[t.id] = existente?.valor === null || existente?.valor === undefined ? "" : String(existente.valor);
+    }
+    return inicial;
+  });
+  const [comentariosNota, setComentariosNota] = useState<Record<string, string>>(() => {
+    const inicial: Record<string, string> = {};
+    for (const t of tiposNota) {
+      const existente = editing?.notas.find((n) => n.tipoNotaId === t.id);
+      inicial[t.id] = existente?.comentario ?? "";
+    }
+    return inicial;
+  });
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const formRef = useRef<HTMLFormElement>(null);
-  // Copia siempre al día de "notas", para poder comprobar en el momento
-  // en que llega la plantilla (asíncrono) si el usuario ya ha escrito
-  // algo mientras tanto, sin depender de una bandera aparte que haya que
-  // acordarse de marcar en cada sitio donde se toca "notas".
-  const notasRef = useRef(notas);
-  useEffect(() => {
-    notasRef.current = notas;
-  }, [notas]);
-
-  function esFilaEnBlanco(fila: NotaFila) {
-    return !fila.nombre && !fila.porcentaje && !fila.valor && !fila.comentario;
-  }
 
   useEffect(() => {
-    if (!ciclo) {
-      setAlumnosDisponibles([]);
-      return;
-    }
     let cancelado = false;
     setCargandoAlumnos(true);
     obtenerAlumnosPorCiclo(ciclo, schoolId).then((alumnos) => {
@@ -84,34 +72,6 @@ export function ProyectoGrupoFormModal({
     };
   }, [ciclo, schoolId]);
 
-  // Al crear un grupo nuevo (no al editar uno ya existente), en cuanto se
-  // elige el ciclo se recupera la rúbrica del último grupo creado en ese
-  // mismo ciclo dentro de esta ventana — así, a partir del segundo grupo,
-  // los tipos de nota y sus porcentajes ya salen puestos y solo hace
-  // falta elegir alumnos y poner las notas de este grupo en concreto.
-  useEffect(() => {
-    if (editing || !ciclo) return;
-    let cancelado = false;
-    obtenerPlantillaNotas(ventanaId, ciclo, schoolId).then((plantilla) => {
-      if (cancelado) return;
-      // Si mientras se cargaba la plantilla el usuario ya ha escrito algo
-      // a mano (o ha añadido/quitado filas), no se lo pisamos aunque la
-      // respuesta llegue tarde — solo se aplica si las filas actuales
-      // siguen exactamente en blanco, tal como estaban al elegir el ciclo.
-      const siguenEnBlanco = notasRef.current.every(esFilaEnBlanco);
-      if (!siguenEnBlanco) return;
-      setNotas(
-        plantilla.length > 0
-          ? plantilla.map((p) => ({ nombre: p.nombre, porcentaje: String(p.porcentaje), valor: "", comentario: "" }))
-          : [filaVacia()]
-      );
-    });
-    return () => {
-      cancelado = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ciclo, ventanaId, schoolId, editing]);
-
   function toggleAlumno(id: string) {
     setAlumnosSeleccionados((prev) => {
       const next = new Set(prev);
@@ -121,34 +81,16 @@ export function ProyectoGrupoFormModal({
     });
   }
 
-  function actualizarNota(index: number, campo: keyof NotaFila, valor: string) {
-    setNotas((prev) => prev.map((n, i) => (i === index ? { ...n, [campo]: valor } : n)));
-  }
-
-  function anadirNota() {
-    setNotas((prev) => [...prev, filaVacia()]);
-  }
-
-  function quitarNota(index: number) {
-    // Siempre tiene que quedar al menos un tipo de nota — todos los
-    // campos del proyecto son obligatorios, este incluido.
-    setNotas((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
-  }
-
-  const totalPorcentaje = notas.reduce((s, n) => s + (Number(n.porcentaje) || 0), 0);
-  const porcentajeCompleto = notas.length > 0 && Math.abs(totalPorcentaje - 100) < 0.01;
-  const todasCompletas = notas.length > 0 && notas.every((n) => n.nombre.trim() && n.valor !== "");
-  const notaFinalPreview =
-    porcentajeCompleto && todasCompletas
-      ? Math.round(
-          (notas.reduce((s, n) => s + Number(n.valor) * (Number(n.porcentaje) || 0), 0) / 100) * 100
-        ) / 100
-      : null;
-
   function handleClose() {
     if (pending) return;
     onClose();
   }
+
+  const notaFinalPreview = (() => {
+    if (tiposNota.some((t) => valores[t.id] === "" || valores[t.id] === undefined)) return null;
+    const suma = tiposNota.reduce((s, t) => s + Number(valores[t.id]) * t.porcentaje, 0);
+    return Math.round((suma / 100) * 100) / 100;
+  })();
 
   async function handleSubmit(formData: FormData) {
     setPending(true);
@@ -158,27 +100,23 @@ export function ProyectoGrupoFormModal({
       formData.set(
         "notas",
         JSON.stringify(
-          notas
-            .filter((n) => n.nombre.trim() || n.porcentaje.trim())
-            .map((n) => ({
-              nombre: n.nombre.trim(),
-              porcentaje: Number(n.porcentaje) || 0,
-              valor: n.valor === "" ? null : Number(n.valor),
-              comentario: n.comentario.trim() || null,
-            }))
+          tiposNota.map((t) => ({
+            tipoNotaId: t.id,
+            valor: valores[t.id] === "" ? null : Number(valores[t.id]),
+            comentario: comentariosNota[t.id]?.trim() || null,
+          }))
         )
       );
 
       if (editing) {
         await actualizarProyectoGrupo(editing.id, formData);
       } else {
-        formData.set("ventanaId", ventanaId);
-        await crearProyectoGrupo(formData);
+        await crearProyectoGrupo(proyectoId, formData);
       }
       router.refresh();
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo guardar el proyecto.");
+      setError(e instanceof Error ? e.message : "No se pudo guardar el grupo.");
     } finally {
       setPending(false);
     }
@@ -190,64 +128,34 @@ export function ProyectoGrupoFormModal({
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4">
       <div className="my-8 w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl sm:p-8">
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-[#0B1D4D]">{editing ? "Editar proyecto" : "Nuevo grupo/proyecto"}</h2>
+          <h2 className="text-lg font-bold text-[#0B1D4D]">{editing ? "Editar grupo" : "Nuevo grupo"}</h2>
           <button onClick={handleClose} className="rounded p-1 text-slate-400 hover:bg-slate-100">
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <form ref={formRef} action={handleSubmit} className="space-y-4">
+        <form action={handleSubmit} className="space-y-4">
           {error && <div className="rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-600">{error}</div>}
           {schoolId && <input type="hidden" name="schoolId" value={schoolId} />}
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                Nombre del grupo/proyecto <span className="text-red-500">*</span>
-              </label>
-              <input
-                name="nombre"
-                required
-                defaultValue={editing?.nombre ?? ""}
-                placeholder="Ej. Grup 3 - App de reserves"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                Ciclo <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="ciclo"
-                required
-                value={ciclo}
-                onChange={(e) => {
-                  setCiclo(e.target.value);
-                  setAlumnosSeleccionados(new Set());
-                }}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
-              >
-                <option value="" disabled>
-                  Elige un ciclo...
-                </option>
-                {ciclosCentro.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Nombre del grupo <span className="text-red-500">*</span>
+            </label>
+            <input
+              name="nombre"
+              required
+              defaultValue={editing?.nombre ?? ""}
+              placeholder="Ej. Grup 3 - App de reserves"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+            />
           </div>
 
           <div>
             <label className="mb-1.5 block text-sm font-semibold text-slate-700">
               Alumnos <span className="text-red-500">*</span>
             </label>
-            {!ciclo ? (
-              <p className="rounded-lg border border-dashed border-slate-200 px-3 py-4 text-center text-xs text-slate-400">
-                Elige primero un ciclo para ver sus alumnos.
-              </p>
-            ) : cargandoAlumnos ? (
+            {cargandoAlumnos ? (
               <p className="rounded-lg border border-dashed border-slate-200 px-3 py-4 text-center text-xs text-slate-400">
                 Cargando alumnos...
               </p>
@@ -265,7 +173,7 @@ export function ProyectoGrupoFormModal({
                       onChange={() => toggleAlumno(a.id)}
                       className="rounded border-slate-300 accent-[#FD5249]"
                     />
-                    {a.nombre} <span className="text-xs text-slate-400">· {a.curso}</span>
+                    {a.nombre}
                   </label>
                 ))}
               </div>
@@ -287,76 +195,33 @@ export function ProyectoGrupoFormModal({
           </div>
 
           <div>
-            <div className="mb-1.5 flex items-center justify-between">
-              <label className="block text-sm font-semibold text-slate-700">Tipos de nota</label>
-              <span
-                className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                  notas.length === 0
-                    ? "bg-slate-100 text-slate-400"
-                    : porcentajeCompleto
-                    ? "bg-emerald-50 text-emerald-600"
-                    : "bg-amber-50 text-amber-600"
-                }`}
-              >
-                {totalPorcentaje}% {porcentajeCompleto ? "✓" : "(tiene que sumar 100%)"}
-              </span>
-            </div>
-
+            <label className="mb-1.5 block text-sm font-semibold text-slate-700">Notas</label>
             <div className="space-y-2">
-              {notas.map((n, i) => (
-                <div key={i} className="grid grid-cols-[1fr_5rem_5rem_1fr_auto] items-start gap-2 rounded-lg border border-slate-100 p-2.5">
-                  <input
-                    required
-                    value={n.nombre}
-                    onChange={(e) => actualizarNota(i, "nombre", e.target.value)}
-                    placeholder="Nombre (ej. Memoria)"
-                    className="rounded-lg border border-slate-200 px-2.5 py-2 text-xs outline-none focus:border-[#FD5249]"
-                  />
-                  <input
-                    type="number"
-                    required
-                    min={0}
-                    max={100}
-                    value={n.porcentaje}
-                    onChange={(e) => actualizarNota(i, "porcentaje", e.target.value)}
-                    placeholder="%"
-                    className="rounded-lg border border-slate-200 px-2.5 py-2 text-xs outline-none focus:border-[#FD5249]"
-                  />
+              {tiposNota.map((t) => (
+                <div key={t.id} className="grid grid-cols-[1fr_5rem_1fr] items-center gap-2 rounded-lg border border-slate-100 p-2.5">
+                  <div className="text-xs font-medium text-slate-600">
+                    {t.nombre} <span className="text-slate-400">({t.porcentaje}%)</span>
+                  </div>
                   <input
                     type="number"
                     required
                     min={0}
                     max={10}
                     step="0.1"
-                    value={n.valor}
-                    onChange={(e) => actualizarNota(i, "valor", e.target.value)}
+                    value={valores[t.id] ?? ""}
+                    onChange={(e) => setValores((prev) => ({ ...prev, [t.id]: e.target.value }))}
                     placeholder="Nota 0-10"
                     className="rounded-lg border border-slate-200 px-2.5 py-2 text-xs outline-none focus:border-[#FD5249]"
                   />
                   <input
-                    value={n.comentario}
-                    onChange={(e) => actualizarNota(i, "comentario", e.target.value)}
+                    value={comentariosNota[t.id] ?? ""}
+                    onChange={(e) => setComentariosNota((prev) => ({ ...prev, [t.id]: e.target.value }))}
                     placeholder="Comentario (opcional)"
                     className="rounded-lg border border-slate-200 px-2.5 py-2 text-xs outline-none focus:border-[#FD5249]"
                   />
-                  <button
-                    type="button"
-                    onClick={() => quitarNota(i)}
-                    className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
                 </div>
               ))}
             </div>
-
-            <button
-              type="button"
-              onClick={anadirNota}
-              className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-500 hover:border-[#FD5249] hover:text-[#FD5249]"
-            >
-              <Plus className="h-3.5 w-3.5" /> Añadir tipo de nota
-            </button>
 
             {notaFinalPreview !== null && (
               <div className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">
@@ -374,7 +239,7 @@ export function ProyectoGrupoFormModal({
               required
               rows={3}
               defaultValue={editing?.comentarios ?? ""}
-              placeholder="Valoración general del grupo/proyecto..."
+              placeholder="Valoración general del grupo..."
               className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
             />
           </div>

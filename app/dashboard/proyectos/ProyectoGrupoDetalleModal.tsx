@@ -1,20 +1,27 @@
 "use client";
 
 import { X } from "lucide-react";
-import { formatearCiclo } from "./cicloFormat";
+import type { TipoNota } from "./ProyectoGrupoFormModal";
 
 export type ProyectoGrupoDetalle = {
   nombre: string;
-  ciclo: string;
   fechaEntrega: string;
   comentarios: string;
   notaFinal: number | null;
   creadoPorNombre: string;
   alumnosNombres: string[];
-  notas: { nombre: string; porcentaje: number; valor: number | null; comentario: string | null }[];
+  notas: { tipoNotaId: string; valor: number | null; comentario: string | null }[];
 };
 
-export function ProyectoGrupoDetalleModal({ grupo, onClose }: { grupo: ProyectoGrupoDetalle; onClose: () => void }) {
+export function ProyectoGrupoDetalleModal({
+  grupo,
+  tiposNota,
+  onClose,
+}: {
+  grupo: ProyectoGrupoDetalle;
+  tiposNota: TipoNota[];
+  onClose: () => void;
+}) {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4">
       <div className="my-8 w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl sm:p-8">
@@ -25,11 +32,7 @@ export function ProyectoGrupoDetalleModal({ grupo, onClose }: { grupo: ProyectoG
           </button>
         </div>
 
-        <div className="mb-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-          <div>
-            <div className="text-xs text-slate-400">Ciclo</div>
-            <div className="font-semibold text-slate-700">{formatearCiclo(grupo.ciclo)}</div>
-          </div>
+        <div className="mb-4 grid grid-cols-2 gap-3 text-sm">
           <div>
             <div className="text-xs text-slate-400">Fecha de entrega</div>
             <div className="font-semibold text-slate-700">
@@ -54,24 +57,25 @@ export function ProyectoGrupoDetalleModal({ grupo, onClose }: { grupo: ProyectoG
         </div>
 
         <div>
-          <div className="mb-1.5 text-xs font-semibold text-slate-500">Tipos de nota</div>
-          {grupo.notas.length === 0 ? (
-            <p className="text-sm text-slate-400">Todavía no se han puesto tipos de nota.</p>
-          ) : (
-            <div className="space-y-2">
-              {grupo.notas.map((n, i) => (
-                <div key={i} className="rounded-lg border border-slate-100 p-3">
+          <div className="mb-1.5 text-xs font-semibold text-slate-500">Notas</div>
+          <div className="space-y-2">
+            {tiposNota.map((t) => {
+              const nota = grupo.notas.find((n) => n.tipoNotaId === t.id);
+              return (
+                <div key={t.id} className="rounded-lg border border-slate-100 p-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-slate-700">{n.nombre}</span>
+                    <span className="text-sm font-semibold text-slate-700">
+                      {t.nombre} <span className="font-normal text-slate-400">({t.porcentaje}%)</span>
+                    </span>
                     <span className="text-xs text-slate-400">
-                      {n.porcentaje}% · {n.valor === null ? "sin calificar" : `${n.valor}/10`}
+                      {nota?.valor === null || nota?.valor === undefined ? "sin calificar" : `${nota.valor}/10`}
                     </span>
                   </div>
-                  {n.comentario && <p className="mt-1 text-xs text-slate-500">{n.comentario}</p>}
+                  {nota?.comentario && <p className="mt-1 text-xs text-slate-500">{nota.comentario}</p>}
                 </div>
-              ))}
-            </div>
-          )}
+              );
+            })}
+          </div>
         </div>
 
         <div className="mt-4">
