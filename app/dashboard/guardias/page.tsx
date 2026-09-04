@@ -140,9 +140,11 @@ export default async function GuardiasPage({
       );
     }
 
-    const { rows, profesores } = await getGuardiasCentro(searchParams.school);
-    const { horarios, guardias } = await getDatosCobertura(searchParams.school);
-    const solicitudes = await obtenerSolicitudesPendientes(searchParams.school);
+    const [{ rows, profesores }, { horarios, guardias }, solicitudes] = await Promise.all([
+      getGuardiasCentro(searchParams.school),
+      getDatosCobertura(searchParams.school),
+      obtenerSolicitudesPendientes(searchParams.school),
+    ]);
     const vistaSuperAdmin = searchParams.vista ?? "solicitudes";
     return (
       <div>
@@ -220,30 +222,30 @@ export default async function GuardiasPage({
   // ausencia de un profesor. Antes esta rama solo miraba las puntuales, así
   // que las guardias resueltas por el flujo de "avisar ausencia" nunca
   // aparecían aquí aunque sí se hubieran asignado correctamente.
-  const { rows, profesores } = !isProfesor
-    ? await getGuardiasCentro(schoolId)
-    : { rows: [] as Awaited<ReturnType<typeof getGuardiasCentro>>["rows"], profesores: [] as Awaited<ReturnType<typeof getGuardiasCentro>>["profesores"] };
-
-  const { horarios, guardias } = !isProfesor
-    ? await getDatosCobertura(schoolId)
-    : { horarios: [], guardias: [] };
-
-  const solicitudes = !isProfesor ? await obtenerSolicitudesPendientes() : [];
   // Gestionar de verdad (aceptar, asignar sustituto, editar, eliminar...)
   // es exclusivo de Dirección y SuperAdmin — el resto del equipo
   // directivo solo consulta.
   const puedeGestionar = role === "DIRECCION";
 
-  // El horario propio (para poder avisar de una ausencia) lo necesita
-  // cualquiera con sesión, no solo un Profesor — Coordinación/Dirección
-  // también dan clase y también pueden faltar algún día.
-  const miHorario = userId
-    ? await prisma.horarioBloque.findMany({
-        where: { profesorId: userId },
-        select: { id: true, diaSemana: true, horaInicio: true, horaFin: true, asignatura: true, grupo: true, aula: true, esGuardia: true },
-        orderBy: [{ diaSemana: "asc" }, { horaInicio: "asc" }],
-      })
-    : [];
+  // Ninguna de estas cuatro depende del resultado de otra, así que van
+  // en paralelo en vez de una detrás de otra.
+  const [{ rows, profesores }, { horarios, guardias }, solicitudes, miHorario] = await Promise.all([
+    !isProfesor
+      ? getGuardiasCentro(schoolId)
+      : Promise.resolve({ rows: [] as Awaited<ReturnType<typeof getGuardiasCentro>>["rows"], profesores: [] as Awaited<ReturnType<typeof getGuardiasCentro>>["profesores"] }),
+    !isProfesor ? getDatosCobertura(schoolId) : Promise.resolve({ horarios: [], guardias: [] }),
+    !isProfesor ? obtenerSolicitudesPendientes() : Promise.resolve([]),
+    // El horario propio (para poder avisar de una ausencia) lo necesita
+    // cualquiera con sesión, no solo un Profesor — Coordinación/Dirección
+    // también dan clase y también pueden faltar algún día.
+    userId
+      ? prisma.horarioBloque.findMany({
+          where: { profesorId: userId },
+          select: { id: true, diaSemana: true, horaInicio: true, horaFin: true, asignatura: true, grupo: true, aula: true, esGuardia: true },
+          orderBy: [{ diaSemana: "asc" }, { horaInicio: "asc" }],
+        })
+      : Promise.resolve([]),
+  ]);
 
   return (
     <div>
