@@ -6,6 +6,7 @@ export type ProyectoGrupoDetalle = {
   nombre: string;
   ciclo: string;
   fechaEntrega: string;
+  comentarios: string;
   notaFinal: number | null;
   creadoPorNombre: string;
   alumnosNombres: string[];
@@ -70,6 +71,11 @@ export function ProyectoGrupoDetalleModal({ grupo, onClose }: { grupo: ProyectoG
               ))}
             </div>
           )}
+        </div>
+
+        <div className="mt-4">
+          <div className="mb-1.5 text-xs font-semibold text-slate-500">Comentarios</div>
+          <p className="whitespace-pre-line text-sm text-slate-600">{grupo.comentarios}</p>
         </div>
 
         <div className="mt-5 rounded-lg bg-slate-50 px-4 py-3 text-center">

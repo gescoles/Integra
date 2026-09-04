@@ -12,6 +12,7 @@ type Grupo = {
   nombre: string;
   ciclo: string;
   fechaEntrega: string;
+  comentarios: string;
   notaFinal: number | null;
   creadoPorId: string;
   creadoPorNombre: string;
@@ -76,6 +77,7 @@ export function ProyectosClient({
         ciclo: grupoEditando.ciclo,
         alumnosIds: grupoEditando.alumnosIds,
         fechaEntrega: grupoEditando.fechaEntrega,
+        comentarios: grupoEditando.comentarios,
         notas: grupoEditando.notas,
       }
     : null;

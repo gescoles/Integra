@@ -1737,9 +1737,13 @@ model ProyectoGrupo {
   ciclo        String
   alumnosIds   String[]        @default([])
   fechaEntrega DateTime
-  // Media ponderada de las notas (ver ProyectoNota) — solo se calcula
-  // cuando los porcentajes suman 100% y todas llevan un valor puesto;
-  // si no, se queda sin calificar (null) hasta que se complete.
+  // Comentario general del grupo/proyecto (distinto del comentario de
+  // cada tipo de nota, que es específico de esa nota).
+  comentarios  String
+  // Media ponderada de las notas (ver ProyectoNota) — todos los campos
+  // del formulario son obligatorios (incluidos los tipos de nota y sus
+  // valores), así que esto siempre queda calculado al guardar; los
+  // porcentajes tienen que sumar 100% o el guardado se rechaza.
   notaFinal    Float?
   creadoPorId  String
   creadoPor    User            @relation(fields: [creadoPorId], references: [id])

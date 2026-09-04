@@ -69,6 +69,9 @@ export const MODELOS_BACKUP = [
   "empresaDocumento",
   "empresaHistorial",
   "empresaObservacion",
+  "proyectoVentana",
+  "proyectoGrupo",
+  "proyectoNota",
 ] as const;
 
 // Las relaciones muchos-a-muchos de Departamento no son "modelos" propios
@@ -208,6 +211,9 @@ function construirFiltroPorCentro(schoolId: string): Record<string, unknown> {
     empresaDocumento: { empresa: { schoolId } },
     empresaHistorial: { empresa: { schoolId } },
     empresaObservacion: { empresa: { schoolId } },
+    proyectoVentana: null, // son las pestañas del módulo, compartidas por toda la plataforma — se omiten
+    proyectoGrupo: { schoolId },
+    proyectoNota: { proyectoGrupo: { schoolId } },
   };
 }
 

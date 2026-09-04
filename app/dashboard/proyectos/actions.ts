@@ -97,6 +97,7 @@ export async function obtenerGruposProyecto(
     nombre: g.nombre,
     ciclo: g.ciclo,
     fechaEntrega: g.fechaEntrega.toISOString(),
+    comentarios: g.comentarios,
     notaFinal: g.notaFinal,
     creadoPorId: g.creadoPorId,
     creadoPorNombre: g.creadoPor.name ?? g.creadoPor.email,
@@ -112,23 +113,24 @@ export async function obtenerGruposProyecto(
   }));
 }
 
-type NotaInput = { nombre: string; porcentaje: number; valor: number | null; comentario: string | null };
+type NotaInput = { nombre: string; porcentaje: number; valor: number; comentario: string };
 
-// La nota final solo se calcula (media ponderada) cuando los porcentajes
-// suman exactamente 100% y todos los tipos de nota tienen ya un valor
-// puesto — si no, se queda sin calificar (null) hasta que se complete.
-function calcularNotaFinal(notas: NotaInput[]): number | null {
-  if (notas.length === 0) return null;
-  const sumaPorcentajes = notas.reduce((s, n) => s + n.porcentaje, 0);
-  if (Math.abs(sumaPorcentajes - 100) > 0.01) return null;
-  if (notas.some((n) => n.valor === null)) return null;
+// Todos los campos son obligatorios (se pidió expresamente): tiene que
+// haber al menos un tipo de nota, y los porcentajes tienen que sumar
+// exactamente 100% — si no, se rechaza el guardado entero, no se permite
+// un grupo a medio calificar.
+function calcularNotaFinal(notas: NotaInput[]): number {
+  const sumaPorcentajes = Math.round(notas.reduce((s, n) => s + n.porcentaje, 0) * 100) / 100;
+  if (Math.abs(sumaPorcentajes - 100) > 0.01) {
+    throw new Error(`Los porcentajes de los tipos de nota tienen que sumar 100% (ahora suman ${sumaPorcentajes}%).`);
+  }
 
-  const suma = notas.reduce((s, n) => s + (n.valor as number) * n.porcentaje, 0);
+  const suma = notas.reduce((s, n) => s + n.valor * n.porcentaje, 0);
   return Math.round((suma / 100) * 100) / 100;
 }
 
 function parseNotas(raw: FormDataEntryValue | null): NotaInput[] {
-  if (!raw || typeof raw !== "string") return [];
+  if (!raw || typeof raw !== "string") throw new Error("Añade al menos un tipo de nota.");
 
   let parsed: unknown;
   try {
@@ -136,23 +138,24 @@ function parseNotas(raw: FormDataEntryValue | null): NotaInput[] {
   } catch {
     throw new Error("Los tipos de nota no se han podido leer.");
   }
-  if (!Array.isArray(parsed)) throw new Error("Los tipos de nota no son válidos.");
+  if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("Añade al menos un tipo de nota.");
 
   return parsed.map((n) => {
     const registro = n as Record<string, unknown>;
     const nombre = String(registro?.nombre ?? "").trim();
     const porcentaje = Number(registro?.porcentaje);
     const valorRaw = registro?.valor;
-    const valor = valorRaw === null || valorRaw === undefined || valorRaw === "" ? null : Number(valorRaw);
-    const comentario = registro?.comentario ? String(registro.comentario).trim() || null : null;
+    const valor = valorRaw === null || valorRaw === undefined || valorRaw === "" ? NaN : Number(valorRaw);
+    const comentario = String(registro?.comentario ?? "").trim();
 
     if (!nombre) throw new Error("Cada tipo de nota necesita un nombre.");
     if (!Number.isFinite(porcentaje) || porcentaje <= 0) {
       throw new Error(`El porcentaje de "${nombre}" no es válido.`);
     }
-    if (valor !== null && (!Number.isFinite(valor) || valor < 0 || valor > 10)) {
-      throw new Error(`El valor de "${nombre}" tiene que estar entre 0 y 10.`);
+    if (!Number.isFinite(valor) || valor < 0 || valor > 10) {
+      throw new Error(`El valor de "${nombre}" es obligatorio y tiene que estar entre 0 y 10.`);
     }
+    if (!comentario) throw new Error(`El comentario de "${nombre}" es obligatorio.`);
 
     return { nombre, porcentaje, valor, comentario };
   });
@@ -174,6 +177,7 @@ export async function crearProyectoGrupo(formData: FormData) {
   const nombre = (formData.get("nombre") as string)?.trim();
   const ciclo = (formData.get("ciclo") as string)?.trim();
   const fechaEntregaRaw = formData.get("fechaEntrega") as string;
+  const comentarios = (formData.get("comentarios") as string)?.trim();
   const alumnosIds = formData.getAll("alumnosIds").map(String).filter(Boolean);
   const notas = parseNotas(formData.get("notas"));
 
@@ -181,6 +185,7 @@ export async function crearProyectoGrupo(formData: FormData) {
   if (!nombre) throw new Error("El nombre del grupo/proyecto es obligatorio.");
   if (!ciclo) throw new Error("Elige un ciclo.");
   if (!fechaEntregaRaw) throw new Error("La fecha de entrega es obligatoria.");
+  if (!comentarios) throw new Error("Los comentarios son obligatorios.");
   if (alumnosIds.length === 0) throw new Error("Selecciona al menos un alumno.");
 
   const notaFinal = calcularNotaFinal(notas);
@@ -193,6 +198,7 @@ export async function crearProyectoGrupo(formData: FormData) {
       ciclo,
       alumnosIds,
       fechaEntrega: new Date(fechaEntregaRaw),
+      comentarios,
       notaFinal,
       creadoPorId: session.user.id,
       notas: { create: notas },
@@ -215,12 +221,14 @@ export async function actualizarProyectoGrupo(id: string, formData: FormData) {
   const nombre = (formData.get("nombre") as string)?.trim();
   const ciclo = (formData.get("ciclo") as string)?.trim();
   const fechaEntregaRaw = formData.get("fechaEntrega") as string;
+  const comentarios = (formData.get("comentarios") as string)?.trim();
   const alumnosIds = formData.getAll("alumnosIds").map(String).filter(Boolean);
   const notas = parseNotas(formData.get("notas"));
 
   if (!nombre) throw new Error("El nombre del grupo/proyecto es obligatorio.");
   if (!ciclo) throw new Error("Elige un ciclo.");
   if (!fechaEntregaRaw) throw new Error("La fecha de entrega es obligatoria.");
+  if (!comentarios) throw new Error("Los comentarios son obligatorios.");
   if (alumnosIds.length === 0) throw new Error("Selecciona al menos un alumno.");
 
   const notaFinal = calcularNotaFinal(notas);
@@ -234,6 +242,7 @@ export async function actualizarProyectoGrupo(id: string, formData: FormData) {
         ciclo,
         alumnosIds,
         fechaEntrega: new Date(fechaEntregaRaw),
+        comentarios,
         notaFinal,
         notas: { create: notas },
       },

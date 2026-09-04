@@ -14,6 +14,7 @@ export type ProyectoGrupoEditable = {
   ciclo: string;
   alumnosIds: string[];
   fechaEntrega: string;
+  comentarios: string;
   notas: { nombre: string; porcentaje: number; valor: number | null; comentario: string | null }[];
 };
 
@@ -89,14 +90,16 @@ export function ProyectoGrupoFormModal({
   }
 
   function quitarNota(index: number) {
-    setNotas((prev) => prev.filter((_, i) => i !== index));
+    // Siempre tiene que quedar al menos un tipo de nota — todos los
+    // campos del proyecto son obligatorios, este incluido.
+    setNotas((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
   }
 
   const totalPorcentaje = notas.reduce((s, n) => s + (Number(n.porcentaje) || 0), 0);
   const porcentajeCompleto = notas.length > 0 && Math.abs(totalPorcentaje - 100) < 0.01;
-  const todasConValor = notas.length > 0 && notas.every((n) => n.valor !== "" && n.valor !== null);
+  const todasCompletas = notas.length > 0 && notas.every((n) => n.nombre.trim() && n.valor !== "" && n.comentario.trim());
   const notaFinalPreview =
-    porcentajeCompleto && todasConValor
+    porcentajeCompleto && todasCompletas
       ? Math.round(
           (notas.reduce((s, n) => s + Number(n.valor) * (Number(n.porcentaje) || 0), 0) / 100) * 100
         ) / 100
@@ -263,6 +266,7 @@ export function ProyectoGrupoFormModal({
               {notas.map((n, i) => (
                 <div key={i} className="grid grid-cols-[1fr_5rem_5rem_1fr_auto] items-start gap-2 rounded-lg border border-slate-100 p-2.5">
                   <input
+                    required
                     value={n.nombre}
                     onChange={(e) => actualizarNota(i, "nombre", e.target.value)}
                     placeholder="Nombre (ej. Memoria)"
@@ -270,6 +274,7 @@ export function ProyectoGrupoFormModal({
                   />
                   <input
                     type="number"
+                    required
                     min={0}
                     max={100}
                     value={n.porcentaje}
@@ -279,6 +284,7 @@ export function ProyectoGrupoFormModal({
                   />
                   <input
                     type="number"
+                    required
                     min={0}
                     max={10}
                     step="0.1"
@@ -288,9 +294,10 @@ export function ProyectoGrupoFormModal({
                     className="rounded-lg border border-slate-200 px-2.5 py-2 text-xs outline-none focus:border-[#FD5249]"
                   />
                   <input
+                    required
                     value={n.comentario}
                     onChange={(e) => actualizarNota(i, "comentario", e.target.value)}
-                    placeholder="Comentario (opcional)"
+                    placeholder="Comentario"
                     className="rounded-lg border border-slate-200 px-2.5 py-2 text-xs outline-none focus:border-[#FD5249]"
                   />
                   <button
@@ -317,6 +324,20 @@ export function ProyectoGrupoFormModal({
                 Nota final: {notaFinalPreview}
               </div>
             )}
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Comentarios <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              name="comentarios"
+              required
+              rows={3}
+              defaultValue={editing?.comentarios ?? ""}
+              placeholder="Valoración general del grupo/proyecto..."
+              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#FD5249]"
+            />
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
