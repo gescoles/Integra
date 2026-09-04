@@ -84,9 +84,38 @@ export async function ProfesorHome({
   const hasTutorias = modules.includes("tutorias");
   const hasGuardias = modules.includes("guardias");
 
-  const guardiasQueDebeCubrir = hasGuardias ? await contarGuardiasPendientesDeCubrir(schoolId, userId) : 0;
+  const hoy = startOfToday();
+  const finHoy = endOfToday();
+  const diaSemanaHoy = (() => {
+    const d = new Date().getDay();
+    return d === 0 ? 7 : d;
+  })();
+  // Los widgets "Próxima/o X" del inicio no se limitan a hoy: buscan la
+  // próxima ocurrencia real aunque caiga otro día, para que siempre haya
+  // algo que mostrar (un "recordatorio" de verdad, no solo para hoy).
+  const ahora = new Date();
 
-  const [numAlumnos, numDocentes, avisosRaw] = await Promise.all([
+  // Ninguna de estas consultas depende del resultado de otra (todas solo
+  // necesitan school/hasTutorias/hasGuardias, ya calculados arriba), así
+  // que van todas en un único Promise.all en vez de en varias tandas
+  // seguidas — menos vueltas a la base de datos para cargar esta misma
+  // página de siempre.
+  const [
+    guardiasQueDebeCubrir,
+    numAlumnos,
+    numDocentes,
+    avisosRaw,
+    tutoriasHoyList,
+    guardiasHoyList,
+    eventosHoyList,
+    horarioHoyList,
+    horarioSemanal,
+    proximaTutoriaRaw,
+    proximaGuardiaRaw,
+    proximoEventoRaw,
+    ultimasNoticias,
+  ] = await Promise.all([
+    hasGuardias ? contarGuardiasPendientesDeCubrir(schoolId, userId) : Promise.resolve(0),
     prisma.alumno.count({ where: { schoolId } }),
     prisma.user.count({ where: { schoolId, role: { in: ["PROFESOR", "COORDINADOR", "ADMIN_CENTRO", "DIRECCION"] } } }),
     prisma.aviso.findMany({
@@ -95,6 +124,34 @@ export async function ProfesorHome({
       orderBy: { createdAt: "desc" },
       take: 8,
     }),
+    hasTutorias
+      ? prisma.tutoria.findMany({
+          where: { profesorId: userId, sessionDate: { gte: hoy, lte: finHoy } },
+          orderBy: { sessionDate: "asc" },
+        })
+      : Promise.resolve([]),
+    hasGuardias
+      ? prisma.guardia.findMany({
+          where: { profesorId: userId, fecha: { gte: hoy, lte: finHoy } },
+          orderBy: { fecha: "asc" },
+        })
+      : Promise.resolve([]),
+    prisma.calendarEvento.findMany({
+      where: { userId, fecha: { gte: hoy, lte: finHoy } },
+      orderBy: { horaInicio: "asc" },
+    }),
+    prisma.horarioBloque.findMany({
+      where: { profesorId: userId, diaSemana: diaSemanaHoy },
+      orderBy: { horaInicio: "asc" },
+    }),
+    prisma.horarioBloque.findMany({
+      where: { profesorId: userId },
+      orderBy: [{ diaSemana: "asc" }, { horaInicio: "asc" }],
+    }),
+    hasTutorias ? obtenerProximaTutoria(userId, ahora) : Promise.resolve(null),
+    hasGuardias ? obtenerProximaGuardia(userId, ahora) : Promise.resolve(null),
+    obtenerProximoEvento(userId, ahora),
+    obtenerUltimasNoticias(3),
   ]);
 
   const avisos = avisosRaw.map((a) => ({
@@ -105,52 +162,6 @@ export async function ProfesorHome({
     createdAt: a.createdAt.toISOString(),
     schoolName: a.school.name,
   }));
-
-  const hoy = startOfToday();
-  const finHoy = endOfToday();
-  const diaSemanaHoy = (() => {
-    const d = new Date().getDay();
-    return d === 0 ? 7 : d;
-  })();
-
-  const [tutoriasHoyList, guardiasHoyList, eventosHoyList, horarioHoyList, horarioSemanal] =
-    await Promise.all([
-      hasTutorias
-        ? prisma.tutoria.findMany({
-            where: { profesorId: userId, sessionDate: { gte: hoy, lte: finHoy } },
-            orderBy: { sessionDate: "asc" },
-          })
-        : Promise.resolve([]),
-      hasGuardias
-        ? prisma.guardia.findMany({
-            where: { profesorId: userId, fecha: { gte: hoy, lte: finHoy } },
-            orderBy: { fecha: "asc" },
-          })
-        : Promise.resolve([]),
-      prisma.calendarEvento.findMany({
-        where: { userId, fecha: { gte: hoy, lte: finHoy } },
-        orderBy: { horaInicio: "asc" },
-      }),
-      prisma.horarioBloque.findMany({
-        where: { profesorId: userId, diaSemana: diaSemanaHoy },
-        orderBy: { horaInicio: "asc" },
-      }),
-      prisma.horarioBloque.findMany({
-        where: { profesorId: userId },
-        orderBy: [{ diaSemana: "asc" }, { horaInicio: "asc" }],
-      }),
-    ]);
-
-  // Los widgets "Próxima/o X" del inicio no se limitan a hoy: buscan la
-  // próxima ocurrencia real aunque caiga otro día, para que siempre haya
-  // algo que mostrar (un "recordatorio" de verdad, no solo para hoy).
-  const ahora = new Date();
-  const [proximaTutoriaRaw, proximaGuardiaRaw, proximoEventoRaw, ultimasNoticias] = await Promise.all([
-    hasTutorias ? obtenerProximaTutoria(userId, ahora) : Promise.resolve(null),
-    hasGuardias ? obtenerProximaGuardia(userId, ahora) : Promise.resolve(null),
-    obtenerProximoEvento(userId, ahora),
-    obtenerUltimasNoticias(3),
-  ]);
   // La "próxima clase" sale del horario semanal recurrente (no tiene fecha
   // propia), así que se calcula en memoria a partir de día+hora. Se
   // excluyen los bloques de guardia: para eso ya está el widget de arriba.

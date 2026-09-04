@@ -100,10 +100,9 @@ export async function SuperAdminHome({
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
   sevenDaysAgo.setHours(0, 0, 0, 0);
 
-  const salidasPendientes = await prisma.salida.count({ where: { estado: "PENDIENTE" } });
-  const accesosBloqueadosCount = await contarAccesosBloqueadosActivos();
-
   const [
+    salidasPendientes,
+    accesosBloqueadosCount,
     centrosCount,
     usuariosActivosCount,
     guardiasCount,
@@ -114,6 +113,8 @@ export async function SuperAdminHome({
     recentUsers,
     activityLast7Days,
   ] = await Promise.all([
+    prisma.salida.count({ where: { estado: "PENDIENTE" } }),
+    contarAccesosBloqueadosActivos(),
     prisma.school.count(),
     prisma.user.count({ where: { status: "ACTIVO" } }),
     prisma.guardia.count(),

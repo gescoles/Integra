@@ -93,7 +93,42 @@ export async function CoordinadorHome({
   const hasGuardias = modules.includes("guardias");
   const hasSalidas = modules.includes("salidas");
 
-  const [numAlumnos, numDocentes, avisosRaw] = await Promise.all([
+  const hoy = startOfToday();
+  const finHoy = endOfToday();
+  const diaSemanaHoy = (() => {
+    const d = new Date().getDay();
+    return d === 0 ? 7 : d;
+  })();
+  // Los widgets "Próxima/o X" del inicio no se limitan a hoy: buscan la
+  // próxima ocurrencia real aunque caiga otro día, para que siempre haya
+  // algo que mostrar (un "recordatorio" de verdad, no solo para hoy).
+  const ahora = new Date();
+
+  // Ninguna de estas consultas depende del resultado de otra (todas solo
+  // necesitan school/hasTutorias/hasGuardias/hasSalidas/role, ya
+  // calculados arriba), así que van todas en un único Promise.all en vez
+  // de en varias tandas seguidas — menos vueltas a la base de datos para
+  // cargar esta misma página de siempre.
+  const [
+    numAlumnos,
+    numDocentes,
+    avisosRaw,
+    salidasPendientes,
+    solicitudesGuardiaPendientes,
+    guardiasQueDebeCubrir,
+    alumnosPendientesExpulsion,
+    materialPendienteValidar,
+    materialPendienteComprar,
+    tutoriasHoyList,
+    guardiasHoyList,
+    eventosHoyList,
+    horarioHoyList,
+    horarioSemanal,
+    proximaTutoriaRaw,
+    proximaGuardiaRaw,
+    proximoEventoRaw,
+    ultimasNoticias,
+  ] = await Promise.all([
     prisma.alumno.count({ where: { schoolId } }),
     prisma.user.count({ where: { schoolId, role: { in: ["PROFESOR", "COORDINADOR", "ADMIN_CENTRO", "DIRECCION"] } } }),
     prisma.aviso.findMany({
@@ -102,7 +137,55 @@ export async function CoordinadorHome({
       orderBy: { createdAt: "desc" },
       take: 8,
     }),
+    hasSalidas ? prisma.salida.count({ where: { schoolId, estado: "PENDIENTE" } }) : Promise.resolve(0),
+    hasGuardias
+      ? prisma.coberturaGuardia.count({ where: { schoolId, estado: "PENDIENTE" } })
+      : Promise.resolve(0),
+    hasGuardias ? contarGuardiasPendientesDeCubrir(schoolId, userId) : Promise.resolve(0),
+    contarAlumnosConTresIncidenciasSinExpediente(schoolId),
+    // Validar es exclusivo de Dirección; marcar como comprado, de
+    // Administración — cada uno solo ve en su pantalla principal el aviso
+    // que de verdad le toca gestionar a él.
+    role === "DIRECCION"
+      ? prisma.materialRequest.count({ where: { schoolId, estado: "PENDIENTE_VALIDACION" } })
+      : Promise.resolve(0),
+    // Este aviso se basa en las notificaciones (no en el recuento real de
+    // material pendiente de comprar): así, en cuanto Administración le da
+    // clic, desaparece de la pantalla principal aunque el material siga
+    // apareciendo en Material hasta que se compre de verdad.
+    role === "ADMINISTRACION"
+      ? prisma.notificacion.count({ where: { userId, tipo: "MATERIAL_PENDIENTE_COMPRAR" } })
+      : Promise.resolve(0),
+    hasTutorias
+      ? prisma.tutoria.findMany({
+          where: { profesorId: userId, sessionDate: { gte: hoy, lte: finHoy } },
+          orderBy: { sessionDate: "asc" },
+        })
+      : Promise.resolve([]),
+    hasGuardias
+      ? prisma.guardia.findMany({
+          where: { profesorId: userId, fecha: { gte: hoy, lte: finHoy } },
+          orderBy: { fecha: "asc" },
+        })
+      : Promise.resolve([]),
+    prisma.calendarEvento.findMany({
+      where: { userId, fecha: { gte: hoy, lte: finHoy } },
+      orderBy: { horaInicio: "asc" },
+    }),
+    prisma.horarioBloque.findMany({
+      where: { profesorId: userId, diaSemana: diaSemanaHoy },
+      orderBy: { horaInicio: "asc" },
+    }),
+    prisma.horarioBloque.findMany({
+      where: { profesorId: userId },
+      orderBy: [{ diaSemana: "asc" }, { horaInicio: "asc" }],
+    }),
+    hasTutorias ? obtenerProximaTutoria(userId, ahora) : Promise.resolve(null),
+    hasGuardias ? obtenerProximaGuardia(userId, ahora) : Promise.resolve(null),
+    obtenerProximoEvento(userId, ahora),
+    obtenerUltimasNoticias(3),
   ]);
+
   const avisos = avisosRaw.map((a) => ({
     id: a.id,
     titulo: a.titulo,
@@ -111,77 +194,6 @@ export async function CoordinadorHome({
     createdAt: a.createdAt.toISOString(),
     schoolName: a.school.name,
   }));
-
-  const salidasPendientes = hasSalidas
-    ? await prisma.salida.count({ where: { schoolId, estado: "PENDIENTE" } })
-    : 0;
-
-  const solicitudesGuardiaPendientes = hasGuardias
-    ? await prisma.coberturaGuardia.count({ where: { schoolId, estado: "PENDIENTE" } })
-    : 0;
-  const guardiasQueDebeCubrir = hasGuardias ? await contarGuardiasPendientesDeCubrir(schoolId, userId) : 0;
-  const alumnosPendientesExpulsion = await contarAlumnosConTresIncidenciasSinExpediente(schoolId);
-  // Validar es exclusivo de Dirección; marcar como comprado, de
-  // Administración — cada uno solo ve en su pantalla principal el aviso
-  // que de verdad le toca gestionar a él.
-  const materialPendienteValidar =
-    role === "DIRECCION"
-      ? await prisma.materialRequest.count({ where: { schoolId, estado: "PENDIENTE_VALIDACION" } })
-      : 0;
-  // Este aviso se basa en las notificaciones (no en el recuento real de
-  // material pendiente de comprar): así, en cuanto Administración le da
-  // clic, desaparece de la pantalla principal aunque el material siga
-  // apareciendo en Material hasta que se compre de verdad.
-  const materialPendienteComprar =
-    role === "ADMINISTRACION"
-      ? await prisma.notificacion.count({ where: { userId, tipo: "MATERIAL_PENDIENTE_COMPRAR" } })
-      : 0;
-
-  const hoy = startOfToday();
-  const finHoy = endOfToday();
-  const diaSemanaHoy = (() => {
-    const d = new Date().getDay();
-    return d === 0 ? 7 : d;
-  })();
-
-  const [tutoriasHoyList, guardiasHoyList, eventosHoyList, horarioHoyList, horarioSemanal] =
-    await Promise.all([
-      hasTutorias
-        ? prisma.tutoria.findMany({
-            where: { profesorId: userId, sessionDate: { gte: hoy, lte: finHoy } },
-            orderBy: { sessionDate: "asc" },
-          })
-        : Promise.resolve([]),
-      hasGuardias
-        ? prisma.guardia.findMany({
-            where: { profesorId: userId, fecha: { gte: hoy, lte: finHoy } },
-            orderBy: { fecha: "asc" },
-          })
-        : Promise.resolve([]),
-      prisma.calendarEvento.findMany({
-        where: { userId, fecha: { gte: hoy, lte: finHoy } },
-        orderBy: { horaInicio: "asc" },
-      }),
-      prisma.horarioBloque.findMany({
-        where: { profesorId: userId, diaSemana: diaSemanaHoy },
-        orderBy: { horaInicio: "asc" },
-      }),
-      prisma.horarioBloque.findMany({
-        where: { profesorId: userId },
-        orderBy: [{ diaSemana: "asc" }, { horaInicio: "asc" }],
-      }),
-    ]);
-
-  // Los widgets "Próxima/o X" del inicio no se limitan a hoy: buscan la
-  // próxima ocurrencia real aunque caiga otro día, para que siempre haya
-  // algo que mostrar (un "recordatorio" de verdad, no solo para hoy).
-  const ahora = new Date();
-  const [proximaTutoriaRaw, proximaGuardiaRaw, proximoEventoRaw, ultimasNoticias] = await Promise.all([
-    hasTutorias ? obtenerProximaTutoria(userId, ahora) : Promise.resolve(null),
-    hasGuardias ? obtenerProximaGuardia(userId, ahora) : Promise.resolve(null),
-    obtenerProximoEvento(userId, ahora),
-    obtenerUltimasNoticias(3),
-  ]);
   // La "próxima clase" sale del horario semanal recurrente (no tiene fecha
   // propia), así que se calcula en memoria a partir de día+hora. Se
   // excluyen los bloques de guardia: para eso ya está el widget de arriba.
