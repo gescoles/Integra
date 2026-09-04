@@ -33,13 +33,14 @@ export async function notifyUsers(
         select: { endpoint: true, p256dh: true, auth: true },
       }),
     ]);
+    console.log(`[push] notifyUsers: ${tokens.length} token(s) FCM, ${subscripciones.length} suscripción(es) WebPush para ${userIds.join(",")}`);
 
     await Promise.all([
       tokens.length > 0
         ? sendPushToTokens(
             tokens.map((t) => t.token),
             { titulo: data.titulo, mensaje: data.mensaje, link: data.link }
-          )
+          ).then(() => console.log("[push] sendPushToTokens: terminado"))
         : Promise.resolve(),
       subscripciones.length > 0
         ? sendWebPushToSubscriptions(subscripciones, {
@@ -47,14 +48,16 @@ export async function notifyUsers(
             mensaje: data.mensaje,
             link: data.link,
           }).then((caducadas) => {
+            console.log(`[push] sendWebPushToSubscriptions: terminado, ${caducadas.length} caducada(s)`);
             if (caducadas.length > 0) {
               return prisma.webPushSubscription.deleteMany({ where: { endpoint: { in: caducadas } } });
             }
           })
         : Promise.resolve(),
     ]);
+    console.log("[push] notifyUsers: Promise.all de envío terminado sin excepciones");
   } catch (e) {
-    console.error("No se pudo mandar la notificación push:", e);
+    console.error("[push] No se pudo mandar la notificación push:", e);
   }
 }
 

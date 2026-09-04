@@ -31,7 +31,12 @@ export async function sendWebPushToSubscriptions(
   data: { titulo: string; mensaje: string; link?: string | null }
 ): Promise<string[]> {
   if (subscriptions.length === 0) return [];
-  if (!asegurarVapid()) return [];
+  if (!asegurarVapid()) {
+    console.error(
+      "[push] sendWebPushToSubscriptions: VAPID no configurado — faltan VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY/VAPID_SUBJECT en este entorno"
+    );
+    return [];
+  }
 
   const payload = JSON.stringify({
     title: data.titulo,
@@ -41,25 +46,28 @@ export async function sendWebPushToSubscriptions(
 
   const caducadas: string[] = [];
 
+  console.log(`[push] sendWebPushToSubscriptions: enviando a ${subscriptions.length} suscripción(es)`);
   await Promise.all(
     subscriptions.map(async (sub) => {
       try {
-        await webpush.sendNotification(
+        const res = await webpush.sendNotification(
           {
             endpoint: sub.endpoint,
             keys: { p256dh: sub.p256dh, auth: sub.auth },
           },
           payload
         );
+        console.log(`[push] OK endpoint=${sub.endpoint.slice(0, 40)}... status=${res.statusCode}`);
       } catch (e: unknown) {
         // 404/410 = la suscripción ya no existe (el usuario quitó el
         // permiso, desinstaló la PWA, o cambió de navegador) — se puede
         // borrar sin problema, no es un error real.
         const status = (e as { statusCode?: number })?.statusCode;
         if (status === 404 || status === 410) {
+          console.log(`[push] CADUCADA (${status}) endpoint=${sub.endpoint.slice(0, 40)}...`);
           caducadas.push(sub.endpoint);
         } else {
-          console.error("No se pudo mandar la notificación Web Push:", e);
+          console.error(`[push] FALLO endpoint=${sub.endpoint.slice(0, 40)}... status=${status}`, e);
         }
       }
     })

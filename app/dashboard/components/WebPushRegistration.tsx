@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Bell, X } from "lucide-react";
-import { registrarWebPushSubscription } from "../notificationsActions";
+import { registrarWebPushSubscription, eliminarWebPushSubscription } from "../notificationsActions";
 
 // Mismo nombre de clave que usa PushRegistration.tsx (Android) y
 // UserProfileButton.tsx al cerrar sesión, pero para Web Push — así se
@@ -22,9 +22,33 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
+// Compara la clave con la que se creó una suscripción ya existente contra
+// la clave VAPID actual — si en algún momento se cambiaron las claves (o
+// se suscribió antes de que estuvieran bien puestas en el servidor), el
+// navegador se queda con una suscripción "vieja" que getSubscription()
+// sigue devolviendo de toda la vida, y el envío falla en silencio para
+// siempre (ni siquiera con un error que se pueda limpiar solo). Hay que
+// detectarlo y volver a suscribir con la clave buena.
+function mismaClave(subscription: PushSubscription, publicKey: string) {
+  const actual = subscription.options?.applicationServerKey;
+  if (!actual) return true; // navegadores que no exponen options: se asume que sí, no se puede comprobar
+  const esperada = urlBase64ToUint8Array(publicKey);
+  const actualBytes = new Uint8Array(actual);
+  if (actualBytes.length !== esperada.length) return false;
+  return actualBytes.every((b, i) => b === esperada[i]);
+}
+
 async function suscribir(publicKey: string) {
   const registration = await navigator.serviceWorker.ready;
   let subscription = await registration.pushManager.getSubscription();
+
+  if (subscription && !mismaClave(subscription, publicKey)) {
+    const endpointViejo = subscription.endpoint;
+    await subscription.unsubscribe();
+    eliminarWebPushSubscription(endpointViejo).catch(() => {});
+    subscription = null;
+  }
+
   if (!subscription) {
     subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,

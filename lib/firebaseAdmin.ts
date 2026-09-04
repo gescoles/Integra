@@ -49,10 +49,14 @@ export async function sendPushToTokens(
   data: { titulo: string; mensaje: string; link?: string | null }
 ) {
   if (tokens.length === 0) return;
-  if (!process.env.FIREBASE_PROJECT_ID) return;
+  if (!process.env.FIREBASE_PROJECT_ID) {
+    console.error("[push] sendPushToTokens: FIREBASE_PROJECT_ID no configurado en este entorno");
+    return;
+  }
 
   try {
     const messaging = getMessaging(getFirebaseApp());
+    console.log(`[push] sendPushToTokens: enviando a ${tokens.length} token(s)`);
     // sendEachForMulticast admite hasta 500 tokens por llamada; con el
     // volumen de un centro educativo nunca se llega ahí, pero se trocea
     // por si acaso.
@@ -63,6 +67,12 @@ export async function sendPushToTokens(
         notification: { title: data.titulo, body: data.mensaje },
         data: data.link ? { link: data.link } : {},
         android: { priority: "high" },
+      });
+      console.log(`[push] sendPushToTokens: successCount=${resultado.successCount} failureCount=${resultado.failureCount}`);
+      resultado.responses.forEach((r, idx) => {
+        if (!r.success && r.error) {
+          console.error(`[push] FCM fallo token=${lote[idx].slice(0, 20)}... code=${r.error.code} message=${r.error.message}`);
+        }
       });
 
       // Si un token ya no es válido (la app se desinstaló, por ejemplo),

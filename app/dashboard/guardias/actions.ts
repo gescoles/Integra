@@ -1124,6 +1124,7 @@ export async function createGuardia(formData: FormData) {
   // dado, push de verdad) — antes solo se mandaba el email, así que nunca
   // le llegaba nada a la campanita ni al móvil.
   const avisarEnApp = async () => {
+    console.log(`[push] createGuardia: avisarEnApp() empieza — profesorId=${profesorId} schoolId=${schoolId}`);
     try {
       await notifyUsers([profesorId], {
         schoolId,
@@ -1133,8 +1134,9 @@ export async function createGuardia(formData: FormData) {
         link: "/dashboard/guardias",
         relatedId: nuevaGuardia.id,
       });
+      console.log("[push] createGuardia: avisarEnApp() terminado sin excepciones");
     } catch (e) {
-      console.error("No se pudo notificar la guardia asignada:", e);
+      console.error("[push] createGuardia: avisarEnApp() lanzó un error:", e);
     }
   };
 
@@ -1183,7 +1185,9 @@ export async function createGuardia(formData: FormData) {
     }
   };
 
+  console.log("[push] createGuardia: lanzando avisarEnApp/avisarPorEmail/avisarPorTeams en paralelo");
   const [, avisoEmail, avisoTeams] = await Promise.all([avisarEnApp(), avisarPorEmail(), avisarPorTeams()]);
+  console.log("[push] createGuardia: los 3 avisos han terminado, devolviendo respuesta al cliente");
   const avisos = [avisoEmail, ...(avisoTeams ? [avisoTeams] : [])];
 
   return { avisos };
