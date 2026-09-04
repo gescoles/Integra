@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import { formatearCiclo } from "./cicloFormat";
 
 export type ProyectoGrupoDetalle = {
   nombre: string;
@@ -27,7 +28,7 @@ export function ProyectoGrupoDetalleModal({ grupo, onClose }: { grupo: ProyectoG
         <div className="mb-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
           <div>
             <div className="text-xs text-slate-400">Ciclo</div>
-            <div className="font-semibold text-slate-700">{grupo.ciclo}</div>
+            <div className="font-semibold text-slate-700">{formatearCiclo(grupo.ciclo)}</div>
           </div>
           <div>
             <div className="text-xs text-slate-400">Fecha de entrega</div>

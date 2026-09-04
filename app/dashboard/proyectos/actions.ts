@@ -4,52 +4,47 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { formatearCiclo } from "./cicloFormat";
 
 function esDirectivo(role?: string) {
   return role === "SUPERADMIN" || role === "DIRECCION" || role === "COORDINADOR" || role === "ADMIN_CENTRO" || role === "ADMINISTRACION";
-}
-
-// Ciclo formativo agrupado a partir de un curso/grupo del centro (p. ej.
-// "DAM1"/"DAM2" -> "DAM") — misma lógica que ya existe en Prácticas
-// (app/dashboard/practicas/actions.ts::cicloDeGrupo), duplicada aquí a
-// propósito para no acoplar dos módulos independientes entre sí.
-function cicloDeGrupo(grupo: string): string {
-  return grupo.replace(/\d+$/, "").trim().toUpperCase();
 }
 
 export async function obtenerVentanasProyecto() {
   return prisma.proyectoVentana.findMany({ orderBy: [{ orden: "asc" }, { createdAt: "asc" }] });
 }
 
-// Lista de ciclos formativos agrupados del centro, a partir de los
-// cursos/grupos ya configurados (School.grupos) — para el selector de
-// "ciclo" del formulario.
+// Lista de ciclos del centro para el selector del formulario: uno por
+// cada curso/grupo real ya configurado (School.grupos), sin mezclar 1r y
+// 2n en uno solo — un proyecto se hace dentro de un curso concreto, no a
+// caballo entre dos. El "value" es el curso/grupo exacto (el mismo que
+// ya usa Alumno.curso); el "label" es solo para que se vea mejor en el
+// desplegable ("DAM - 1r" en vez de "DAM1").
 export async function obtenerCiclosDelCentro(schoolIdParam?: string) {
   const session = await getServerSession(authOptions);
   const schoolId = schoolIdParam ?? session?.user.schoolId;
   if (!schoolId) return [];
 
   const school = await prisma.school.findUnique({ where: { id: schoolId }, select: { grupos: true } });
-  const ciclos = new Set((school?.grupos ?? []).map(cicloDeGrupo).filter(Boolean));
-  return Array.from(ciclos).sort();
+  return (school?.grupos ?? [])
+    .map((g) => ({ value: g, label: formatearCiclo(g) }))
+    .sort((a, b) => a.label.localeCompare(b.label));
 }
 
-// Alumnos de un ciclo agrupado concreto (todos los cursos que caen dentro
-// de ese ciclo, p. ej. "DAM" -> alumnos de DAM1 y DAM2 a la vez).
+// Alumnos de un ciclo (curso/grupo exacto del centro) — 1r y 2n nunca se
+// mezclan, cada uno es su propia opción en el selector.
 export async function obtenerAlumnosPorCiclo(ciclo: string, schoolIdParam?: string) {
   const session = await getServerSession(authOptions);
   const schoolId = schoolIdParam ?? session?.user.schoolId;
   if (!schoolId || !ciclo) return [];
 
   const alumnos = await prisma.alumno.findMany({
-    where: { schoolId },
+    where: { schoolId, curso: ciclo },
     select: { id: true, nombre: true, curso: true },
     orderBy: { nombre: "asc" },
   });
 
-  return alumnos
-    .filter((a) => cicloDeGrupo(a.curso) === ciclo)
-    .map((a) => ({ id: a.id, nombre: a.nombre, curso: a.curso }));
+  return alumnos.map((a) => ({ id: a.id, nombre: a.nombre, curso: a.curso }));
 }
 
 // Plantilla de "tipos de nota" para un nuevo grupo: se reutilizan el
@@ -135,7 +130,7 @@ export async function obtenerGruposProyecto(
   }));
 }
 
-type NotaInput = { nombre: string; porcentaje: number; valor: number; comentario: string };
+type NotaInput = { nombre: string; porcentaje: number; valor: number; comentario: string | null };
 
 // Todos los campos son obligatorios (se pidió expresamente): tiene que
 // haber al menos un tipo de nota, y los porcentajes tienen que sumar
@@ -168,7 +163,8 @@ function parseNotas(raw: FormDataEntryValue | null): NotaInput[] {
     const porcentaje = Number(registro?.porcentaje);
     const valorRaw = registro?.valor;
     const valor = valorRaw === null || valorRaw === undefined || valorRaw === "" ? NaN : Number(valorRaw);
-    const comentario = String(registro?.comentario ?? "").trim();
+    const comentarioTexto = String(registro?.comentario ?? "").trim();
+    const comentario = comentarioTexto || null;
 
     if (!nombre) throw new Error("Cada tipo de nota necesita un nombre.");
     if (!Number.isFinite(porcentaje) || porcentaje <= 0) {
@@ -177,7 +173,6 @@ function parseNotas(raw: FormDataEntryValue | null): NotaInput[] {
     if (!Number.isFinite(valor) || valor < 0 || valor > 10) {
       throw new Error(`El valor de "${nombre}" es obligatorio y tiene que estar entre 0 y 10.`);
     }
-    if (!comentario) throw new Error(`El comentario de "${nombre}" es obligatorio.`);
 
     return { nombre, porcentaje, valor, comentario };
   });

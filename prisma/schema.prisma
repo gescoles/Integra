@@ -1731,9 +1731,9 @@ model ProyectoGrupo {
   ventanaId    String
   ventana      ProyectoVentana @relation(fields: [ventanaId], references: [id], onDelete: Cascade)
   nombre       String
-  // Ciclo formativo agrupado (p. ej. "DAM", agrupando DAM1 y DAM2 a la
-  // vez) — no el curso/grupo exacto del alumno, para poder mezclar
-  // alumnos de distintos cursos del mismo ciclo en un mismo proyecto.
+  // Curso/grupo exacto del centro (igual que Alumno.curso, p. ej. "DAM1")
+  // — 1r y 2n son cursos distintos, cada uno su propio proyecto, nunca
+  // se mezclan alumnos de los dos en un mismo grupo.
   ciclo        String
   alumnosIds   String[]        @default([])
   fechaEntrega DateTime

@@ -30,7 +30,7 @@ export function ProyectoGrupoFormModal({
   onClose,
 }: {
   ventanaId: string;
-  ciclosCentro: string[];
+  ciclosCentro: { value: string; label: string }[];
   schoolId?: string;
   editing: ProyectoGrupoEditable | null;
   onClose: () => void;
@@ -53,10 +53,18 @@ export function ProyectoGrupoFormModal({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  // Si el usuario ya ha escrito algo en "Tipos de nota" para el ciclo
-  // recién elegido, la plantilla (que tarda un poco en llegar del
-  // servidor) no debe pisárselo al llegar tarde.
-  const notasTocadasRef = useRef(false);
+  // Copia siempre al día de "notas", para poder comprobar en el momento
+  // en que llega la plantilla (asíncrono) si el usuario ya ha escrito
+  // algo mientras tanto, sin depender de una bandera aparte que haya que
+  // acordarse de marcar en cada sitio donde se toca "notas".
+  const notasRef = useRef(notas);
+  useEffect(() => {
+    notasRef.current = notas;
+  }, [notas]);
+
+  function esFilaEnBlanco(fila: NotaFila) {
+    return !fila.nombre && !fila.porcentaje && !fila.valor && !fila.comentario;
+  }
 
   useEffect(() => {
     if (!ciclo) {
@@ -83,12 +91,15 @@ export function ProyectoGrupoFormModal({
   // falta elegir alumnos y poner las notas de este grupo en concreto.
   useEffect(() => {
     if (editing || !ciclo) return;
-    notasTocadasRef.current = false;
     let cancelado = false;
     obtenerPlantillaNotas(ventanaId, ciclo, schoolId).then((plantilla) => {
+      if (cancelado) return;
       // Si mientras se cargaba la plantilla el usuario ya ha escrito algo
-      // a mano, no se lo pisamos aunque la respuesta llegue después.
-      if (cancelado || notasTocadasRef.current) return;
+      // a mano (o ha añadido/quitado filas), no se lo pisamos aunque la
+      // respuesta llegue tarde — solo se aplica si las filas actuales
+      // siguen exactamente en blanco, tal como estaban al elegir el ciclo.
+      const siguenEnBlanco = notasRef.current.every(esFilaEnBlanco);
+      if (!siguenEnBlanco) return;
       setNotas(
         plantilla.length > 0
           ? plantilla.map((p) => ({ nombre: p.nombre, porcentaje: String(p.porcentaje), valor: "", comentario: "" }))
@@ -98,6 +109,7 @@ export function ProyectoGrupoFormModal({
     return () => {
       cancelado = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ciclo, ventanaId, schoolId, editing]);
 
   function toggleAlumno(id: string) {
@@ -110,17 +122,14 @@ export function ProyectoGrupoFormModal({
   }
 
   function actualizarNota(index: number, campo: keyof NotaFila, valor: string) {
-    notasTocadasRef.current = true;
     setNotas((prev) => prev.map((n, i) => (i === index ? { ...n, [campo]: valor } : n)));
   }
 
   function anadirNota() {
-    notasTocadasRef.current = true;
     setNotas((prev) => [...prev, filaVacia()]);
   }
 
   function quitarNota(index: number) {
-    notasTocadasRef.current = true;
     // Siempre tiene que quedar al menos un tipo de nota — todos los
     // campos del proyecto son obligatorios, este incluido.
     setNotas((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
@@ -128,7 +137,7 @@ export function ProyectoGrupoFormModal({
 
   const totalPorcentaje = notas.reduce((s, n) => s + (Number(n.porcentaje) || 0), 0);
   const porcentajeCompleto = notas.length > 0 && Math.abs(totalPorcentaje - 100) < 0.01;
-  const todasCompletas = notas.length > 0 && notas.every((n) => n.nombre.trim() && n.valor !== "" && n.comentario.trim());
+  const todasCompletas = notas.length > 0 && notas.every((n) => n.nombre.trim() && n.valor !== "");
   const notaFinalPreview =
     porcentajeCompleto && todasCompletas
       ? Math.round(
@@ -222,8 +231,8 @@ export function ProyectoGrupoFormModal({
                   Elige un ciclo...
                 </option>
                 {ciclosCentro.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
+                  <option key={c.value} value={c.value}>
+                    {c.label}
                   </option>
                 ))}
               </select>
@@ -325,10 +334,9 @@ export function ProyectoGrupoFormModal({
                     className="rounded-lg border border-slate-200 px-2.5 py-2 text-xs outline-none focus:border-[#FD5249]"
                   />
                   <input
-                    required
                     value={n.comentario}
                     onChange={(e) => actualizarNota(i, "comentario", e.target.value)}
-                    placeholder="Comentario"
+                    placeholder="Comentario (opcional)"
                     className="rounded-lg border border-slate-200 px-2.5 py-2 text-xs outline-none focus:border-[#FD5249]"
                   />
                   <button
