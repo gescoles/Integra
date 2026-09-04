@@ -158,7 +158,7 @@ export function AsignarCursosClient({
       </form>
 
       <h3 className="mb-2 text-sm font-bold text-[#0B1D4D]">Pendientes de programar ({pendientes.length})</h3>
-      <div className="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <div className="mb-6 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
         {pendientes.length === 0 ? (
           <p className="px-4 py-6 text-center text-sm text-slate-400">No hay ninguna asignación pendiente.</p>
         ) : (
@@ -192,7 +192,7 @@ export function AsignarCursosClient({
       </div>
 
       <h3 className="mb-2 text-sm font-bold text-[#0B1D4D]">Ya programadas por el profesor ({yaProgramadas.length})</h3>
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
         {yaProgramadas.length === 0 ? (
           <p className="px-4 py-6 text-center text-sm text-slate-400">Ninguna asignación se ha programado todavía.</p>
         ) : (

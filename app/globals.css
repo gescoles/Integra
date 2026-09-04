@@ -10,6 +10,29 @@
   display: none;
 }
 
+/* Red de seguridad para que ningún texto largo (un email, una URL, un
+   nombre sin espacios...) se salga nunca de su caja, ni en móvil ni en
+   escritorio. Por defecto, un hijo de un contenedor flex/grid no puede
+   encogerse por debajo del ancho de su propio contenido aunque el
+   contenedor sea más estrecho — así es como un email largo dentro de
+   una tarjeta "flex" empuja y desborda el diseño. Quitarle ese mínimo
+   automático (min-width/min-height: auto → 0) es la corrección
+   estándar, y no tiene ningún efecto visible en el resto de casos.
+   overflow-wrap hace que, si aun así no cabe, la palabra se parta en
+   vez de desbordar. */
+* {
+  min-width: 0;
+}
+img,
+svg,
+video {
+  min-width: initial;
+}
+
+body {
+  overflow-wrap: break-word;
+}
+
 html {
   scroll-behavior: smooth;
 }

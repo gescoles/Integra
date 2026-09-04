@@ -112,8 +112,8 @@ export function ModulosConvenioBlock({
         </div>
       ) : (
         <>
-          <div className="overflow-hidden rounded-lg border border-slate-100">
-            <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto rounded-lg border border-slate-100">
+            <table className="w-full min-w-[480px] text-left text-xs">
               <thead>
                 <tr className="bg-slate-50 text-slate-400">
                   <th className="px-3 py-2 font-medium">Código</th>

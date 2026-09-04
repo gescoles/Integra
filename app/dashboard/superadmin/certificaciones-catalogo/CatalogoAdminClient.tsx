@@ -160,8 +160,8 @@ export function CatalogoAdminClient({ catalogo, categorias, centros }: { catalog
 
       {error && !modalAbierto && <div className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</div>}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        <table className="w-full text-left text-sm">
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+        <table className="w-full min-w-[820px] text-left text-sm">
           <thead>
             <tr className="border-b border-slate-100 text-xs text-slate-400">
               <th className="px-4 py-3 font-medium">Categoría</th>

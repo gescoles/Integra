@@ -209,7 +209,7 @@ export function SeguridadClient({ accesos, registroAccesos }: { accesos: Acceso[
       )}
 
       {vista === "historial" && (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
           {registroAccesos.length === 0 ? (
             <div className="py-24 text-center">
               <LogIn className="mx-auto mb-3 h-10 w-10 text-slate-300" />
