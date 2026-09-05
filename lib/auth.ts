@@ -238,18 +238,19 @@ export const authOptions: NextAuthOptions = {
     // Por eso releemos el usuario en cada petición y mantenemos el token
     // siempre sincronizado con la base de datos.
     async jwt({ token, user, account, trigger, session }) {
-      // Respuesta al popup de "¿Mantener la sesión iniciada?" que se
-      // muestra justo después de validar la contraseña (app/login/page.tsx,
-      // vía su propia llamada a /api/auth/session — no usamos
-      // useSession().update() porque la app no tiene <SessionProvider />).
-      // Reinicia el reloj de las 8h desde este mismo instante, que es
-      // cuando de verdad se conoce la respuesta.
+      // Respuesta al aviso de "¿Mantener la sesión iniciada?" que se
+      // muestra ya DENTRO del panel (RememberSessionPrompt.tsx, montado en
+      // el layout de /dashboard), bloqueando el resto de la pantalla hasta
+      // que responde — vía su propia llamada a /api/auth/session (no
+      // usamos useSession().update() porque la app no tiene
+      // <SessionProvider />). Reinicia el reloj de las 8h desde este mismo
+      // instante, que es cuando de verdad se conoce la respuesta.
       if (trigger === "update" && session && typeof session.remember === "boolean") {
         token.rememberMe = session.remember;
+        token.rememberAnswered = true;
         token.loginTimestamp = Date.now();
         return token;
       }
-
 
       // Login por Microsoft: el "user" que da Azure AD no trae nuestros
       // campos (role, schoolId...) — hay que ir a buscar el usuario real de
@@ -263,10 +264,11 @@ export const authOptions: NextAuthOptions = {
           token.userId = dbUser.id;
           token.sub = dbUser.id;
         }
-        // El login con Microsoft no tiene checkbox de "Recordarme" propio
-        // (ya depende de la sesión de Microsoft/Teams del navegador) — se
-        // trata siempre como recordado, sin el tope extra de 8h de abajo.
+        // El login con Microsoft no tiene aviso propio de "Recordarme" (ya
+        // depende de la sesión de Microsoft/Teams del navegador) — se
+        // trata siempre como recordado y respondido, sin preguntar nada.
         token.rememberMe = true;
+        token.rememberAnswered = true;
         token.loginTimestamp = Date.now();
         return token;
       }
@@ -277,6 +279,9 @@ export const authOptions: NextAuthOptions = {
         token.locale = user.locale;
         token.userId = user.id;
         token.rememberMe = user.rememberMe ?? true;
+        // Todavía no ha respondido — se le preguntará en cuanto entre al
+        // panel (ver RememberSessionPrompt.tsx).
+        token.rememberAnswered = false;
         token.loginTimestamp = Date.now();
         return token;
       }
@@ -353,6 +358,7 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role;
         session.user.schoolId = token.schoolId;
         session.user.locale = token.locale;
+        session.user.rememberAnswered = token.rememberAnswered ?? true;
       }
       return session;
     },

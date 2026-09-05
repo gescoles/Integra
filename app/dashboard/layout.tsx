@@ -11,6 +11,7 @@ import { NativeBackButton } from "./components/NativeBackButton";
 import { SavingOverlay } from "./components/SavingOverlay";
 import { GlobalSavingListener } from "./components/GlobalSavingListener";
 import { IdleSessionGuard } from "./components/IdleSessionGuard";
+import { RememberSessionPrompt } from "./components/RememberSessionPrompt";
 import { SchoolProvider } from "./SchoolContext";
 import { DashboardHeader } from "./components/DashboardHeader";
 import { ContenidoPrincipal } from "./components/ContenidoPrincipal";
@@ -104,6 +105,7 @@ export default async function DashboardLayout({
         <SavingOverlay />
         <GlobalSavingListener />
         <IdleSessionGuard />
+        <RememberSessionPrompt yaRespondido={session.user.rememberAnswered ?? true} />
       </div>
     </SchoolProvider>
   );

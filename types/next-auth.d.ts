@@ -19,6 +19,9 @@ declare module "next-auth" {
       role: Role;
       schoolId: string | null;
       locale: Locale;
+      // Si todavía no ha respondido al aviso de "¿mantener la sesión
+      // iniciada?" que se le muestra nada más entrar al panel.
+      rememberAnswered?: boolean;
     };
   }
 }
@@ -31,6 +34,7 @@ declare module "next-auth/jwt" {
     userId?: string;
     ultimaComprobacion?: number;
     rememberMe?: boolean;
+    rememberAnswered?: boolean;
     loginTimestamp?: number;
   }
 }
