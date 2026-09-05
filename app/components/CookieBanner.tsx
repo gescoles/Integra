@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Cookie, Settings, X } from "lucide-react";
-import { useSidebarColapsado } from "../dashboard/SchoolContext";
 
 const COOKIE_NAME = "docentium-cookie-consent";
 const COOKIE_DIAS = 180;
@@ -37,10 +36,24 @@ function escribirCookie(nombre: string, valor: string, dias: number) {
 export function CookieBanner() {
   const pathname = usePathname();
   const dentroDelDashboard = pathname?.startsWith("/dashboard") ?? false;
-  const { colapsado: sidebarColapsado } = useSidebarColapsado();
   const [visible, setVisible] = useState(false);
   const [configurando, setConfigurando] = useState(false);
   const [prefs, setPrefs] = useState<Preferencias>(PREFERENCIAS_POR_DEFECTO);
+  // El estado de la barra lateral vive en SchoolProvider, dentro de
+  // /dashboard/layout.tsx — este componente se pinta en el layout raíz, un
+  // hermano de esa rama del árbol, así que no puede leerlo por contexto de
+  // React. Se lee de localStorage al montar y se escucha el evento que
+  // dispara toggleSidebar() en SchoolContext.tsx para mantenerlo al día.
+  const [sidebarColapsado, setSidebarColapsado] = useState(false);
+
+  useEffect(() => {
+    setSidebarColapsado(window.localStorage.getItem("sidebarColapsado") === "1");
+    function onChange(e: Event) {
+      setSidebarColapsado(Boolean((e as CustomEvent<boolean>).detail));
+    }
+    window.addEventListener("sidebarColapsado-change", onChange);
+    return () => window.removeEventListener("sidebarColapsado-change", onChange);
+  }, []);
 
   useEffect(() => {
     const guardado = leerCookie(COOKIE_NAME);

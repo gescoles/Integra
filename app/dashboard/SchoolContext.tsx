@@ -118,6 +118,11 @@ export function SchoolProvider({
     setSidebarColapsado((prev) => {
       const next = !prev;
       window.localStorage.setItem("sidebarColapsado", next ? "1" : "0");
+      // El CookieBanner vive en el layout raíz, fuera de este Provider (se
+      // pinta en toda la web, no solo en /dashboard), así que no puede leer
+      // este estado por contexto — se avisa con un evento para que pueda
+      // reposicionar su botón flotante en cuanto se colapsa/despliega.
+      window.dispatchEvent(new CustomEvent<boolean>("sidebarColapsado-change", { detail: next }));
       return next;
     });
   }

@@ -616,7 +616,7 @@ export function Sidebar({
                 contratada/bloqueada que el resto de Utilidades. */}
             {contractedModules.includes("utilidades") ? (
               <div className="mb-1">
-                <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400">
+                <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-300">
                   <CalendarDays className="h-4 w-4" />
                   {translate(locale, "nav.calendario")}
                 </div>
