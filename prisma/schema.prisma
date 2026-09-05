@@ -1534,13 +1534,19 @@ model IntentoLoginFallido {
 // diferencia de IntentoLoginFallido que solo guarda los fallidos. No se
 // borra nunca automáticamente — es el historial de accesos real.
 model RegistroAcceso {
-  id        String   @id @default(cuid())
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  email     String
-  nombre    String
-  metodo    String // "password" | "microsoft"
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email       String
+  nombre      String
+  metodo      String // "password" | "microsoft"
+  ip          String?
+  // Descripción corta del dispositivo (ej. "iPhone · Safari"), usada tal
+  // cual como "huella" para saber si ya se había visto antes — no hace
+  // falta un hash, con la cadena exacta basta para comparar.
+  dispositivo String?
+  ubicacion   String? // ej. "Barcelona, España", a partir de la IP
+  createdAt   DateTime @default(now())
 
   @@index([userId, createdAt])
   @@index([createdAt])

@@ -4,6 +4,61 @@ import AzureADProvider from "next-auth/providers/azure-ad";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 import { alertarSuperAdminsBloqueo } from "./alertaSeguridad";
+import { obtenerIp, obtenerUbicacion, parseDispositivo } from "./deviceInfo";
+import { sendNuevoDispositivoEmail } from "./email";
+
+const OCHO_HORAS_MS = 8 * 60 * 60 * 1000;
+const TREINTA_DIAS_S = 30 * 24 * 60 * 60;
+
+// Guarda el acceso y, si este dispositivo no se le había visto nunca antes
+// a este usuario (y no es su primerísimo login, donde no hay nada con qué
+// comparar todavía), le avisa por correo por si no ha sido él.
+async function registrarAccesoYAvisarSiEsNuevo(params: {
+  userId: string;
+  email: string;
+  nombre: string;
+  metodo: string;
+  ip: string | null;
+  dispositivo: string;
+  ubicacion: string | null;
+}) {
+  try {
+    const accesosPrevios = await prisma.registroAcceso.count({ where: { userId: params.userId } });
+
+    if (accesosPrevios > 0) {
+      const dispositivoConocido = await prisma.registroAcceso.findFirst({
+        where: { userId: params.userId, dispositivo: params.dispositivo },
+        select: { id: true },
+      });
+
+      if (!dispositivoConocido) {
+        // No se espera a que termine el envío — un correo lento no debe
+        // retrasar ni un segundo el login de quien sí es el dueño real.
+        sendNuevoDispositivoEmail({
+          to: params.email,
+          nombre: params.nombre,
+          dispositivo: params.dispositivo,
+          ubicacion: params.ubicacion,
+          fecha: new Date(),
+        }).catch((e) => console.error("No se pudo enviar el aviso de dispositivo nuevo:", e));
+      }
+    }
+
+    await prisma.registroAcceso.create({
+      data: {
+        userId: params.userId,
+        email: params.email,
+        nombre: params.nombre,
+        metodo: params.metodo,
+        ip: params.ip,
+        dispositivo: params.dispositivo,
+        ubicacion: params.ubicacion,
+      },
+    });
+  } catch (e) {
+    console.error("No se pudo registrar el acceso / comprobar dispositivo nuevo:", e);
+  }
+}
 
 // Registra el intento fallido y, justo en el momento en que este intento
 // concreto hace que se llegue a 5 en los últimos 15 minutos (ni antes ni
@@ -28,10 +83,12 @@ async function registrarIntentoFallido(email: string) {
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
-    // Sesión caduca sola tras 8 horas de inactividad (una jornada de
-    // trabajo) — si sigue habiendo actividad, se renueva sola cada vez
-    // que se toca (updateAge), así que un uso normal nunca se corta.
-    maxAge: 8 * 60 * 60,
+    // Techo máximo de la cookie/token: 30 días, pensado para quien marca
+    // "Recordarme" en el login. Quien lo desmarca se corta antes igualmente
+    // (a las 8h, ver el callback jwt más abajo) aunque el token técnicamente
+    // pudiera durar hasta este límite. Con actividad, se renueva solo cada
+    // vez que se toca (updateAge), así que un uso normal nunca se corta.
+    maxAge: TREINTA_DIAS_S,
     updateAge: 15 * 60,
   },
   pages: {
@@ -43,8 +100,12 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Correo electrónico", type: "email" },
         password: { label: "Contraseña", type: "password" },
+        // Campo invisible (nuestro propio formulario de login no usa la
+        // pantalla que genera NextAuth) — viaja el valor del checkbox
+        // "Recordarme" para decidir cuánto dura la sesión.
+        remember: { label: "Recordarme", type: "text" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
@@ -97,6 +158,19 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        // No se espera aquí: el registro/aviso puede tardar un poco (una
+        // consulta más, y a veces un correo) y no debe retrasar el login,
+        // que ya se ha decidido que es correcto en este punto.
+        registrarAccesoYAvisarSiEsNuevo({
+          userId: user.id,
+          email: user.email,
+          nombre: user.name ?? user.email,
+          metodo: "password",
+          ip: obtenerIp(req?.headers),
+          dispositivo: parseDispositivo(req?.headers?.["user-agent"]),
+          ubicacion: obtenerUbicacion(req?.headers),
+        }).catch((e) => console.error("Error registrando el acceso:", e));
+
         return {
           id: user.id,
           email: user.email,
@@ -104,6 +178,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           schoolId: user.schoolId,
           locale: user.locale,
+          rememberMe: credentials.remember !== "false",
         };
       },
     }),
@@ -176,6 +251,11 @@ export const authOptions: NextAuthOptions = {
           token.userId = dbUser.id;
           token.sub = dbUser.id;
         }
+        // El login con Microsoft no tiene checkbox de "Recordarme" propio
+        // (ya depende de la sesión de Microsoft/Teams del navegador) — se
+        // trata siempre como recordado, sin el tope extra de 8h de abajo.
+        token.rememberMe = true;
+        token.loginTimestamp = Date.now();
         return token;
       }
 
@@ -184,7 +264,19 @@ export const authOptions: NextAuthOptions = {
         token.schoolId = user.schoolId;
         token.locale = user.locale;
         token.userId = user.id;
+        token.rememberMe = user.rememberMe ?? true;
+        token.loginTimestamp = Date.now();
         return token;
+      }
+
+      // Quien ha desmarcado "Recordarme" se queda fuera a las 8h en punto
+      // desde que entró, sin importar que siga con la pestaña abierta y
+      // "tocando" la app (a diferencia del resto, que se renueva solo con
+      // la actividad) — es justo la diferencia que pide ese checkbox.
+      // Comprobación en memoria, sin ir a la base de datos: se hace en
+      // cada petición, no solo una vez por minuto.
+      if (token.rememberMe === false && token.loginTimestamp && Date.now() - token.loginTimestamp > OCHO_HORAS_MS) {
+        throw new Error("SESION_EXPIRADA");
       }
 
       const userId = token.userId ?? token.sub;
@@ -258,24 +350,22 @@ export const authOptions: NextAuthOptions = {
     // authorize()/signIn — el sitio limpio para dejar constancia de
     // "quién ha entrado y cuándo", sin mezclarlo con la lógica que
     // decide si se le deja entrar o no.
+    //
+    // Solo para Microsoft: el login por credenciales ya deja su propio
+    // registro (con IP/dispositivo/ubicación) dentro de authorize(), que
+    // sí tiene acceso a la petición — este evento no lo tiene, así que
+    // para Microsoft el registro se queda sin esos datos, como ya pasaba
+    // antes de añadir el aviso de dispositivo nuevo.
     async signIn({ user, account }) {
-      if (!user?.email) return;
+      if (!user?.email || account?.provider !== "azure-ad") return;
       try {
-        // Con Microsoft, el "user.id" que llega aquí es el id de Azure AD,
-        // no el nuestro — hay que buscar el usuario real de Docentium por
-        // su email para guardar el id correcto (si no, rompería la
-        // relación con la tabla User).
-        let userIdReal: string | null = user.id ?? null;
-        if (account?.provider === "azure-ad") {
-          const dbUser = await prisma.user.findUnique({ where: { email: user.email.toLowerCase() }, select: { id: true } });
-          userIdReal = dbUser?.id ?? null;
-        }
+        const dbUser = await prisma.user.findUnique({ where: { email: user.email.toLowerCase() }, select: { id: true } });
         await prisma.registroAcceso.create({
           data: {
-            userId: userIdReal,
+            userId: dbUser?.id ?? null,
             email: user.email.toLowerCase(),
             nombre: user.name ?? user.email,
-            metodo: account?.provider === "azure-ad" ? "microsoft" : "password",
+            metodo: "microsoft",
           },
         });
       } catch (e) {

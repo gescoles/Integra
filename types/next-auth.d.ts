@@ -5,6 +5,10 @@ declare module "next-auth" {
     role: Role;
     schoolId: string | null;
     locale: Locale;
+    // Solo se rellena en el login por credenciales, a partir del
+    // checkbox "Recordarme" — decide si la sesión dura semanas (30 días)
+    // o se corta a las 8h aunque el navegador siga abierto.
+    rememberMe?: boolean;
   }
 
   interface Session {
@@ -26,5 +30,7 @@ declare module "next-auth/jwt" {
     locale: Locale;
     userId?: string;
     ultimaComprobacion?: number;
+    rememberMe?: boolean;
+    loginTimestamp?: number;
   }
 }

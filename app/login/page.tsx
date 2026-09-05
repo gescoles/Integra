@@ -78,6 +78,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -96,6 +97,7 @@ export default function LoginPage() {
     const result = await signIn("credentials", {
       email,
       password,
+      remember: remember ? "true" : "false",
       redirect: false,
     });
 
@@ -229,10 +231,11 @@ export default function LoginPage() {
                 <label className="flex items-center gap-2 text-sm text-slate-600">
                   <input
                     type="checkbox"
-                    defaultChecked
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
                     className="h-4 w-4 rounded border-slate-300 accent-[#FD5249]"
                   />
-                  Recordarme
+                  Mantener la sesión iniciada en este dispositivo
                 </label>
 
                 <button

@@ -1937,3 +1937,56 @@ export async function sendJustificanteAvisoEmail(params: {
     `,
   });
 }
+
+// Aviso de seguridad al propio usuario: se ha iniciado sesión con su
+// cuenta desde un dispositivo que nunca se había visto antes para él. No
+// se manda en el primerísimo login (no hay nada con qué compararlo) ni
+// cuando el dispositivo ya es conocido.
+export async function sendNuevoDispositivoEmail(params: {
+  to: string;
+  nombre: string;
+  dispositivo: string;
+  ubicacion: string | null;
+  fecha: Date;
+}) {
+  const transporter = getTransporter();
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  const fechaFmt = params.fecha.toLocaleString("es-ES", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  await transporter.sendMail({
+    from: `Docentium <${from}>`,
+    to: params.to,
+    subject: "Nuevo inicio de sesión en tu cuenta de Docentium",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+        <h2 style="color:#B3261E; margin-bottom: 8px;">Nuevo dispositivo detectado</h2>
+        <p>Hola ${params.nombre},</p>
+        <p>Se ha iniciado sesión en tu cuenta de Docentium desde un dispositivo que no reconocemos:</p>
+        <div style="background:#FEF2F2; border-radius:8px; padding:16px; margin:16px 0; border:1px solid #FECACA;">
+          <p style="margin:0;"><strong>Dispositivo:</strong> ${params.dispositivo}</p>
+          <p style="margin:8px 0 0;"><strong>Fecha y hora:</strong> ${fechaFmt}</p>
+          <p style="margin:8px 0 0;"><strong>Ubicación aproximada:</strong> ${params.ubicacion ?? "No disponible"}</p>
+        </div>
+        <p>
+          Si has sido tú, no tienes que hacer nada más — este es solo un aviso automático de seguridad.
+        </p>
+        <p style="font-weight:bold; color:#B3261E;">
+          Si no reconoces este acceso, cambia tu contraseña inmediatamente desde Docentium
+          ("¿Has olvidado tu contraseña?" en la pantalla de inicio de sesión) o ponte en
+          contacto cuanto antes con el administrador de tu centro.
+        </p>
+        <p style="color:#64748B; font-size:13px;">
+          Este correo se ha generado automáticamente desde Docentium por tu seguridad.
+        </p>
+      </div>
+    `,
+  });
+}
