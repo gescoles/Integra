@@ -51,7 +51,7 @@ export async function sendInvitacionMicrosoftEmail(to: string, name: string) {
   const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
   const loginUrl = process.env.NEXTAUTH_URL ? `${process.env.NEXTAUTH_URL}/login` : "https://docentium.org/login";
 
-  await transporter.sendMail({
+  return transporter.sendMail({
     from: `Docentium <${from}>`,
     to,
     subject: "Tu acceso a Docentium",
