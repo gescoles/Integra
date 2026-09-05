@@ -137,6 +137,7 @@ model School {
   justificantesAsistencia     JustificanteAsistencia[]
   proyectos                   Proyecto[]
   calendarioEscolarEventos    CalendarioEscolarEvento[]
+  sugerenciasProfesorado      SugerenciaProfesorado[]
 }
 
 // Departamento del centro (p. ej. "Matemàtiques", "Informàtica"). Cada
@@ -159,7 +160,28 @@ model Departamento {
   certificacionesCatalogo CertificacionCatalogo[]
   empresas                Empresa[]
   alumnos                 Alumno[]
+  sugerencias             SugerenciaProfesorado[]
   createdAt               DateTime                @default(now())
+}
+
+// Sugerencia anónima de un profesor para mejorar el centro. Es "anónima"
+// de verdad: se guarda quién la creó (para que ese profesor pueda ver
+// solo las suyas en su propia lista), pero nunca se expone ese dato en la
+// vista de equipo directivo/Dirección — ni siquiera a ellos.
+model SugerenciaProfesorado {
+  id             String        @id @default(cuid())
+  schoolId       String
+  school         School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  departamentoId String?
+  departamento   Departamento? @relation(fields: [departamentoId], references: [id], onDelete: SetNull)
+  titulo         String
+  detalle        String
+  creadoPorId    String
+  creadoPor      User          @relation(fields: [creadoPorId], references: [id])
+  createdAt      DateTime      @default(now())
+
+  @@index([schoolId])
+  @@index([creadoPorId])
 }
 
 // Una "historia" (como en Instagram) que un centro publica; la ven todos
@@ -467,6 +489,7 @@ model User {
   // permiso activado individualmente (interruptor en el propio módulo).
   puedeEditarCalendarioEscolar  Boolean                   @default(false)
   calendarioEscolarCreados      CalendarioEscolarEvento[]
+  sugerenciasCreadas            SugerenciaProfesorado[]
   alumnos                       Alumno[]
   avisos                        Aviso[]
   noticias                      Noticia[]

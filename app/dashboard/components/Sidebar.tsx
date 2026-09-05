@@ -35,6 +35,7 @@ import {
   HelpCircle,
   ClipboardCheck,
   Layers,
+  Lightbulb,
 } from "lucide-react";
 import { HexLogo } from "@/app/components/Logo";
 import { ROLE_LABELS_FULL } from "../constants";
@@ -136,6 +137,7 @@ const centroModulos: { key: string; href: string; labelKey: TranslationKey; icon
 // se activan si el centro las tiene contratadas ("utilidades" en modules).
 const utilidadesModulos: { key: string; href: string; labelKey: TranslationKey; icon: typeof Users }[] = [
   { key: "utilidades", href: "/dashboard/horario", labelKey: "nav.miHorario", icon: CalendarClock },
+  { key: "utilidades", href: "/dashboard/sugerencias", labelKey: "nav.sugerencias", icon: Lightbulb },
 ];
 
 // "Calendarios" no es un enlace en sí — es la cabecera de sus dos hijos:

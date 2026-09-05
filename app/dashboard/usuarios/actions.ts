@@ -294,6 +294,13 @@ export async function deleteUser(id: string) {
   // cascada sus actuaciones, documentos y el documento PI formal.
   await prisma.alumnoPI.deleteMany({ where: { psicopedagogaId: id } });
 
+  // Más módulos añadidos después (Proyectos, Calendario Escolar,
+  // Sugerencias): su vínculo con el creador también es obligatorio.
+  await prisma.proyectoGrupo.deleteMany({ where: { creadoPorId: id } });
+  await prisma.proyecto.deleteMany({ where: { creadoPorId: id } });
+  await prisma.calendarioEscolarEvento.deleteMany({ where: { creadoPorId: id } });
+  await prisma.sugerenciaProfesorado.deleteMany({ where: { creadoPorId: id } });
+
   // Los mensajes de chat en los que participaba se quedan (con SetNull en
   // la base de datos) — no hace falta borrarlos aquí; la interfaz del
   // chat muestra "Usuario no encontrado" cuando falta el emisor/receptor.
