@@ -74,6 +74,7 @@ export const MODELOS_BACKUP = [
   "proyectoTipoNota",
   "proyectoGrupo",
   "proyectoNota",
+  "calendarioEscolarEvento",
 ] as const;
 
 // Las relaciones muchos-a-muchos de Departamento no son "modelos" propios
@@ -218,6 +219,7 @@ function construirFiltroPorCentro(schoolId: string): Record<string, unknown> {
     proyectoTipoNota: { proyecto: { schoolId } },
     proyectoGrupo: { proyecto: { schoolId } },
     proyectoNota: { proyectoGrupo: { proyecto: { schoolId } } },
+    calendarioEscolarEvento: { schoolId },
   };
 }
 

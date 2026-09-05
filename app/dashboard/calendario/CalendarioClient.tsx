@@ -42,6 +42,8 @@ export function CalendarioClient({
   hourStart,
   hourEnd,
   readOnly = false,
+  schoolId,
+  userId,
 }: {
   dias: DiaData[];
   weekRangeLabel: string;
@@ -49,6 +51,8 @@ export function CalendarioClient({
   hourStart: number;
   hourEnd: number;
   readOnly?: boolean;
+  schoolId?: string;
+  userId?: string;
 }) {
   const { locale } = useLocale();
   const [open, setOpen] = useState(false);
@@ -59,6 +63,15 @@ export function CalendarioClient({
 
   const hours = Array.from({ length: hourEnd - hourStart + 1 }, (_, i) => hourStart + i);
   const gridHeight = (hourEnd - hourStart) * ROW_HEIGHT;
+
+  function hrefSemana(nuevoOffset: number) {
+    const params = new URLSearchParams();
+    params.set("tab", "semana");
+    if (schoolId) params.set("school", schoolId);
+    if (userId) params.set("user", userId);
+    if (nuevoOffset !== 0) params.set("offset", String(nuevoOffset));
+    return `/dashboard/calendario?${params.toString()}`;
+  }
 
   function openModal(dateIso: string) {
     setDefaultDate(dateIso);
@@ -105,7 +118,7 @@ export function CalendarioClient({
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Link
-            href={`/dashboard/calendario?offset=${offset - 1}`}
+            href={hrefSemana(offset - 1)}
             className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -114,14 +127,14 @@ export function CalendarioClient({
             {weekRangeLabel}
           </span>
           <Link
-            href={`/dashboard/calendario?offset=${offset + 1}`}
+            href={hrefSemana(offset + 1)}
             className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
           >
             <ChevronRight className="h-4 w-4" />
           </Link>
           {offset !== 0 && (
             <Link
-              href="/dashboard/calendario"
+              href={hrefSemana(0)}
               className="ml-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-[#FD5249] hover:bg-blue-50"
             >
               {translate(locale, "calendario.hoy")}
