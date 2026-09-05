@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -55,6 +56,14 @@ export default async function UsuariosPage({
   searchParams: { school?: string };
 }) {
   const session = await getServerSession(authOptions);
+
+  // Gestionar usuarios (crear, editar, borrar) es cosa exclusiva de
+  // SuperAdmin — nadie más debería poder ni siquiera ver esta pantalla,
+  // aunque escriba la URL directamente.
+  if (session?.user.role !== "SUPERADMIN") {
+    redirect("/dashboard");
+  }
+
   const locale = session?.user.locale ?? "ES";
   const userName =
     session?.user.name || session?.user.email.split("@")[0] || "SuperAdmin";

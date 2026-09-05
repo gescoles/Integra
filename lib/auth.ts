@@ -100,10 +100,6 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Correo electrónico", type: "email" },
         password: { label: "Contraseña", type: "password" },
-        // Campo invisible (nuestro propio formulario de login no usa la
-        // pantalla que genera NextAuth) — viaja el valor del checkbox
-        // "Recordarme" para decidir cuánto dura la sesión.
-        remember: { label: "Recordarme", type: "text" },
       },
       async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
@@ -178,7 +174,10 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           schoolId: user.schoolId,
           locale: user.locale,
-          rememberMe: credentials.remember !== "false",
+          // Valor de partida hasta que el login le pregunte de verdad (justo
+          // después, ya con la sesión creada) y lo ajuste con el trigger
+          // "update" del callback jwt, más abajo.
+          rememberMe: true,
         };
       },
     }),
@@ -238,7 +237,20 @@ export const authOptions: NextAuthOptions = {
     // material...) se guardaría con el centro/rol VIEJO sin que nadie lo note.
     // Por eso releemos el usuario en cada petición y mantenemos el token
     // siempre sincronizado con la base de datos.
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger, session }) {
+      // Respuesta al popup de "¿Mantener la sesión iniciada?" que se
+      // muestra justo después de validar la contraseña (app/login/page.tsx,
+      // vía su propia llamada a /api/auth/session — no usamos
+      // useSession().update() porque la app no tiene <SessionProvider />).
+      // Reinicia el reloj de las 8h desde este mismo instante, que es
+      // cuando de verdad se conoce la respuesta.
+      if (trigger === "update" && session && typeof session.remember === "boolean") {
+        token.rememberMe = session.remember;
+        token.loginTimestamp = Date.now();
+        return token;
+      }
+
+
       // Login por Microsoft: el "user" que da Azure AD no trae nuestros
       // campos (role, schoolId...) — hay que ir a buscar el usuario real de
       // Docentium por su email para poder rellenar el token.

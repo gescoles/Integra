@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { signIn, getCsrfToken } from "next-auth/react";
 import {
   ArrowLeft,
   Mail,
@@ -73,14 +73,31 @@ function BadgeIcon({
   );
 }
 
+// Igual que useSession().update(), pero sin necesitar <SessionProvider />
+// envolviendo toda la app (que aquí no existe — el resto de Docentium lee
+// la sesión en el servidor con getServerSession, nunca en el cliente):
+// actualiza el JWT ya emitido llamando directamente al mismo endpoint
+// interno que usa NextAuth, disparando trigger:"update" en el callback jwt.
+async function actualizarSesion(data: Record<string, unknown>) {
+  const csrfToken = await getCsrfToken();
+  await fetch("/api/auth/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ csrfToken, data }),
+  });
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Tras validar la contraseña, antes de entrar del todo, se le pregunta
+  // si quiere que el dispositivo recuerde la sesión — un paso aparte, no
+  // un checkbox perdido en el formulario, para que se note de verdad.
+  const [preguntandoRecordar, setPreguntandoRecordar] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -97,7 +114,6 @@ export default function LoginPage() {
     const result = await signIn("credentials", {
       email,
       password,
-      remember: remember ? "true" : "false",
       redirect: false,
     });
 
@@ -107,6 +123,17 @@ export default function LoginPage() {
       return;
     }
 
+    setLoading(false);
+    setPreguntandoRecordar(true);
+  }
+
+  async function responderRecordar(recordar: boolean) {
+    setPreguntandoRecordar(false);
+    setLoading(true);
+    // Actualiza el token ya emitido con la decisión — así la sesión sabe
+    // desde este mismo instante si tiene que cortarse a las 8h o puede
+    // durar hasta 30 días (ver el callback jwt en lib/auth.ts).
+    await actualizarSesion({ remember: recordar });
     // Dejamos "loading" activo (mostrando el overlay de "Entrando...") hasta
     // que la navegación al dashboard se complete; así no hay ningún momento
     // en el que la pantalla parezca congelada entre el login y el panel.
@@ -120,6 +147,35 @@ export default function LoginPage() {
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-white/90 backdrop-blur-sm">
           <AssemblingLogo size={140} />
           <p className="text-sm font-medium text-slate-500">Entrando a tu panel…</p>
+        </div>
+      )}
+
+      {preguntandoRecordar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-50">
+              <ShieldCheck className="h-6 w-6 text-[#FD5249]" />
+            </div>
+            <h2 className="mb-2 text-lg font-bold text-[#0B1D4D]">¿Mantener la sesión iniciada?</h2>
+            <p className="mb-6 text-sm text-slate-500">
+              Si dices que sí, este dispositivo recordará tu sesión hasta 30 días. Si dices que no, se
+              cerrará sola a las 8 horas.
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                onClick={() => responderRecordar(false)}
+                className="flex-1 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                No, en este dispositivo no
+              </button>
+              <button
+                onClick={() => responderRecordar(true)}
+                className="flex-1 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]"
+              >
+                Sí, mantener sesión
+              </button>
+            </div>
+          </div>
         </div>
       )}
       <div className="grid flex-1 lg:grid-cols-2">
@@ -227,16 +283,6 @@ export default function LoginPage() {
                     ¿Has olvidado tu contraseña?
                   </Link>
                 </div>
-
-                <label className="flex items-center gap-2 text-sm text-slate-600">
-                  <input
-                    type="checkbox"
-                    checked={remember}
-                    onChange={(e) => setRemember(e.target.checked)}
-                    className="h-4 w-4 rounded border-slate-300 accent-[#FD5249]"
-                  />
-                  Mantener la sesión iniciada en este dispositivo
-                </label>
 
                 <button
                   type="submit"

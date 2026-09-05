@@ -10,7 +10,12 @@ export type ResultadoBusquedaGlobal = {
   id: string;
   titulo: string;
   subtitulo: string | null;
-  href: string;
+  // Solo se rellena cuando existe de verdad una página propia de ese
+  // registro a la que ir (hoy en día, solo Empresas la tiene). Alumnos,
+  // profesorado y grupos no tienen ficha propia en ninguna URL — su
+  // información completa se muestra aquí mismo, en el modal flotante, así
+  // que no hay ningún sitio real al que enviar a nadie con un botón.
+  href: string | null;
   // Pares etiqueta/valor con la información completa, para mostrar en
   // la ficha flotante sin tener que navegar a otra pantalla.
   detalle: { label: string; value: string }[];
@@ -44,7 +49,15 @@ export async function buscarGlobal(query: string): Promise<ResultadoBusquedaGlob
         role: { in: ["PROFESOR", "COORDINADOR", "ADMIN_CENTRO", "ADMINISTRACION", "DIRECCION"] },
         OR: [{ name: { contains: texto, mode: "insensitive" } }, { email: { contains: texto, mode: "insensitive" } }],
       },
-      select: { id: true, name: true, email: true, role: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        departamentos: {
+          select: { nombre: true, coordinadores: { select: { id: true, name: true, email: true } } },
+        },
+      },
       take: 6,
     }),
     prisma.empresa.findMany({
@@ -69,7 +82,7 @@ export async function buscarGlobal(query: string): Promise<ResultadoBusquedaGlob
       id: a.id,
       titulo: a.nombre,
       subtitulo: a.curso,
-      href: "/dashboard/mis-alumnos",
+      href: null,
       detalle: [
         { label: "Curso / grupo", value: a.curso },
         { label: "Tutor/a", value: a.profesor.name ?? a.profesor.email },
@@ -82,15 +95,28 @@ export async function buscarGlobal(query: string): Promise<ResultadoBusquedaGlob
   }
 
   for (const p of profesores) {
+    const nombresDepartamentos = p.departamentos.map((d) => d.nombre).join(", ");
+    // Coordinadores de sus departamentos, sin repetir y sin contarse a sí
+    // mismo si él mismo coordina alguno de los suyos.
+    const coordinadoresUnicos = new Map<string, string>();
+    for (const d of p.departamentos) {
+      for (const c of d.coordinadores) {
+        if (c.id !== p.id) coordinadoresUnicos.set(c.id, c.name ?? c.email);
+      }
+    }
+    const nombresCoordinadores = Array.from(coordinadoresUnicos.values()).join(", ");
+
     resultados.push({
       tipo: "profesor",
       id: p.id,
       titulo: p.name ?? p.email,
       subtitulo: ROLE_LABELS_FULL[p.role] ?? p.role,
-      href: "/dashboard/usuarios",
+      href: null,
       detalle: [
         { label: "Rol", value: ROLE_LABELS_FULL[p.role] ?? p.role },
         { label: "Correo", value: p.email },
+        { label: "Departamento", value: nombresDepartamentos || "Sin departamento asignado" },
+        ...(nombresCoordinadores ? [{ label: "Coordinador/a", value: nombresCoordinadores }] : []),
       ],
     });
   }
@@ -120,7 +146,7 @@ export async function buscarGlobal(query: string): Promise<ResultadoBusquedaGlob
       id: g,
       titulo: g,
       subtitulo: "Grupo / ciclo",
-      href: "/dashboard/mis-alumnos",
+      href: null,
       detalle: [{ label: "Alumnos en este grupo", value: String(totalAlumnos) }],
     });
   }

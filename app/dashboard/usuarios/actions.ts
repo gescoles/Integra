@@ -10,8 +10,19 @@ import { generatePassword } from "@/lib/generatePassword";
 import { sendPasswordEmail, sendInvitacionMicrosoftEmail } from "@/lib/email";
 import { generateAvatarUrl } from "@/lib/avatar";
 
-export async function createUser(formData: FormData) {
+// Gestionar usuarios (crear, editar, borrar, ver su historial) es cosa
+// exclusiva de SuperAdmin. Antes estas acciones no comprobaban el rol de
+// quien las llamaba — cualquier usuario con sesión iniciada podía crear,
+// editar o incluso borrar a otros, aunque el enlace del menú solo se
+// mostrara a SuperAdmin (eso solo escondía el botón, no protegía nada).
+async function requireSuperAdmin() {
   const session = await getServerSession(authOptions);
+  if (session?.user.role !== "SUPERADMIN") throw new Error("No autorizado.");
+  return session;
+}
+
+export async function createUser(formData: FormData) {
+  const session = await requireSuperAdmin();
   const name = (formData.get("name") as string)?.trim();
   const email = (formData.get("email") as string)?.trim().toLowerCase();
   const dni = (formData.get("dni") as string)?.trim();
@@ -131,7 +142,7 @@ export async function createUser(formData: FormData) {
 }
 
 export async function updateUser(formData: FormData) {
-  const session = await getServerSession(authOptions);
+  const session = await requireSuperAdmin();
   const id = formData.get("id") as string;
   const role = formData.get("role") as Role;
   const status = formData.get("status") as UserStatus;
@@ -219,6 +230,7 @@ export async function updateUser(formData: FormData) {
 }
 
 export async function getUserDeleteImpact(id: string) {
+  await requireSuperAdmin();
   const [tutorias, guardias, material, alumnos] = await Promise.all([
     prisma.tutoria.count({ where: { profesorId: id } }),
     prisma.guardia.count({ where: { profesorId: id } }),
@@ -233,7 +245,7 @@ export async function deleteUser(id: string) {
     throw new Error("Falta el identificador del usuario.");
   }
 
-  const session = await getServerSession(authOptions);
+  const session = await requireSuperAdmin();
   if (session?.user.id === id) {
     throw new Error("No puedes eliminar tu propio usuario mientras tienes la sesión iniciada.");
   }
@@ -293,6 +305,7 @@ export async function deleteUser(id: string) {
 // Historial de un usuario concreto: todo lo que se le ha hecho, quién y
 // cuándo — para el "Ver historial" del menú de 3 puntos.
 export async function obtenerHistorialUsuario(userId: string) {
+  await requireSuperAdmin();
   const historial = await prisma.userHistorial.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },

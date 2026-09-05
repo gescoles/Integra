@@ -135,13 +135,15 @@ export function BuscadorGlobal() {
               )}
             </div>
 
-            <Link
-              href={seleccionado.href}
-              onClick={() => setSeleccionado(null)}
-              className="flex items-center justify-center gap-1.5 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]"
-            >
-              Ver ficha completa <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
+            {seleccionado.href && (
+              <Link
+                href={seleccionado.href}
+                onClick={() => setSeleccionado(null)}
+                className="flex items-center justify-center gap-1.5 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E]"
+              >
+                Ver ficha completa <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            )}
           </div>
         </div>
       )}
