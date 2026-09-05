@@ -26,6 +26,7 @@ type DiaData = {
   label: string;
   isToday: boolean;
   items: Item[];
+  escolares: { id: string; titulo: string; festivo: boolean }[];
 };
 
 const ROW_HEIGHT = 56; // px por hora
@@ -177,6 +178,34 @@ export function CalendarioClient({
               )}
             </div>
           ))}
+
+          {/* Fechas del calendario escolar (festivos, exámenes, claustros...)
+              que se solapan con esta semana — se marcan igual en el
+              calendario de cualquier profesor del centro, no solo de quien
+              las creó. Franja de "todo el día", sin hora concreta. */}
+          {dias.some((d) => d.escolares.length > 0) && (
+            <>
+              <div className="border-b border-r border-slate-100" />
+              {dias.map((dia) => (
+                <div
+                  key={`escolar-${dia.dateIso}`}
+                  className="space-y-1 border-b border-r border-slate-100 p-1 last:border-r-0"
+                >
+                  {dia.escolares.map((e) => (
+                    <div
+                      key={e.id}
+                      title={e.titulo}
+                      className={`truncate rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                        e.festivo ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {e.titulo}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </>
+          )}
 
           {/* Columna de horas */}
           <div className="relative border-r border-slate-100" style={{ height: gridHeight }}>

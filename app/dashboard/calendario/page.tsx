@@ -64,26 +64,12 @@ export default async function CalendarioPage({
         obtenerProfesoresConPermisoCalendario(schoolId),
       ]);
 
-      const monday = getWeekStart(0);
-      const sunday = addDays(monday, 6);
-      const eventosEstaSemana = eventos.filter(
-        (e) => new Date(e.fechaInicio) <= sunday && new Date(e.fechaFin) >= monday
-      );
-
       return (
         <div>
           <DashboardHeader title="Calendario Escolar" subtitle="Fechas oficiales del curso: festivos, trimestres, exámenes..." userName={session.user.name ?? ""} role="SUPERADMIN" />
           <SchoolSwitcher schools={schools} currentSchoolId={schoolId} locale={locale} basePath="/dashboard/calendario" />
           <CalendarioTabs tab="escolar" schoolId={schoolId} />
-          <CalendarioEscolarClient
-            eventos={eventos}
-            eventosEstaSemana={eventosEstaSemana}
-            semanaLabel={formatWeekRange(monday)}
-            puedeEditar
-            esSuperAdmin
-            schoolId={schoolId}
-            profesores={profesores}
-          />
+          <CalendarioEscolarClient eventos={eventos} puedeEditar esSuperAdmin schoolId={schoolId} profesores={profesores} />
         </div>
       );
     }
@@ -115,23 +101,11 @@ export default async function CalendarioPage({
       obtenerPermisoPropioCalendarioEscolar(),
     ]);
 
-    const monday = getWeekStart(0);
-    const sunday = addDays(monday, 6);
-    const eventosEstaSemana = eventos.filter(
-      (e) => new Date(e.fechaInicio) <= sunday && new Date(e.fechaFin) >= monday
-    );
-
     return (
       <div>
         <DashboardHeader title="Calendario Escolar" subtitle="Fechas oficiales del curso: festivos, trimestres, exámenes..." userName={session.user.name ?? ""} role={session.user.role} notificationCount={0} />
         <CalendarioTabs tab="escolar" />
-        <CalendarioEscolarClient
-          eventos={eventos}
-          eventosEstaSemana={eventosEstaSemana}
-          semanaLabel={formatWeekRange(monday)}
-          puedeEditar={puedeEditar}
-          esSuperAdmin={false}
-        />
+        <CalendarioEscolarClient eventos={eventos} puedeEditar={puedeEditar} esSuperAdmin={false} />
       </div>
     );
   }
@@ -215,7 +189,7 @@ export default async function CalendarioPage({
     );
   }
 
-  const [horarioBloques, eventos, tutorias, guardias] = await Promise.all([
+  const [horarioBloques, eventos, tutorias, guardias, eventosEscolares] = await Promise.all([
     prisma.horarioBloque.findMany({ where: { profesorId: targetUserId } }),
     prisma.calendarEvento.findMany({
       where: { userId: targetUserId, fecha: { gte: monday, lte: sundayEnd } },
@@ -230,6 +204,14 @@ export default async function CalendarioPage({
           where: { profesorId: targetUserId, fecha: { gte: monday, lte: sundayEnd } },
         })
       : Promise.resolve([]),
+    // Fechas del calendario escolar (festivos, exámenes, claustros...) que
+    // se solapan con esta semana — se marcan en el calendario de TODOS los
+    // profesores del centro, no solo de quien las creó.
+    targetSchoolId
+      ? prisma.calendarioEscolarEvento.findMany({
+          where: { schoolId: targetSchoolId, fechaInicio: { lte: sundayEnd }, fechaFin: { gte: monday } },
+        })
+      : Promise.resolve([]),
   ]);
 
   const dias = Array.from({ length: 7 }, (_, i) => {
@@ -237,6 +219,14 @@ export default async function CalendarioPage({
     const dateIso = isoDate(date);
     const diaSemana = i + 1; // Lunes=1 ... Domingo=7
     const today = isoDate(new Date()) === dateIso;
+
+    const diaInicio = new Date(date);
+    diaInicio.setHours(0, 0, 0, 0);
+    const diaFin = new Date(date);
+    diaFin.setHours(23, 59, 59, 999);
+    const escolares = eventosEscolares
+      .filter((e) => e.fechaInicio <= diaFin && e.fechaFin >= diaInicio)
+      .map((e) => ({ id: e.id, titulo: e.titulo, festivo: e.festivo }));
 
     const items = [
       // Horario semanal recurrente — solo lectura aquí, se edita en "Mi horario"
@@ -302,6 +292,7 @@ export default async function CalendarioPage({
       label: date.toLocaleDateString("es-ES", { weekday: "long", day: "2-digit", month: "2-digit" }),
       isToday: today,
       items,
+      escolares,
     };
   });
 

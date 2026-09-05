@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Home,
   Landmark,
@@ -135,8 +135,16 @@ const centroModulos: { key: string; href: string; labelKey: TranslationKey; icon
 // Utilidades (Calendario y Horario): igual que los módulos de arriba, solo
 // se activan si el centro las tiene contratadas ("utilidades" en modules).
 const utilidadesModulos: { key: string; href: string; labelKey: TranslationKey; icon: typeof Users }[] = [
-  { key: "utilidades", href: "/dashboard/calendario", labelKey: "nav.calendario", icon: CalendarDays },
   { key: "utilidades", href: "/dashboard/horario", labelKey: "nav.miHorario", icon: CalendarClock },
+];
+
+// "Calendarios" no es un enlace en sí — es la cabecera de sus dos hijos:
+// "Mi semana" (horario/tutorías/guardias propias) y "Calendario Escolar"
+// (fechas oficiales del centro). Va aparte del array de arriba porque no
+// es un módulo con un único href, sino un grupo de dos.
+const calendariosHijos: { href: string; labelKey: TranslationKey }[] = [
+  { href: "/dashboard/calendario?tab=semana", labelKey: "nav.calendarioMiSemana" },
+  { href: "/dashboard/calendario?tab=escolar", labelKey: "nav.calendarioEscolarChild" },
 ];
 
 // Funcionalidades que todavía no existen para nadie, independientemente del plan
@@ -161,6 +169,8 @@ export function Sidebar({
   contractedModules?: string[];
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const calendarioTabActivo = searchParams.get("tab") === "semana" ? "semana" : "escolar";
   const { locale } = useLocale();
   const { totalNoLeidos, abrir: abrirChat, notificaciones: notificacionesChat } = useChatInterno();
   const doqui = useDoqui();
@@ -201,9 +211,11 @@ export function Sidebar({
       ? translate(locale, "nav.inicio")
       : pathname === "/dashboard/mis-alumnos"
         ? translate(locale, "nav.misAlumnos")
-        : itemActual
-          ? translate(locale, itemActual.labelKey)
-          : "Docentium";
+        : pathname === "/dashboard/calendario"
+          ? translate(locale, "nav.calendario")
+          : itemActual
+            ? translate(locale, itemActual.labelKey)
+            : "Docentium";
 
   // En cuanto se navega a otra página, cerramos el menú deslizante del
   // móvil solo — así no hay que acordarse de cerrarlo a mano en cada enlace.
@@ -598,6 +610,47 @@ export function Sidebar({
             <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
               {translate(locale, "nav.utilidades")}
             </div>
+
+            {/* "Calendarios" no es un enlace propio, es la cabecera de sus
+                dos hijos (Mi semana / Calendario Escolar) — igual de
+                contratada/bloqueada que el resto de Utilidades. */}
+            {contractedModules.includes("utilidades") ? (
+              <div className="mb-1">
+                <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400">
+                  <CalendarDays className="h-4 w-4" />
+                  {translate(locale, "nav.calendario")}
+                </div>
+                {calendariosHijos.map((hijo) => {
+                  const tabDeHijo = hijo.href.includes("tab=semana") ? "semana" : "escolar";
+                  const active = pathname === "/dashboard/calendario" && calendarioTabActivo === tabDeHijo;
+                  return (
+                    <Link
+                      key={hijo.href}
+                      href={hijo.href}
+                      className={`ml-6 flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                        active
+                          ? "bg-[#FD5249] text-white"
+                          : "text-slate-400 hover:bg-white/5 hover:text-white"
+                      }`}
+                    >
+                      {translate(locale, hijo.labelKey)}
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <div
+                title={translate(locale, "nav.moduloNoContratado")}
+                className="mb-1 flex cursor-not-allowed items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-slate-500"
+              >
+                <span className="flex items-center gap-3">
+                  <CalendarDays className="h-4 w-4" />
+                  {translate(locale, "nav.calendario")}
+                </span>
+                <Lock className="h-3.5 w-3.5 text-slate-500" />
+              </div>
+            )}
+
             {[...utilidadesModulos]
               .sort((a, b) => {
                 const aContratado = contractedModules.includes(a.key);

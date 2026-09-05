@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
-import { crearEventoCalendarioEscolar, actualizarEventoCalendarioEscolar } from "./escolarActions";
+import { X, Trash2 } from "lucide-react";
+import { crearEventoCalendarioEscolar, actualizarEventoCalendarioEscolar, eliminarEventoCalendarioEscolar } from "./escolarActions";
 import { ButtonSpinner } from "../components/ButtonSpinner";
 
 export type EventoEditable = {
@@ -32,6 +32,21 @@ export function CalendarioEscolarEventoModal({
   function handleClose() {
     if (pending) return;
     onClose();
+  }
+
+  async function handleEliminar() {
+    if (!editing) return;
+    if (!confirm(`¿Eliminar "${editing.titulo}"?`)) return;
+    setPending(true);
+    setError(null);
+    try {
+      await eliminarEventoCalendarioEscolar(editing.id);
+      router.refresh();
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo eliminar.");
+      setPending(false);
+    }
   }
 
   async function handleSubmit(formData: FormData) {
@@ -117,22 +132,36 @@ export function CalendarioEscolarEventoModal({
             Es festivo / no lectivo
           </label>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={pending}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
-            >
-              {pending && <ButtonSpinner />}
-              {pending ? "Guardando..." : "Guardar"}
-            </button>
+          <div className="flex items-center justify-between gap-2 pt-2">
+            {editing ? (
+              <button
+                type="button"
+                onClick={handleEliminar}
+                disabled={pending}
+                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
+              >
+                <Trash2 className="h-4 w-4" /> Eliminar
+              </button>
+            ) : (
+              <span />
+            )}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleClose}
+                className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={pending}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#FD5249] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D7463E] disabled:opacity-60"
+              >
+                {pending && <ButtonSpinner />}
+                {pending ? "Guardando..." : "Guardar"}
+              </button>
+            </div>
           </div>
         </form>
       </div>
