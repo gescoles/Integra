@@ -196,7 +196,7 @@ export function CalendarioClient({
                       key={e.id}
                       title={e.titulo}
                       className={`animate-pulse truncate rounded-md px-2 py-1 text-xs font-bold shadow-sm ${
-                        e.festivo ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-[#0B1D4D]"
+                        e.festivo ? "bg-emerald-100 text-emerald-700" : "bg-indigo-100 text-indigo-700"
                       }`}
                     >
                       {e.titulo}
